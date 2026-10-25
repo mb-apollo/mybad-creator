@@ -1,0 +1,216 @@
+{
+ "pack": "mybad-creator-3d",
+ "version": 1,
+ "files": [
+  {
+   "game": "valorant",
+   "key": "astra",
+   "path": "valorant/astra.glb",
+   "size": 2893404,
+   "sha256": "b3e418f310874f91d53a8366de339cdc87bccb14bc5002b00cd3d31e22d34acb"
+  },
+  {
+   "game": "valorant",
+   "key": "breach",
+   "path": "valorant/breach.glb",
+   "size": 2625208,
+   "sha256": "05789e575dc1031b9b3f37d657992ab2ab58b192be5e2235ed9439342c228dc8"
+  },
+  {
+   "game": "valorant",
+   "key": "brimstone",
+   "path": "valorant/brimstone.glb",
+   "size": 2423940,
+   "sha256": "3f6c4f565b09c2b76de72aaf3861c35d95a103d047811c7b74cf0235d39e481b"
+  },
+  {
+   "game": "valorant",
+   "key": "chamber",
+   "path": "valorant/chamber.glb",
+   "size": 6714292,
+   "sha256": "1e579d2366df1861838a672525a9ce20840fbdedb88bd4fd97f887c86eb44bfe"
+  },
+  {
+   "game": "valorant",
+   "key": "clove",
+   "path": "valorant/clove.glb",
+   "size": 1752560,
+   "sha256": "64aecfcc9524626cc3ce5fec87b4821cf35271bb3c1087f6a9562140628b65d9"
+  },
+  {
+   "game": "valorant",
+   "key": "cypher",
+   "path": "valorant/cypher.glb",
+   "size": 1767228,
+   "sha256": "755df72efefac6f6b3369532ae21be34f96f2a09ebdf9f9be168395aa382ba3d"
+  },
+  {
+   "game": "valorant",
+   "key": "deadlock",
+   "path": "valorant/deadlock.glb",
+   "size": 2474404,
+   "sha256": "4315332944d0ad60a294e237e7a144b727fdc93beb85f3514d0e1835ab4bdc14"
+  },
+  {
+   "game": "valorant",
+   "key": "fade",
+   "path": "valorant/fade.glb",
+   "size": 2257140,
+   "sha256": "a57a1fe182030a2f928d2fb1609915071644a5fe0feab3d5d37df11d2d6a32ad"
+  },
+  {
+   "game": "valorant",
+   "key": "gekko",
+   "path": "valorant/gekko.glb",
+   "size": 1840700,
+   "sha256": "01220974346790b54703a948d4c7703f05b2d6ebef27744f8ee726628ae87da7"
+  },
+  {
+   "game": "valorant",
+   "key": "harbor",
+   "path": "valorant/harbor.glb",
+   "size": 2221924,
+   "sha256": "57f4032b4fbf705268791aa14ffb638400e8905067bdeef125b807b1002d00a2"
+  },
+  {
+   "game": "valorant",
+   "key": "iso",
+   "path": "valorant/iso.glb",
+   "size": 2144436,
+   "sha256": "b4b66cad569969000794d975cdafdd823eea92db3dc68c52a213e0f02ee18632"
+  },
+  {
+   "game": "valorant",
+   "key": "jett",
+   "path": "valorant/jett.glb",
+   "size": 3305656,
+   "sha256": "2060c2037dfa06c149963a8138a3b8d98326dfb0a5cd0587d3e610e584478b01"
+  },
+  {
+   "game": "valorant",
+   "key": "kayo",
+   "path": "valorant/kayo.glb",
+   "size": 3106368,
+   "sha256": "1ea020bfe03be955c07db3b6d0d0ecddfc7c6a3e68b66012d0e906196c019c4c"
+  },
+  {
+   "game": "valorant",
+   "key": "killjoy",
+   "path": "valorant/killjoy.glb",
+   "size": 1994592,
+   "sha256": "d1372b63d0ee51d2bd54cf79bd2ca6c54842e2be7a94acadeaa271be9b814ee0"
+  },
+  {
+   "game": "valorant",
+   "key": "neon",
+   "path": "valorant/neon.glb",
+   "size": 2935764,
+   "sha256": "638bc134698c6875d9404567d4193a0140455e59edbfb1510113bace7e4383c2"
+  },
+  {
+   "game": "valorant",
+   "key": "omen",
+   "path": "valorant/omen.glb",
+   "size": 1819768,
+   "sha256": "ad88c013d45b3daae9dd2cc9ffb8f48eb41f64cf127f91db80a05785edbd3f77"
+  },
+  {
+   "game": "valorant",
+   "key": "phoenix",
+   "path": "valorant/phoenix.glb",
+   "size": 2097116,
+   "sha256": "a9d667c1a0ee13a6a460e6e950622e45b6b6975466bd395ab4efecd41259867e"
+  },
+  {
+   "game": "valorant",
+   "key": "raze",
+   "path": "valorant/raze.glb",
+   "size": 2497420,
+   "sha256": "7f401d0677cafaf70fab9eaa9640495ea2d481c49f49b0357c4c277c79d7ae9e"
+  },
+  {
+   "game": "valorant",
+   "key": "reyna",
+   "path": "valorant/reyna.glb",
+   "size": 2749824,
+   "sha256": "49debdd620bba064f4991d2fdf4f6e10bc0307754e93bfe8a0262d52ea6228ac"
+  },
+  {
+   "game": "valorant",
+   "key": "sage",
+   "path": "valorant/sage.glb",
+   "size": 2580484,
+   "sha256": "7970d0200f4ed98c4f9f14a38c2a316eafa70f4d4e78d038ab19b14e825e879d"
+  },
+  {
+   "game": "valorant",
+   "key": "skye",
+   "path": "valorant/skye.glb",
+   "size": 2287556,
+   "sha256": "181edf691733b014211185d7d36903f2ec8cc1abff9fe5d47111f627a7b27863"
+  },
+  {
+   "game": "valorant",
+   "key": "sova",
+   "path": "valorant/sova.glb",
+   "size": 2894016,
+   "sha256": "968e48e138f7cce21e4b8243308c1000467fd6e45d534bb01d68aff90e6bee53"
+  },
+  {
+   "game": "valorant",
+   "key": "tejo",
+   "path": "valorant/tejo.glb",
+   "size": 2611488,
+   "sha256": "e0b0dff7a82711912ae820d5d72b2d1a8739057c2381a83930a7232105be6fb7"
+  },
+  {
+   "game": "valorant",
+   "key": "viper",
+   "path": "valorant/viper.glb",
+   "size": 2581720,
+   "sha256": "508559098db0d99c829e04a5e2f52d722fbd2821a52c7f86fe92764ba463d697"
+  },
+  {
+   "game": "valorant",
+   "key": "vyse",
+   "path": "valorant/vyse.glb",
+   "size": 2181388,
+   "sha256": "b67e1d448c191bbf4f6717d0b62e0918b4fdf21e74db5b92a0871227f3de673c"
+  },
+  {
+   "game": "valorant",
+   "key": "waylay",
+   "path": "valorant/waylay.glb",
+   "size": 3080468,
+   "sha256": "452604b78e048d24f71d956d930f5115bc4edcd70c7de86cc07a6adb2ace128e"
+  },
+  {
+   "game": "valorant",
+   "key": "yoru",
+   "path": "valorant/yoru.glb",
+   "size": 2278496,
+   "sha256": "c88ae2540926ca6cf05720284de8dad00dafaacda730a6060acc0198042a050d"
+  },
+  {
+   "game": "rl",
+   "key": "dominus",
+   "path": "rl/dominus.glb",
+   "size": 2057932,
+   "sha256": "68e9f149e36a737133aae93bb6800c6945f6785c254a2976fcb245bcd1d45c32"
+  },
+  {
+   "game": "rl",
+   "key": "fennec",
+   "path": "rl/fennec.glb",
+   "size": 5643548,
+   "sha256": "54731d1e6d6a4d55f0c28836bcb769ee535bef8efa8a1178ceda8047dcd21e5d"
+  },
+  {
+   "game": "rl",
+   "key": "octane",
+   "path": "rl/octane.glb",
+   "size": 2227756,
+   "sha256": "7997420d65a7eeb0c79353f77c097eed51d2428959936eb5116a275db9ed3004"
+  }
+ ]
+}

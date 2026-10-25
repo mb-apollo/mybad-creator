@@ -5,15 +5,11 @@ effets, détourage automatique, modèles 3D (.glb) et mise à jour en un clic.
 
 ## Publier une mise à jour
 
-1. Modifier le code, puis augmenter `version` dans `package.json` (ex. `2.0.1`).
-2. Faire un commit et créer un tag du même numéro :
-   ```
-   git commit -am "Version 2.0.1"
-   git tag v2.0.1
-   git push && git push --tags
-   ```
-3. GitHub Actions construit l'installateur et publie la release (onglet *Actions* du dépôt).
-4. Dans le logiciel, le bouton **Mise à jour** apparaît : un clic télécharge, un second redémarre et installe.
+1. Modifier le code, puis augmenter `version` dans `package.json` (ex. `2.0.1`) et pousser sur `main`.
+2. Sur GitHub : onglet **Actions** › **Publier une version** › **Run workflow**
+   (ou pousser un tag `v2.0.1`, qui lance la même chose).
+3. Environ 10 minutes plus tard, la release est publiée avec l'installateur.
+4. Dans le logiciel, le bouton **Mise à jour** apparaît au démarrage : un clic télécharge, un second redémarre et installe.
 
 ## Développement
 

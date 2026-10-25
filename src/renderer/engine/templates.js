@@ -67,11 +67,14 @@ function emblemAt(cx, cy, h, o = {}) {
 function agentImage(ctx, field, box, o = {}) {
   if (ctx.use3d) {
     const car = ctx.game === 'rl';
+    // Le fondu pixel découpe les jambes des modèles 3D : on le remplace par un fondu doux vers le bas.
+    let fx = o.fx ? JSON.parse(JSON.stringify(o.fx)) : undefined;
+    if (fx && fx.smear) { delete fx.smear; delete fx.smearCut; if (!car) fx.fade = { on: true, dir: 'bottom', amount: 0.28 }; }
     return {
       type: 'model', name: (o.name || 'Render').replace('Render', 'Modèle 3D'), model: '@' + field, ...box, rot: 0,
       rotY: o.rotY ?? (car ? 35 : 10), camPitch: car ? 12 : 4, zoom3d: 1, target: 0.5, fov: 28, anim: 0, animTime: 0,
       key: { color: '#cfd8ff', intensity: 1, angle: -30 }, rim: { color: '$glow', intensity: 5.5, angle: 160 }, fill: { color: '$glow', intensity: 0.7 }, ambient: { color: '$glow', intensity: 0.8 },
-      reflect: !!o.reflect, contact: true, opacity: o.opacity, fx: o.fx,
+      reflect: !!o.reflect, contact: true, opacity: o.opacity, fx,
     };
   }
   return image({ name: o.name || 'Render', asset: '@' + field, ph: 'agent', phField: field, ...box, ...o });

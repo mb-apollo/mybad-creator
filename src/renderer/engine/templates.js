@@ -7,7 +7,7 @@ const text = o => ({ type: 'text', name: o.name || 'Texte', fontRole: 'display',
 const shape = o => ({ type: 'shape', name: o.name || 'Forme', fill: null, stroke: null, strokeWidth: 2, rot: 0, ...o });
 const image = o => ({ type: 'image', name: o.name || 'Image', fit: 'contain', anchor: 'bottom', rot: 0, ...o });
 const effect = o => ({ type: 'effect', name: o.name || 'Effet', locked: true, rot: 0, seed: 7, ...o });
-const emblem = o => ({ type: 'emblem', name: 'Emblème MyBad', color: '$text', rot: 0, ...o });
+const emblem = o => ({ type: 'emblem', name: 'Logo de la structure', asset: 'u:logo', rot: 0, ...o });
 const ctext = (cx, y, w, o) => text({ x: cx - w / 2, w, y, ...o });
 
 const scriptT = (o) => text({ fontRole: 'script', font: 'Great Vibes', weight: 400, upper: false, ascent: 0.95, ...o });
@@ -44,7 +44,19 @@ function frame(ctx, labels = {}) {
   if (labels.bc !== false) L.push(shape({ name: 'Barres', shape: 'slashes', stroke: '$muted', strokeWidth: 1.6, count: 4, x: W / 2 - 28 * u, y: by + 1 * u, w: 56 * u, h: 22 * u }));
   return L;
 }
-const finish = ctx => [effect({ name: 'Grain', effect: 'grain', amount: 0.14, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H })];
+// Finition « photo » : étalonnage, halo des lumières, vignette et grain.
+const finish = ctx => [
+  effect({ name: 'Étalonnage', effect: 'grade', color: '$glow', amount: 0.55, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Bloom (halo des lumières)', effect: 'bloom', amount: 0.45, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Vignette', effect: 'vignette', color: '#000000', amount: 0.55, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Grain', effect: 'grain', amount: 0.22, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+];
+// Scène : sol réfléchissant et fumée sur les côtés (derrière les personnages)
+const stage = (ctx, floorY, o = {}) => [
+  effect({ name: 'Sol', effect: 'floor', color: '$glow', amount: o.floor ?? 0.8, themed: true, x: 0, y: floorY, w: ctx.W, h: ctx.H - floorY }),
+  effect({ name: 'Fumée', effect: 'smoke', color: '$glow', amount: o.smoke ?? 0.55, themed: true, sides: 0.75, seed: 5, x: -ctx.W * 0.05, y: floorY - ctx.H * 0.32, w: ctx.W * 1.1, h: ctx.H * 0.42 }),
+];
+const frontSmoke = (ctx, y, a = 0.3) => effect({ name: 'Fumée (premier plan)', effect: 'smoke', color: '$glow', amount: a, themed: true, sides: 0.3, seed: 9, x: -ctx.W * 0.05, y, w: ctx.W * 1.1, h: ctx.H - y });
 const gameName = ctx => (ctx.game === 'rl' ? 'ROCKET LEAGUE' : 'VALORANT');
 
 // Titre à deux mots : variante manuscrite + gras, et variante classique (bascule globale).
@@ -64,17 +76,22 @@ function emblemAt(cx, cy, h, o = {}) {
   return emblem({ x: cx - w / 2, y: cy - h / 2, w, h, fx: o.glow === false ? undefined : glowFx('$glow', 40, 0.35), ...o });
 }
 
+// Réglages 3D par défaut : contre-jour fort, personnages sombres et contrastés (rendu « affiche pro »).
+export const CAR_FRONT = 270; // rotation où la voiture fait face à la caméra
 function agentImage(ctx, field, box, o = {}) {
   if (ctx.use3d) {
     const car = ctx.game === 'rl';
     // Le fondu pixel découpe les jambes des modèles 3D : on le remplace par un fondu doux vers le bas.
     let fx = o.fx ? JSON.parse(JSON.stringify(o.fx)) : undefined;
-    if (fx && fx.smear) { delete fx.smear; delete fx.smearCut; if (!car) fx.fade = { on: true, dir: 'bottom', amount: 0.28 }; }
+    if (fx && fx.smear) { delete fx.smear; delete fx.smearCut; if (!car) fx.fade = { on: true, dir: 'bottom', amount: 0.25 }; }
+    if (fx && fx.glow) fx.glow = { ...fx.glow, opacity: Math.min(fx.glow.opacity ?? 0.5, 0.4) };
+    const light = car
+      ? { key: { color: '#9fb2ee', intensity: 0.55, angle: -35 }, rim: { color: '$glow', intensity: 6.5, angle: 160 }, fill: { color: '$glow', intensity: 0.35 }, ambient: { color: '$glow', intensity: 0.3 }, envLight: 0.45, exposure: 0.85 }
+      : { key: { color: '#93a6e6', intensity: 0.45, angle: -28 }, rim: { color: '$glow', intensity: 8, angle: 165 }, fill: { color: '$glow', intensity: 0.3 }, ambient: { color: '$glow', intensity: 0.3 }, envLight: 0.15, exposure: 0.8 };
     return {
       type: 'model', name: (o.name || 'Render').replace('Render', 'Modèle 3D'), model: '@' + field, ...box, rot: 0,
-      rotY: o.rotY ?? (car ? 35 : 10), camPitch: car ? 12 : 4, zoom3d: 1, target: 0.5, fov: 28, anim: 0, animTime: 0,
-      key: { color: '#cfd8ff', intensity: 1, angle: -30 }, rim: { color: '$glow', intensity: 5.5, angle: 160 }, fill: { color: '$glow', intensity: 0.7 }, ambient: { color: '$glow', intensity: 0.8 },
-      reflect: !!o.reflect, contact: true, opacity: o.opacity, fx,
+      rotY: o.rotY ?? (car ? CAR_FRONT + 35 : 8), camPitch: car ? 9 : -3, zoom3d: 1, target: car ? 0.5 : 0.52, fov: car ? 30 : 26, anim: 0, animTime: 0,
+      ...light, reflect: !!o.reflect, contact: true, opacity: o.opacity, fx,
     };
   }
   return image({ name: o.name || 'Render', asset: '@' + field, ph: 'agent', phField: field, ...box, ...o });
@@ -107,12 +124,12 @@ function playerRow(ctx, base0, o = {}) {
   const mid = (n - 1) / 2;
   const car = ctx.game === 'rl';
   return order.map(i => {
-    const h = car ? Math.min(H, W * 1.25) * (i === mid ? 0.27 : 0.22) : big * (i === mid ? 1 : 0.9);
-    const w = car ? W * (i === mid ? 0.5 : 0.4) : h * 0.85;
-    const cx = car ? W / 2 + (i - mid) * W * 0.29 : W / 2 + (i - mid) * W * spread;
-    if (car) base = base0 + (i === mid ? 0 : -H * 0.06);
+    const h = car ? Math.min(H, W * 1.25) * (i === mid ? 0.3 : 0.24) : big * (i === mid ? 1 : 0.9);
+    const w = car ? W * (i === mid ? 0.56 : 0.44) : h * 0.85;
+    const cx = car ? W / 2 + (i - mid) * W * 0.3 : W / 2 + (i - mid) * W * spread;
+    if (car) base = base0 + (i === mid ? 0 : -H * 0.05);
     return agentImage(ctx, `a${i + 1}`, { x: cx - w / 2, y: base - h, w, h }, {
-      name: `Render joueur ${i + 1}`, reflect: true, rotY: car ? (i < mid ? 40 : i > mid ? -40 : 20) : undefined, fx: { glow: { on: true, color: '$glow', blur: 34, opacity: 0.55 }, fade: { on: true, dir: 'bottom', amount: 0.22 } },
+      name: `Render joueur ${i + 1}`, reflect: true, rotY: car ? CAR_FRONT + (i < mid ? 42 : i > mid ? -42 : 28) : (i < mid ? 14 : i > mid ? -14 : 0), fx: { glow: { on: true, color: '$glow', blur: 34, opacity: 0.55 }, fade: { on: true, dir: 'bottom', amount: 0.22 } },
     });
   });
 }
@@ -139,9 +156,10 @@ function roster(ctx) {
   const { W, H, u } = ctx;
   return [
     ...base(ctx, { glowY: 0.42, glow: 0.4 }),
-    effect({ name: 'Faisceau', effect: 'beam', color: '$glow', amount: 0.55, themed: true, x: W * 0.05, y: 0, w: W * 0.9, h: H * 0.72 }),
-    effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: 0.75, themed: true, x: W * 0.2, y: H * 0.17, w: W * 0.6, h: H * 0.52 }),
-    effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.45, themed: true, seed: 11, x: 0, y: H * 0.52, w: W, h: H * 0.32 }),
+    effect({ name: 'Faisceau', effect: 'beam', color: '$glow', amount: 0.7, themed: true, x: W * 0.05, y: 0, w: W * 0.9, h: H * 0.8 }),
+    effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: ctx.use3d ? 0.45 : 0.75, themed: true, x: W * 0.2, y: H * 0.17, w: W * 0.6, h: H * 0.52 }),
+    effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.3, themed: true, seed: 11, x: 0, y: H * 0.52, w: W, h: H * 0.32 }),
+    ...stage(ctx, H * 0.8),
     ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: 'ROSTER' }),
     text({ name: 'Structure', tpl: '{org}', upper: true, align: 'left', size: 40 * u, weight: 700, spacing: 0.04, x: W * 0.12, y: H * 0.105, w: W * 0.6 }),
     shape({ name: 'Flèches', shape: 'arrows', fill: '$accent', count: 2, x: W * 0.12, y: H * 0.152, w: 40 * u, h: 18 * u }),
@@ -151,8 +169,9 @@ function roster(ctx) {
     text({ name: 'Titre gras', variant: 'script', tpl: '{rosW2}', upper: true, x: W * 0.08, y: H * 0.335, w: W * 0.84, size: 150 * u, fx: glowFx('$glow', 30, 0.6) }),
     text({ name: 'Titre', variant: 'plain', tpl: '{rosPlain}', upper: true, x: W * 0.08, y: H * 0.2, w: W * 0.84, size: 230 * u, fx: glowFx('$glow', 36, 0.7) }),
     text({ name: 'Titre (écho)', variant: 'plain', tpl: '{rosPlain}', upper: true, x: W * 0.08, y: H * 0.2 + 200 * u, w: W * 0.84, size: 230 * u, style: 'outline', strokeWidth: 1.4, strokeColor: '$text', opacity: 0.55 }),
-    ...playerRow(ctx, H * 0.83),
-    shape({ name: 'Sol', shape: 'rect', x: 0, y: H * 0.78, w: W, h: H * 0.22, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
+    ...playerRow(ctx, H * 0.83, { h: ctx.use3d ? 0.5 : 0.44 }),
+    frontSmoke(ctx, H * 0.72, 0.25),
+    shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.8, w: W, h: H * 0.2, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     ...Array.from({ length: ctx.nPlayers }, (_, i) => {
       const n = ctx.nPlayers, cell = W * 0.84 / n, cx = W * 0.08 + cell * (i + 0.5);
       return [

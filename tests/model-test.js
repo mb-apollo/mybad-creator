@@ -5,7 +5,7 @@ app.whenReady().then(async()=>{
   await w.loadFile(path.join(__dirname,'model.html'));
   const jobs=JSON.parse(process.env.JOBS);
   for (const [name,file,pose,rot] of jobs) {
-    const r=await w.webContents.executeJavaScript(`runModel(${JSON.stringify('models/'+file)}, ${JSON.stringify(pose)}, ${rot||0})`).catch(e=>({err:String(e)}));
+    const r=await w.webContents.executeJavaScript(`runModel(${JSON.stringify('models/'+file)}, ${JSON.stringify(pose)}, ${rot||0}, true)`).catch(e=>({err:String(e)}));
     if (r.err) { console.log(name, r.err); continue; }
     fs.writeFileSync(path.join(__dirname,'..','out',name+'.png'),Buffer.from(r.url.split(',')[1],'base64')); console.log(name, JSON.stringify(r.info));
   }

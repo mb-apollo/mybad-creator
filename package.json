@@ -1,7 +1,7 @@
 {
   "name": "mybad-creator",
   "productName": "MyBad Creator",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "MyBad Creator \u2014 l'\u00e9diteur d'affiches de MyBad Esport",
   "author": "MyBad Esport",
   "main": "src/main/main.js",
@@ -24,6 +24,7 @@
     "@fontsource/pinyon-script": "^5.1.0",
     "@fontsource/space-grotesk": "^5.1.0",
     "@fontsource/titan-one": "^5.1.0",
+    "@gltf-transform/cli": "^4.1.1",
     "@imgly/background-removal": "^1.4.5",
     "@imgly/background-removal-data": "^1.4.5",
     "electron": "^33.2.1",

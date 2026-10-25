@@ -139,22 +139,25 @@ const EMB = {
   diamond: [[968, 625], [1072, 1155], [966, 1820], [862, 1155]],
   box: { x: 8, y: 92, w: 1916, h: 1740 },
 };
-export const EMBLEM_RATIO = EMB.box.w / EMB.box.h;
+export const EMBLEM_RATIO = 1982 / 1799; // proportions du logo officiel MyBad
+// Logo de la structure (image du Kit de marque). Sans logo : emplacement à remplir.
 function drawEmblem(c, L, env, b) {
-  const s = Math.min(b.w / EMB.box.w, b.h / EMB.box.h);
-  const ox = b.x + (b.w - EMB.box.w * s) / 2 - EMB.box.x * s, oy = b.y + (b.h - EMB.box.h * s) / 2 - EMB.box.y * s;
-  const P = ([x, y]) => [ox + x * s, oy + y * s];
-  const poly = pts => { c.beginPath(); pts.forEach((p, i) => (i ? c.lineTo(...P(p)) : c.moveTo(...P(p)))); c.closePath(); c.fill(); };
-  c.fillStyle = color(L.color, env.theme) || '#F3F6FE';
-  if (L.wings !== false) EMB.wings.forEach(w => { poly(w); poly(w.map(([x, y]) => [1932 - x, y])); });
-  poly(EMB.diamond);
-  if (L.star !== false) {
-    const [cx, cy] = P([966, 320]);
-    const gr = c.createLinearGradient(0, cy - 240 * s, 0, cy + 240 * s);
-    if (L.starColor && L.starColor !== 'gradient') { gr.addColorStop(0, color(L.starColor, env.theme)); gr.addColorStop(1, color(L.starColor, env.theme)); }
-    else { gr.addColorStop(0, '#8A7DFF'); gr.addColorStop(1, '#54D8FF'); }
-    northStar(c, cx, cy, 240 * s, 215 * s); c.fillStyle = gr; c.fill();
+  const img = env.image(L.asset || 'u:logo');
+  if (img) {
+    const r = Math.min(b.w / img.width, b.h / img.height);
+    const w = img.width * r, h = img.height * r;
+    c.drawImage(img, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
+    return;
   }
+  if (env.exporting) return;
+  const u = env.u, s = Math.min(b.w, b.h);
+  c.save();
+  c.setLineDash([8 * u, 6 * u]); c.strokeStyle = rgba(color('$text', env.theme), 0.35); c.lineWidth = 2 * u;
+  c.beginPath(); c.arc(b.x + b.w / 2, b.y + b.h / 2, s * 0.45, 0, Math.PI * 2); c.stroke();
+  c.setLineDash([]);
+  c.font = `600 ${Math.max(10, s * 0.13)}px "Space Grotesk"`; c.fillStyle = rgba(color('$text', env.theme), 0.45);
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('TON LOGO', b.x + b.w / 2, b.y + b.h / 2);
+  c.restore();
 }
 function northStar(c, cx, cy, rv, rh, k = 0.13) {
   const T = [cx, cy - rv], R = [cx + rh, cy], B = [cx, cy + rv], Lf = [cx - rh, cy];
@@ -383,6 +386,65 @@ function drawEffect(c, L, env, b) {
       c.fillStyle = g; c.fillRect(0, 0, W, H);
       break;
     }
+    case 'smoke': {
+      // fumée : bruit fractal coloré, plus dense en bas et sur les côtés
+      const fogc = pool('smoke', Math.max(1, Math.round(b.w)), Math.max(1, Math.round(b.h))), fc = fogc.getContext('2d');
+      fc.imageSmoothingEnabled = true;
+      fc.globalAlpha = 1; fc.drawImage(fbm(L.seed || 5), 0, 0, b.w, b.h);
+      fc.globalCompositeOperation = 'source-in'; fc.fillStyle = col; fc.fillRect(0, 0, b.w, b.h);
+      fc.globalCompositeOperation = 'destination-in';
+      const gv = fc.createLinearGradient(0, 0, 0, b.h);
+      gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(0.45, 'rgba(0,0,0,0.6)'); gv.addColorStop(1, '#000');
+      fc.fillStyle = gv; fc.fillRect(0, 0, b.w, b.h);
+      if ((L.sides ?? 0.7) > 0) {
+        const gh = fc.createLinearGradient(0, 0, b.w, 0), k = L.sides ?? 0.7;
+        gh.addColorStop(0, '#000'); gh.addColorStop(0.35, `rgba(0,0,0,${1 - k})`); gh.addColorStop(0.65, `rgba(0,0,0,${1 - k})`); gh.addColorStop(1, '#000');
+        fc.fillStyle = gh; fc.fillRect(0, 0, b.w, b.h);
+      }
+      fc.globalCompositeOperation = 'source-over';
+      c.save(); c.globalAlpha = Math.min(1, amt); c.globalCompositeOperation = 'screen'; c.drawImage(fogc, b.x, b.y, b.w, b.h); c.restore();
+      break;
+    }
+    case 'floor': {
+      // sol réfléchissant : dégradé depuis l'horizon + reflet lumineux du faisceau
+      const hz = b.y;
+      const g = c.createLinearGradient(0, hz, 0, b.y + b.h);
+      g.addColorStop(0, rgba('#000000', 0)); g.addColorStop(0.3, rgba(mix(col, '#000000', 0.9), 0.45)); g.addColorStop(1, rgba('#000000', 0.9));
+      c.fillStyle = g; c.fillRect(b.x, hz, b.w, b.h);
+      c.save(); c.translate(b.x + b.w / 2, hz + b.h * 0.14); c.scale(1, 0.16);
+      const r = b.w * 0.45, rg = c.createRadialGradient(0, 0, 0, 0, 0, r);
+      rg.addColorStop(0, rgba(col, 0.55 * amt)); rg.addColorStop(1, rgba(col, 0));
+      c.fillStyle = rg; c.fillRect(-r, -r, 2 * r, 2 * r); c.restore();
+      const hl = c.createLinearGradient(b.x, 0, b.x + b.w, 0);
+      hl.addColorStop(0, rgba(col, 0)); hl.addColorStop(0.5, rgba(mix(col, '#ffffff', 0.3), 0.5 * amt)); hl.addColorStop(1, rgba(col, 0));
+      c.globalAlpha = 0.5; c.fillStyle = hl; c.fillRect(b.x, hz + b.h * 0.12, b.w, 1.5 * u); c.globalAlpha = 1;
+      break;
+    }
+    case 'bloom': {
+      // halo de lumière sur les zones claires (post-traitement)
+      const src = c.canvas, W = src.width, H = src.height;
+      const t = pool('bloom', Math.round(W / 4), Math.round(H / 4)), tc = t.getContext('2d');
+      tc.filter = 'brightness(0.9) contrast(1.6)'; tc.drawImage(src, 0, 0, t.width, t.height); tc.filter = 'none';
+      c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'screen';
+      c.filter = `blur(${Math.round(18 * u)}px)`; c.globalAlpha = Math.min(1, amt * 0.7); c.drawImage(t, 0, 0, W, H);
+      c.filter = `blur(${Math.round(60 * u)}px)`; c.globalAlpha = Math.min(1, amt * 0.5); c.drawImage(t, 0, 0, W, H);
+      c.restore();
+      break;
+    }
+    case 'grade': {
+      // étalonnage : ombres teintées, contraste, saturation
+      const src = c.canvas, W = src.width, H = src.height;
+      const t = pool('grade', W, H), tc = t.getContext('2d');
+      tc.filter = `contrast(${100 + 25 * amt}%) saturate(${100 + 15 * amt}%)`; tc.drawImage(src, 0, 0); tc.filter = 'none';
+      c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalAlpha = 1; c.drawImage(t, 0, 0);
+      c.globalCompositeOperation = 'soft-light'; c.globalAlpha = Math.min(1, 0.55 * amt); c.fillStyle = col; c.fillRect(0, 0, W, H);
+      c.globalCompositeOperation = 'multiply'; c.globalAlpha = Math.min(1, 0.25 * amt);
+      const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#ffffff'); g.addColorStop(1, mix(col, '#000000', 0.6));
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+      c.restore();
+      break;
+    }
     case 'grain': {
       c.save(); c.globalAlpha = Math.min(1, amt * 0.35); c.globalCompositeOperation = 'overlay';
       const p = c.createPattern(noise(), 'repeat'); const s = Math.max(0.5, u);
@@ -391,6 +453,25 @@ function drawEffect(c, L, env, b) {
       break;
     }
   }
+}
+// Bruit fractal (nuages) pour la fumée, mis en cache par graine.
+const FBM = new Map();
+function fbm(seed) {
+  if (FBM.has(seed)) return FBM.get(seed);
+  const N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const x = cv.getContext('2d'), R = rnd(seed);
+  const oct = (size, alpha) => {
+    const g = document.createElement('canvas'); g.width = g.height = size;
+    const gx = g.getContext('2d'), d = gx.createImageData(size, size);
+    for (let i = 0; i < d.data.length; i += 4) { const v = R() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+    gx.putImageData(d, 0, 0);
+    x.globalAlpha = alpha; x.imageSmoothingQuality = 'high'; x.drawImage(g, 0, 0, N, N);
+  };
+  x.fillStyle = '#000'; x.fillRect(0, 0, N, N);
+  oct(4, 1); oct(8, 0.5); oct(16, 0.28); oct(32, 0.14); oct(64, 0.07);
+  x.globalAlpha = 1; x.filter = 'blur(6px) contrast(1.6) brightness(0.85)'; x.drawImage(cv, 0, 0); x.filter = 'none';
+  FBM.set(seed, cv);
+  return cv;
 }
 let NOISE = null;
 function noise() {

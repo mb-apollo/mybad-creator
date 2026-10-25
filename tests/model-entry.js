@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { applyPose, facingOf, rigOf } from '../src/renderer/pose3d.js';
-window.runModel = async (file, pose, rotY = 0) => {
-  const gltf = await new GLTFLoader().loadAsync(file);
+window.runModel = async (file, pose, rotY = 0, frameAll = false) => {
+  const ld = new GLTFLoader(); ld.setMeshoptDecoder(MeshoptDecoder); const gltf = await ld.loadAsync(file);
   const root = gltf.scene;
   const pivot = new THREE.Group(); pivot.add(root);
   const scene = new THREE.Scene(); scene.add(pivot);
@@ -23,7 +24,7 @@ window.runModel = async (file, pose, rotY = 0) => {
   const r = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
   r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.setSize(400, 600, false);
   const cam = new THREE.PerspectiveCamera(28, 400 / 600, 0.01, 100);
-  const dist = 0.5 / Math.tan(14 * Math.PI / 180) * 1.08; cam.position.set(0, 0.5 + Math.sin(0.07) * dist, dist); cam.lookAt(0, 0.5, 0);
+  const sz = new THREE.Box3().setFromObject(pivot).getSize(new THREE.Vector3()); const fh = sz.y/2/Math.tan(14*Math.PI/180), fw = Math.max(sz.x,sz.z)/2/Math.tan(14*Math.PI/180)/(400/600); const dist = (frameAll? Math.max(fh,fw):fh)*1.08; const ty = sz.y*0.5; cam.position.set(0, ty + Math.sin(0.2) * dist, Math.cos(0.2)*dist); cam.lookAt(0, ty, 0);
   r.setClearColor(0x0b1226, 1);
   r.render(scene, cam);
   return { url: r.domElement.toDataURL('image/png'), info };

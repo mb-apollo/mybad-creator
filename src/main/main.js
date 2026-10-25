@@ -14,6 +14,8 @@ let dirty = false;
 let pendingOpen = null;
 const RENDERER = path.join(__dirname, '..', 'renderer');
 const LIB = () => path.join(app.getPath('userData'), 'library');
+const PACK = () => path.join(app.getPath('userData'), 'pack3d');
+const PACK_URL = 'https://raw.githubusercontent.com/mb-apollo/mybad-creator/pack-3d/';
 const STORE = () => path.join(app.getPath('userData'), 'store.json');
 function readStore() { try { return JSON.parse(fs.readFileSync(STORE(), 'utf8')); } catch { return {}; } }
 function writeStore(s) { fs.mkdirSync(path.dirname(STORE()), { recursive: true }); fs.writeFileSync(STORE(), JSON.stringify(s)); }
@@ -109,6 +111,7 @@ app.whenReady().then(() => {
     let rel = decodeURIComponent(u.pathname).replace(/^\/+/, '');
     let base = RENDERER;
     if (rel.startsWith('lib/')) { base = LIB(); rel = rel.slice(4); }
+    else if (rel.startsWith('pack/')) { base = PACK(); rel = rel.slice(5); }
     const file = path.normalize(path.join(base, rel));
     if (!file.startsWith(path.normalize(base))) return new Response('Interdit', { status: 403 });
     return net.fetch(pathToFileURL(file).toString());
@@ -187,6 +190,7 @@ ipcMain.handle('library:list', () => {
     }
   };
   add(path.join(RENDERER, 'assets', 'games'), 'mbc://app/assets/games/');
+  add(PACK(), 'mbc://app/pack/');
   add(LIB(), 'mbc://app/lib/');
   return out;
 });
@@ -213,6 +217,57 @@ ipcMain.handle('library:delete', (_e, { game, key }) => {
   for (const f of fs.readdirSync(dir)) if (f.replace(/\.[^.]+$/, '') === safe(key)) fs.rmSync(path.join(dir, f));
   return true;
 });
+// ---------------------------------------------------------------- pack 3D (téléchargé depuis GitHub)
+function packState() { try { return JSON.parse(fs.readFileSync(path.join(PACK(), 'installed.json'), 'utf8')); } catch { return null; } }
+ipcMain.handle('pack:status', async () => {
+  const local = packState();
+  let remote = null;
+  try { const r = await net.fetch(PACK_URL + 'index.json', { cache: 'no-store' }); if (r.ok) remote = await r.json(); } catch { /* hors ligne */ }
+  const total = remote ? remote.files.reduce((s, f) => s + f.size, 0) : null;
+  return { installed: local ? local.version : null, latest: remote ? remote.version : null, total, count: remote ? remote.files.length : null };
+});
+let packBusy = false;
+ipcMain.handle('pack:download', async () => {
+  if (packBusy) return { error: 'Téléchargement déjà en cours' };
+  packBusy = true;
+  const crypto = require('crypto');
+  const send = d => win && win.webContents.send('pack-progress', d);
+  try {
+    const idx = await (await net.fetch(PACK_URL + 'index.json', { cache: 'no-store' })).json();
+    const total = idx.files.reduce((s, f) => s + f.size, 0);
+    let done = 0;
+    for (const f of idx.files) {
+      const dst = path.join(PACK(), f.game, f.key + '.glb');
+      fs.mkdirSync(path.dirname(dst), { recursive: true });
+      const ok = fs.existsSync(dst) && crypto.createHash('sha256').update(fs.readFileSync(dst)).digest('hex') === f.sha256;
+      if (!ok) {
+        let buf = null;
+        for (let attempt = 0; attempt < 3 && !buf; attempt++) {
+          try {
+            const r = await net.fetch(PACK_URL + f.path.split('/').map(encodeURIComponent).join('/'), { cache: 'no-store' });
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const reader = r.body.getReader(); const chunks = []; let got = 0;
+            for (;;) {
+              const { done: end, value } = await reader.read(); if (end) break;
+              chunks.push(Buffer.from(value)); got += value.length;
+              send({ done: done + got, total, file: f.key });
+            }
+            const b = Buffer.concat(chunks);
+            if (crypto.createHash('sha256').update(b).digest('hex') !== f.sha256) throw new Error('fichier corrompu');
+            buf = b;
+          } catch (e) { if (attempt === 2) throw new Error(`${f.key} : ${e.message}`); }
+        }
+        fs.writeFileSync(dst, buf);
+      }
+      done += f.size;
+      send({ done, total, file: f.key });
+    }
+    fs.writeFileSync(path.join(PACK(), 'installed.json'), JSON.stringify({ version: idx.version, date: new Date().toISOString() }));
+    return { ok: true, version: idx.version };
+  } catch (e) { return { error: String(e.message || e) }; }
+  finally { packBusy = false; }
+});
+
 ipcMain.handle('library:extra', (_e, list) => { const s = readStore(); s.libraryExtra = list; writeStore(s); return true; });
 ipcMain.handle('library:open', () => { fs.mkdirSync(LIB(), { recursive: true }); shell.openPath(LIB()); return true; });
 
@@ -221,7 +276,9 @@ let quittingForUpdate = false;
 function setupUpdater() {
   let autoUpdater;
   try { autoUpdater = require('electron-updater').autoUpdater; } catch (e) { console.error(e); }
-  const emit = d => win && win.webContents.send('update', d);
+  const friendly = msg => /404|latest\.yml|No published versions|Unable to find latest version/i.test(msg) ? 'aucune version n\'est encore publiée sur GitHub.'
+    : /ENOTFOUND|ETIMEDOUT|ECONNREFUSED|net::ERR/i.test(msg) ? 'pas de connexion internet.' : msg.split('\n')[0].slice(0, 160);
+  const emit = d => win && win.webContents.send('update', d.error ? { ...d, error: friendly(d.error) } : d);
   let silent = false;
   ipcMain.handle('update:check', async (_e, isSilent) => {
     if (!app.isPackaged || !autoUpdater) { emit({ state: 'dev', silent: true }); return; }
@@ -234,7 +291,7 @@ function setupUpdater() {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.on('checking-for-update', () => emit({ state: 'checking', silent }));
-  autoUpdater.on('update-available', i => emit({ state: 'available', version: i.version, notes: typeof i.releaseNotes === 'string' ? i.releaseNotes : '', silent: false }));
+  autoUpdater.on('update-available', i => emit({ state: 'available', version: i.version, notes: typeof i.releaseNotes === 'string' ? i.releaseNotes.replace(/<script[\s\S]*?<\/script>/gi, '') : '', silent: false }));
   autoUpdater.on('update-not-available', () => emit({ state: 'none', silent }));
   autoUpdater.on('download-progress', p => emit({ state: 'downloading', percent: p.percent }));
   autoUpdater.on('update-downloaded', i => emit({ state: 'downloaded', version: i.version }));

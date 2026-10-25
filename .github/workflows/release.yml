@@ -1,8 +1,10 @@
-# Publie une nouvelle version de MyBad Creator quand un tag vX.Y.Z est poussé.
+# Publie automatiquement une nouvelle version de MyBad Creator
+# dès que le numéro de version de package.json change sur la branche main.
 name: Publier une version
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths: [package.json]
   workflow_dispatch:
 permissions:
   contents: write
@@ -11,11 +13,23 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Version déjà publiée ?
+        id: check
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V=$(node -p "require('./package.json').version")
+          echo "version=$V" >> $GITHUB_OUTPUT
+          if gh release view "v$V" >/dev/null 2>&1; then echo "exists=true" >> $GITHUB_OUTPUT; else echo "exists=false" >> $GITHUB_OUTPUT; fi
       - uses: actions/setup-node@v4
+        if: steps.check.outputs.exists == 'false'
         with:
           node-version: 20
           cache: npm
       - run: npm ci
+        if: steps.check.outputs.exists == 'false'
       - run: npm run release
+        if: steps.check.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

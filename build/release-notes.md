@@ -1,0 +1,8 @@
+- Assistant de démarrage : configure ta structure (nom, logo, couleurs, rosters) ou charge le kit MyBad en un clic
+- Logo officiel de la structure dans toutes les affiches
+- Pack 3D de base (27 agents, 3 voitures) téléchargé une seule fois depuis l'onglet Bibliothèque
+- Rendu 3D retravaillé : contre-jour, fumée, sol réfléchissant, étalonnage, bloom et grain
+- Voitures mieux orientées par défaut
+- Onglet Mises à jour dans la barre du haut
+- Les notifications se remplacent au lieu de s'empiler
+- Correction : la saisie de texte ne perd plus le focus à chaque lettre

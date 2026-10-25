@@ -7,7 +7,24 @@ import { BLENDS, layerText, textLayout, uid } from './engine/scene.js';
 import { GAMES, gameItems } from './engine/games.js';
 import { align, distribute, arrange, deleteSelected, duplicateSelected, addLayer, requestRender } from './editor.js';
 
-export const actions = {}; // fonctions fournies par app.js (importer une image, détourer, etc.)
+export const actions = {};
+
+// Remplace le contenu d'un panneau sans perdre le champ en cours d'édition (focus, curseur, défilement).
+function setHTML(box, html) {
+  const a = document.activeElement;
+  let key = null, s = null, e = null;
+  if (a && box.contains(a)) {
+    key = ['data-path', 'data-t', 'data-text', 'data-k', 'data-kt', 'data-kr', 'data-token', 'data-font', 'id'].map(k => a.hasAttribute(k) ? `[${k}="${CSS.escape(a.getAttribute(k))}"]` : null).find(Boolean);
+    try { s = a.selectionStart; e = a.selectionEnd; } catch { /* champ sans curseur */ }
+  }
+  const top = box.scrollTop;
+  box.innerHTML = html;
+  box.scrollTop = top;
+  if (key) {
+    const n = box.querySelector(key);
+    if (n) { n.focus({ preventScroll: true }); try { if (s != null) n.setSelectionRange(s, e); } catch { /* idem */ } }
+  }
+} // fonctions fournies par app.js (importer une image, détourer, etc.)
 
 // ================================================================ CALQUES
 const TYPE_ICON = { text: 'text', image: 'image', shape: 'shape', effect: 'effect', emblem: 'emblem', bg: 'bg', model: 'model' };
@@ -95,7 +112,7 @@ export function addPreset(k) {
     brackets: () => ({ type: 'shape', name: 'Coins de cadre', shape: 'brackets', stroke: '$text', strokeWidth: 2.5, len: 0.15, x: c.x - 200 * u, y: c.y - 200 * u, w: 400 * u, h: 400 * u }),
     slashes: () => ({ type: 'shape', name: 'Barres', shape: 'slashes', stroke: '$muted', strokeWidth: 1.6, count: 4, x: c.x - 30 * u, y: c.y - 11 * u, w: 60 * u, h: 22 * u }),
     polygon: () => ({ type: 'shape', name: 'Polygone', shape: 'polygon', sides: 6, fill: null, stroke: '$accent', strokeWidth: 3, x: c.x - 120 * u, y: c.y - 120 * u, w: 240 * u, h: 240 * u }),
-    emblem: () => ({ type: 'emblem', name: 'Emblème MyBad', color: '$text', x: c.x - 220 * u, y: c.y - 200 * u, w: 440 * u, h: 400 * u, fx: { glow: { on: true, color: '$glow', blur: 40, opacity: 0.35 } } }),
+    emblem: () => ({ type: 'emblem', name: 'Logo de la structure', asset: 'u:logo', color: '$text', x: c.x - 220 * u, y: c.y - 200 * u, w: 440 * u, h: 400 * u, fx: { glow: { on: true, color: '$glow', blur: 40, opacity: 0.35 } } }),
     glow: () => ({ type: 'effect', name: 'Halo', effect: 'glow', color: '$glow', amount: 0.6, themed: true, x: c.x - 400 * u, y: c.y - 400 * u, w: 800 * u, h: 800 * u }),
     stars: () => ({ type: 'effect', name: 'Poussière d\'étoiles', effect: 'stars', color: '$white', amount: 0.5, seed: Math.floor(Math.random() * 999), x: 0, y: 0, w: W, h: H }),
     streaks: () => ({ type: 'effect', name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.5, seed: Math.floor(Math.random() * 999), themed: true, x: 0, y: H * 0.4, w: W, h: H * 0.3 }),
@@ -143,16 +160,16 @@ export function renderProps() {
   const box = $('#propsBody'); if (!box || !S.doc) return;
   const cur = selected(), th = S.doc.theme;
   if (!cur.length) {
-    box.innerHTML = `<div class="empty-props">
+    setHTML(box, `<div class="empty-props">
       <p class="muted">Aucun calque sélectionné. Clique sur un élément de l'affiche ou dans la liste des calques.</p>
-      ${section('Ajouter', `<div class="addgrid">${[['text', 'text', 'Texte'], ['script', 'text', 'Manuscrit'], ['image', 'image', 'Image'], ['agent', 'image', GAMES[S.doc.game].itemLabel], ['model', 'model', 'Modèle 3D'], ['emblem', 'emblem', 'Emblème'], ['pill', 'shape', 'Cadre'], ['star', 'star', 'Étoile'], ['glow', 'effect', 'Halo']].map(([k, i, l]) => `<button class="addbtn" data-addp="${k}">${icon(i)}<span>${l}</span></button>`).join('')}</div>`)}
+      ${section('Ajouter', `<div class="addgrid">${[['text', 'text', 'Texte'], ['script', 'text', 'Manuscrit'], ['image', 'image', 'Image'], ['agent', 'image', GAMES[S.doc.game].itemLabel], ['model', 'model', 'Modèle 3D'], ['emblem', 'emblem', 'Logo'], ['pill', 'shape', 'Cadre'], ['star', 'star', 'Étoile'], ['glow', 'effect', 'Halo']].map(([k, i, l]) => `<button class="addbtn" data-addp="${k}">${icon(i)}<span>${l}</span></button>`).join('')}</div>`)}
       ${section('Raccourcis utiles', `<div class="kbd-mini"><span>Déplacer</span><kbd>Glisser</kbd><span>Garder les proportions / libre</span><kbd>Maj</kbd><span>Depuis le centre</span><kbd>Alt</kbd><span>Dupliquer</span><kbd>Ctrl+D</kbd><span>Déplacer la vue</span><kbd>Espace</kbd><span>Zoom</span><kbd>Ctrl+molette</kbd></div>`, false)}
-    </div>`;
+    </div>`);
     bind(box, []);
     return;
   }
   if (cur.length > 1) {
-    box.innerHTML = `${alignBar()}<p class="muted pad">${cur.length} calques sélectionnés</p>${section('Apparence', range('opacity', 'Opacité', cur[0].opacity ?? 1, 0, 1, 0.01, pct))}<div class="pad"><button class="mini-btn danger" data-act="delete">Supprimer la sélection</button></div>`;
+    setHTML(box, `${alignBar()}<p class="muted pad">${cur.length} calques sélectionnés</p>${section('Apparence', range('opacity', 'Opacité', cur[0].opacity ?? 1, 0, 1, 0.01, pct))}<div class="pad"><button class="mini-btn danger" data-act="delete">Supprimer la sélection</button></div>`);
     bind(box, cur);
     return;
   }
@@ -191,7 +208,10 @@ export function renderProps() {
       ${toggle('grad.on', 'Remplissage en dégradé', L.grad?.on)}${L.grad?.on ? colorCtl('grad.from', 'Début', L.grad.from || '$accent', th) + colorCtl('grad.to', 'Fin', L.grad.to || '$bg', th) + range('grad.angle', 'Angle', L.grad.angle ?? 90, 0, 360, 1, deg) : ''}`);
   }
   if (L.type === 'emblem') {
-    h += section('Emblème', `${colorCtl('color', 'Couleur des ailes', L.color, th)}${toggle('star', 'Étoile', L.star !== false)}${L.star !== false ? colorCtl('starColor', 'Couleur de l\'étoile', L.starColor && L.starColor !== 'gradient' ? L.starColor : null, th, { none: true }) + '<p class="hint">∅ = dégradé violet → cyan d\'origine</p>' : ''}${toggle('wings', 'Ailes', L.wings !== false)}`);
+    const t = L.tint || {};
+    h += section('Logo de la structure', `<p class="hint">Ce calque affiche le logo défini dans le Kit de marque. Il se met à jour partout quand tu changes de logo.</p>
+      <div class="btnrow"><button class="mini-btn" data-act="openKit">${icon('emblem')} Changer le logo</button></div>
+      ${toggle('tint.on', 'Colorer le logo', t.on)}${t.on ? colorCtl('tint.color', 'Couleur', t.color || '$text', th) + range('tint.amount', 'Intensité', t.amount ?? 1, 0, 1, 0.01, pct) + sel('tint.mode', 'Mode', t.mode || 'source-atop', [['source-atop', 'Aplat'], ['color', 'Couleur'], ['multiply', 'Produit'], ['screen', 'Écran']]) : ''}`);
   }
   if (L.type === 'image') {
     const bound = L.asset && L.asset[0] === '@';
@@ -225,9 +245,7 @@ export function renderProps() {
     h += fxSections(L, th);
   }
   h += `<div class="pad btnrow"><button class="mini-btn" data-act="duplicate">${icon('copy')} Dupliquer</button><button class="mini-btn danger" data-act="delete">${icon('trash')} Supprimer</button></div>`;
-  const scroll = box.scrollTop;
-  box.innerHTML = h;
-  box.scrollTop = scroll;
+  setHTML(box, h);
   bind(box, cur);
 }
 
@@ -278,6 +296,7 @@ function bind(box, targets) {
     if (act === 'resetFilters') { change(() => targets.forEach(L => { L.filters = {}; }), { immediate: true }); renderProps(); }
     if (act === 'replaceImage') actions.replaceImage?.(targets[0]);
     if (act === 'removeBg') actions.removeBg?.(targets[0]);
+    if (act === 'openKit') actions.openKit?.();
     if (actions.onPropAction) actions.onPropAction(act, targets[0], b);
   };
 }
@@ -294,8 +313,8 @@ function fmtOf(el) {
 }
 function editText(L, value) {
   if (!L) return;
-  if (L.tpl && /^\{(\w+)\}$/.test(L.tpl)) { const k = L.tpl.slice(1, -1); change(d => { d.T[k] = value; }); return; }
-  change(() => { L.tpl = null; L.text = value; });
+  if (L.tpl && /^\{(\w+)\}$/.test(L.tpl)) { const k = L.tpl.slice(1, -1); change(d => { d.T[k] = value; }, { noProps: true }); return; }
+  change(() => { L.tpl = null; L.text = value; }, { noProps: true });
 }
 export function focusText() {
   const ta = $('#propsBody .ptext'); if (ta) { ta.focus(); ta.select(); }
@@ -360,7 +379,7 @@ export function renderContent() {
   }
   flush();
   h += `<div class="csec"><div class="csec-head"><span>Signature (micro-textes)</span></div><div class="cgrid">${field('sig', 'Ligne 1', true)}${field('coords', 'Ligne 2', true)}</div></div>`;
-  box.innerHTML = h;
+  setHTML(box, h);
 }
 function toggleRaw(id, label, v) { return `<label class="toggle"><span>${esc(label)}</span><input type="checkbox" data-c="${id}" ${v ? 'checked' : ''}></label>`; }
 export function initContent() {
@@ -400,7 +419,7 @@ export function renderTheme() {
     ${range('light', 'Intensité lumineuse', th.light ?? 1, 0, 2, 0.01, pct)}`);
   h += section('Couleurs', `<div class="tokens">${THEME_TOKENS.map(([k, l]) => `<label class="token"><input type="color" data-token="${k}" value="${th[k]}"><span>${esc(l)}</span><code>${esc(th[k])}</code></label>`).join('')}</div>`);
   h += section('Polices', FONT_ROLES.map(([k, l]) => `<div class="field"><label>${esc(l)}</label><select class="input" data-font="${k}">${FONT_LIST.map(f => `<option ${S.doc.fonts[k] === f ? 'selected' : ''} style="font-family:'${f}'">${f}</option>`).join('')}</select></div>`).join('') + '<p class="hint">Les calques sans police forcée suivent ces polices.</p>');
-  box.innerHTML = h;
+  setHTML(box, h);
 }
 export function initTheme() {
   const box = $('#themeBody');
@@ -430,7 +449,7 @@ export function renderLibrary() {
   const g = GAMES[libGame], items = gameItems(libGame, S.extraItems);
   const done = items.filter(i => S.library.has(`g:${libGame}:${i.key}`)).length;
   const models = items.filter(i => S.libraryModels.has(`g:${libGame}:${i.key}`)).length;
-  box.innerHTML = `<div class="pad">${seg('libGame', libGame, Object.values(GAMES).map(x => [x.key, x.name]), { small: true })}</div>
+  box.innerHTML = `${actions.packBanner ? actions.packBanner() : ''}<div class="pad">${seg('libGame', libGame, Object.values(GAMES).map(x => [x.key, x.name]), { small: true })}</div>
     <div class="lib-stats"><span><b>${done}</b> / ${items.length} renders</span><span><b>${models}</b> modèles 3D</span></div>
     <div class="pad btnrow"><button class="mini-btn" data-lib="folder">${icon('folder')} Importer plusieurs renders</button><button class="mini-btn" data-lib="add">${icon('plus')} Ajouter ${g.itemLabel === 'Agent' ? 'un agent' : 'une voiture'}</button></div>
     <p class="hint pad">Nomme tes fichiers comme l'${g.itemLabel === 'Agent' ? 'agent' : 'élément'} (jett.png, kayo.png…) pour un import automatique. Les modèles 3D (.glb, .gltf) s'importent de la même façon.</p>
@@ -448,6 +467,8 @@ export function initLibrary() {
   box.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.closest('[data-seg="libGame"]')) { libGame = b.dataset.v; renderLibrary(); return; }
+    if (b.dataset.pack === 'download') { actions.downloadPack?.(); return; }
+    if (b.dataset.pack === 'retry') { actions.retryPack?.(); return; }
     const act = b.dataset.lib; if (!act) return;
     const key = b.closest('.libitem')?.dataset.key;
     actions.libraryAction?.(act, libGame, key);

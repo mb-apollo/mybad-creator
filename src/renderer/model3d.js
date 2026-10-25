@@ -89,13 +89,14 @@ function renderModel(L, w, h, theme, exporting) {
   const maxPx = exporting ? 4096 : 1400;
   const k = Math.min(1, maxPx / Math.max(w, h));
   const pw = Math.max(16, Math.round(w * k)), ph = Math.max(16, Math.round(h * k));
-  const params = JSON.stringify([url, pw, ph, L.envLight, L.frame, L.pose, L.rotY, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, theme.glow, theme.accent, theme.text]);
+  const params = JSON.stringify([url, pw, ph, L.exposure, L.envLight, L.frame, L.pose, L.rotY, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, theme.glow, theme.accent, theme.text]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
   const inst = instance(url, L, m.gltf);
   const r = getRenderer();
   r.setSize(pw, ph, false);
+  r.toneMappingExposure = L.exposure ?? 1.05;
   const scene = new THREE.Scene();
   scene.environment = envTex;
   scene.environmentIntensity = L.envLight ?? 0.45;
@@ -196,6 +197,7 @@ export function modelProps(L) {
     ${colorCtl('rim.color', 'Contre-jour', L.rim?.color || '$glow', th)}${range('rim.intensity', 'Intensité du contre-jour', L.rim?.intensity ?? 4, 0, 12, 0.1, v => v.toFixed(1))}${range('rim.angle', 'Direction du contre-jour', L.rim?.angle ?? 150, 90, 270, 1, deg)}
     ${colorCtl('key.color', 'Lumière principale', L.key?.color || '#ffffff', th)}${range('key.intensity', 'Intensité principale', L.key?.intensity ?? 1.4, 0, 6, 0.05, v => v.toFixed(2))}${range('key.angle', 'Direction principale', L.key?.angle ?? -35, -90, 90, 1, deg)}
     ${colorCtl('fill.color', 'Lumière de face', L.fill?.color || '$accent', th)}${range('fill.intensity', 'Intensité de face', L.fill?.intensity ?? 0.4, 0, 4, 0.05, v => v.toFixed(2))}
+    ${range('exposure', 'Exposition', L.exposure ?? 1.05, 0.2, 2, 0.01, v => v.toFixed(2))}
     ${range('envLight', 'Reflets (matières brillantes)', L.envLight ?? 0.45, 0, 2, 0.01, pct)}
     ${colorCtl('ambient.color', 'Ambiance', L.ambient?.color || '$glow', th)}${range('ambient.intensity', 'Intensité d\'ambiance', L.ambient?.intensity ?? 0.6, 0, 3, 0.05, v => v.toFixed(2))}
     <button class="mini-btn" data-act="lightPreset">${icon('refresh')} Éclairage façon affiche roster</button>`);

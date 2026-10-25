@@ -28,43 +28,50 @@ export const FONT_ROLES = [['display', 'Titres'], ['body', 'Textes'], ['script',
 export const FONT_LIST = ['Space Grotesk', 'Montserrat', 'Anton', 'Bebas Neue', 'Archivo Black', 'Barlow Condensed', 'IBM Plex Mono', 'Great Vibes', 'Allura', 'Pinyon Script', 'Titan One'];
 
 export const TEXT_DEFAULTS = {
-  org: 'MYBAD ESPORT', event: 'Spike Series 2026', stage: 'Open Qualifier #1',
-  p1: 'Bambino', p2: 'Nissa', p3: 'Siproni', p4: 'Matrix', p5: 'Ismo',
+  org: 'TON ÉQUIPE', event: 'Nom de la compétition', stage: 'Phase de groupes',
+  p1: 'Joueur 1', p2: 'Joueur 2', p3: 'Joueur 3', p4: 'Joueur 4', p5: 'Joueur 5',
   a1: 'omen', a2: 'jett', a3: 'killjoy', a4: 'raze', a5: 'sova',
-  r1: 'Smoker', r2: 'Duelist', r3: 'Sentinel', r4: 'Duelist', r5: 'Initiator',
-  coach: 'VirusXV3',
-  adv: 'Équipe adverse', date: 'Samedi', hour: '20H00', live: 'twitch.tv/mybad_esport',
+  r1: 'Controller', r2: 'Duelist', r3: 'Sentinel', r4: 'Duelist', r5: 'Initiator',
+  coach: 'Nom du coach',
+  adv: 'Équipe adverse', date: 'Samedi', hour: '20H00', live: 'twitch.tv/ta-chaine',
   // titres (mot manuscrit + mot en gras)
   rosW1: 'Roster', rosW2: 'UPDATE', rosPlain: 'ROSTER',
   mdW1: 'Match', mdW2: 'DAY', mdPlain: 'MATCHDAY',
   resMode: 'win', resW1W: 'Victoire', resW2W: 'GG', resPlainW: 'VICTOIRE', resW1L: 'Défaite', resW2L: 'NEXT', resPlainL: 'DÉFAITE',
-  s1: '2', s2: '0', bo: 'Best of 3', mvp: 'Nissa', mvpAgent: 'jett', mvpStat: '24 / 12 / 6 · ACS 312',
+  s1: '2', s2: '0', bo: 'Best of 3', mvp: 'Pseudo', mvpAgent: 'jett', mvpStat: '24 / 12 / 6 · ACS 312',
   gdW1: 'Game', gdW2: 'DAY', gdPlain1: 'GAME', gdPlain2: 'DAY', gdSide: 'MATCHDAY', featAgent: 'jett',
-  anW1: 'Bienvenue', anNames: 'Bambino · Nissa', anSide: 'WELCOME', anAgent1: 'omen', anAgent2: 'jett',
+  anW1: 'Bienvenue', anNames: 'Joueur 1 · Joueur 2', anSide: 'WELCOME', anAgent1: 'omen', anAgent2: 'jett',
   nrL1: 'NOUVEAU', nrL2: 'ROSTER',
-  tTitle: 'TOURNOI', tGame: 'MyBad Cup · Valorant 5v5', tDay: '15', tMonth: 'Novembre', tYear: '2026', tHour: 'à 20H',
+  tTitle: 'TOURNOI', tGame: 'Ta Cup · Valorant 5v5', tDay: '15', tMonth: 'Novembre', tYear: '2026', tHour: 'à 20H',
   tInfo1: 'Inscription gratuite', tInfo2: '16 équipes · BO1 puis BO3', tPrize: '100€', tPrizeLbl: 'de cashprize', tAgent: 'reyna',
-  plW1: 'Planning', plW2: 'SEMAINE', plPlain: 'PLANNING', plWeek: 'Semaine du 27 octobre',
-  pl1d: 'Lundi', pl1h: '21H00', pl1t: 'Scrim vs Team Nova', pl1g: 'SCRIM',
-  pl2d: 'Mercredi', pl2h: '20H00', pl2t: 'Spike Series · Round 1', pl2g: 'MATCH',
+  plW1: 'Planning', plW2: 'SEMAINE', plPlain: 'PLANNING', plWeek: 'Semaine du 2 novembre',
+  pl1d: 'Lundi', pl1h: '21H00', pl1t: 'Scrim', pl1g: 'SCRIM',
+  pl2d: 'Mercredi', pl2h: '20H00', pl2t: 'Match officiel · Round 1', pl2g: 'MATCH',
   pl3d: 'Jeudi', pl3h: '21H00', pl3t: 'Stream communauté', pl3g: 'LIVE',
-  pl4d: 'Samedi', pl4h: '18H00', pl4t: 'Spike Series · Round 2', pl4g: 'MATCH',
+  pl4d: 'Samedi', pl4h: '18H00', pl4t: 'Match officiel · Round 2', pl4g: 'MATCH',
   pl5d: '', pl5h: '', pl5t: '', pl5g: '',
-  recW1: 'On', recW2: 'RECRUTE', recPlain: 'ON RECRUTE', recSub: 'Roster Valorant · objectif ligue française',
-  rec1: 'Initiator — Immortal 3 minimum', rec2: 'Flex — expérience LAN appréciée', rec3: 'Coach — disponible 3 soirs / semaine', rec4: 'Caster / créateur de contenu',
-  recCta: 'Candidature sur discord.gg/mybad', recNote: 'Structure associative · ambiance sérieuse et bienveillante',
-  cardName: 'Nissa', cardRole: 'Duelist', cardAgent: 'jett', cardTag: 'JOUEUR',
+  recW1: 'On', recW2: 'RECRUTE', recPlain: 'ON RECRUTE', recSub: 'Roster Valorant · niveau visé',
+  rec1: 'Initiator — rang minimum', rec2: 'Flex — expérience LAN appréciée', rec3: 'Coach — disponibilités', rec4: 'Caster / créateur de contenu',
+  recCta: 'Candidature sur notre Discord', recNote: 'Présente ta structure en une phrase',
+  cardName: 'Pseudo', cardRole: 'Duelist', cardAgent: 'jett', cardTag: 'JOUEUR',
   st1l: 'ACS', st1v: '268', st2l: 'K/D', st2v: '1.34', st3l: 'HS%', st3v: '27%', st4l: 'RANG', st4v: 'Immortal 3',
-  liveW1: 'En', liveW2: 'LIVE', livePlain: 'EN LIVE', liveTitle: 'Spike Series · on commente le match', liveUrl: 'twitch.tv/mybad_esport', liveAgent: 'sage',
-  sig: 'POLARIS / NORTH STAR', coords: '48.8566° N — 2.3522° E',
+  liveW1: 'En', liveW2: 'LIVE', livePlain: 'EN LIVE', liveTitle: 'On commente le match en direct', liveUrl: 'twitch.tv/ta-chaine', liveAgent: 'sage',
+  sig: '', coords: '',
 };
 export const RL_DEFAULTS = {
   p1: 'Joueur 1', p2: 'Joueur 2', p3: 'Joueur 3', a1: 'octane', a2: 'fennec', a3: 'dominus',
   r1: 'Striker', r2: 'Midfield', r3: 'Keeper', mvpAgent: 'octane', featAgent: 'octane', anAgent1: 'octane', anAgent2: 'fennec',
   tAgent: 'dominus', cardAgent: 'octane', cardRole: 'Striker', liveAgent: 'fennec',
-  mvpStat: '3 buts · 2 passes · 520 pts', tGame: 'MyBad Cup · Rocket League 3v3',
+  mvpStat: '3 buts · 2 passes · 520 pts', tGame: 'Ta Cup · Rocket League 3v3',
   st1l: 'BUTS', st1v: '42', st2l: 'PASSES', st2v: '18', st3l: 'ARRÊTS', st3v: '35', st4l: 'RANG', st4v: 'Champion II',
-  recSub: 'Roster Rocket League · 3v3', rec1: 'Joueur — Champion II minimum', rec2: 'Remplaçant', rec3: 'Coach Rocket League', rec4: 'Caster / créateur de contenu',
+  recSub: 'Roster Rocket League · 3v3', rec1: 'Joueur — rang minimum', rec2: 'Remplaçant', rec3: 'Coach Rocket League', rec4: 'Caster / créateur de contenu',
+};
+
+// Kit officiel MyBad Esport (proposé dans l'assistant de démarrage)
+export const MYBAD_KIT = {
+  v: 2, name: 'MyBad Esport', game: 'valorant', theme: 'nuit', logo: 'assets/brand/mybad-logo.png',
+  T: { org: 'MYBAD ESPORT', live: 'twitch.tv/mybad_esport', liveUrl: 'twitch.tv/mybad_esport', sig: 'POLARIS / NORTH STAR', coords: '48.8566° N — 2.3522° E', recCta: 'Candidature sur le Discord MyBad' },
+  rosters: {},
 };
 
 export function newDocument(kit) {
@@ -77,9 +84,10 @@ export function newDocument(kit) {
     script: true,
     use3d: true,
     fonts: { ...DEFAULT_FONTS },
-    T: { ...TEXT_DEFAULTS, ...(k.T || {}), ...((k.rosters && k.rosters[k.game || 'valorant']) || {}) },
-    layers: [], assets: { ...(k.assets || {}) },
+    T: { ...TEXT_DEFAULTS, ...(k.game === 'rl' ? RL_DEFAULTS : {}), ...(k.T || {}), ...((k.rosters && k.rosters[k.game || 'valorant']) || {}) },
+    layers: [], assets: { ...(k.assets || {}), ...(k.logo ? { logo: k.logo } : {}) },
   };
+  if (k.themeColors) Object.assign(doc.theme, k.themeColors);
   applyTemplate(doc, 'matchday');
   return doc;
 }

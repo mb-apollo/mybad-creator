@@ -1,6 +1,6 @@
 // MyBad Creator — démarrage, barre d'outils, fichiers, export, kit de marque, bibliothèque et mises à jour.
 import { S, API, on, emit, change, setDoc, normalize, select, selected, layerById, undo, redo, canUndo, canRedo, flushHistory, setDirty, resetHistory, toast } from './state.js';
-import { newDocument, applyTemplate, renderDoc, FORMATS, THEMES, setGameDefaults } from './engine/render.js';
+import { newDocument, applyTemplate, renderDoc, FORMATS, THEMES, setGameDefaults, MYBAD_KIT } from './engine/render.js';
 import { TEMPLATES } from './engine/templates.js';
 import { makeEnv, docImageUrls, whenLoaded, onImageLoaded } from './engine/assets.js';
 import { GAMES, gameItems } from './engine/games.js';
@@ -193,6 +193,60 @@ P.actions.libraryAction = async (act, game, key, file) => {
   }
 };
 
+// ---------------------------------------------------------------- pack 3D de base
+let pack = { installed: null, latest: null, total: null, count: null, busy: false, done: 0 };
+const mo = b => (b / 1048576).toFixed(0) + ' Mo';
+async function refreshPack() {
+  if (!API) return;
+  try { Object.assign(pack, await API.packStatus()); } catch { /* hors ligne */ }
+  if (tab === 'library') P.renderLibrary();
+}
+P.actions.packBanner = () => {
+  if (!API) return '';
+  const pct = pack.total ? Math.round(pack.done / pack.total * 100) : 0;
+  if (pack.busy) return `<div class="packcard busy"><div><b>Téléchargement du pack 3D…</b><small>${mo(pack.done)} / ${mo(pack.total || 0)}</small></div><div class="pbar"><i style="width:${pct}%"></i></div></div>`;
+  if (pack.installed && pack.latest && pack.installed >= pack.latest) return `<div class="packcard ok"><div><b>Pack 3D installé</b><small>${pack.count || ''} modèles de base · version ${pack.installed}</small></div></div>`;
+  if (pack.installed && pack.latest) return `<div class="packcard"><div><b>Nouveaux modèles 3D disponibles</b><small>Pack version ${pack.latest}</small></div><button class="primary-btn solo" data-pack="download">Mettre à jour</button></div>`;
+  if (!pack.latest) return `<div class="packcard"><div><b>Pack 3D indisponible</b><small>Vérifie ta connexion internet</small></div><button class="mini-btn" data-pack="retry">Réessayer</button></div>`;
+  return `<div class="packcard"><div><b>Pack 3D de base</b><small>${pack.count} agents et voitures · ${mo(pack.total)}</small></div><button class="primary-btn solo" data-pack="download">Télécharger</button></div>`;
+};
+async function downloadPack() {
+  if (pack.busy || !API) return;
+  pack.busy = true; pack.done = 0;
+  if (tab === 'library') P.renderLibrary();
+  renderPackModal();
+  const r = await API.packDownload();
+  pack.busy = false;
+  if (r.error) toast('Téléchargement du pack interrompu : ' + r.error, true);
+  else toast('Pack 3D installé : les modèles sont prêts');
+  await refreshPack(); await refreshLibrary();
+  if (S.doc) { await prepare(S.doc); requestRender(); }
+  if (!$('#modal').hidden && $('#modalTitle').textContent === 'Pack 3D') closeModal();
+}
+P.actions.downloadPack = downloadPack;
+P.actions.retryPack = refreshPack;
+API?.onPackProgress(d => {
+  pack.done = d.done; pack.total = d.total;
+  const bar = $('#packBar'); if (bar) { bar.style.width = Math.round(d.done / d.total * 100) + '%'; $('#packTxt').textContent = `${mo(d.done)} / ${mo(d.total)}`; }
+  if (tab === 'library') { const lb = document.querySelector('.packcard .pbar i'); if (lb) lb.style.width = Math.round(d.done / d.total * 100) + '%'; const s = document.querySelector('.packcard small'); if (s) s.textContent = `${mo(d.done)} / ${mo(d.total)}`; }
+});
+function renderPackModal() {
+  openModal('Pack 3D', `<div class="packmodal"><p>Le pack contient les modèles 3D de base : <b>${pack.count || ''} agents Valorant et voitures Rocket League</b>, prêts à être placés dans tes affiches.</p>
+    ${pack.busy ? `<div class="pbar big"><i id="packBar" style="width:0%"></i></div><p class="hint" id="packTxt">Préparation…</p>` : `<p class="hint">Téléchargement unique de ${mo(pack.total || 0)}. Tu peux continuer à travailler pendant ce temps.</p>`}</div>`,
+    pack.busy ? '<button class="ghost-btn" id="packHide">Continuer en arrière-plan</button>' : '<button class="ghost-btn" id="packLater">Plus tard</button><button class="primary-btn solo" id="packGo">Télécharger</button>');
+  $('#packHide')?.addEventListener('click', closeModal);
+  $('#packLater')?.addEventListener('click', () => { API?.storeSet('packDeclined', true); closeModal(); toast('Tu pourras télécharger le pack dans l\'onglet Bibliothèque'); });
+  $('#packGo')?.addEventListener('click', downloadPack);
+}
+async function maybeOfferPack() {
+  if (!API) return;
+  await refreshPack();
+  if (pack.installed && pack.latest && pack.installed < pack.latest) { toast('Nouveaux modèles 3D disponibles', false, { label: 'Télécharger', fn: downloadPack }); return; }
+  if (pack.installed || !pack.latest) return;
+  if (await API.storeGet('packDeclined')) return;
+  if ($('#modal').hidden) renderPackModal();
+}
+
 // ---------------------------------------------------------------- fichiers
 function slug(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'affiche'; }
 const baseName = p => p.split(/[\\/]/).pop().replace(/\.mybad$/i, '');
@@ -298,39 +352,105 @@ $('#btnCopy').onclick = copyImage;
 $('#btnUndo').onclick = undo;
 $('#btnRedo').onclick = redo;
 
-// ---------------------------------------------------------------- kit de marque
+// ---------------------------------------------------------------- kit de marque & assistant de démarrage
+const KIT_FIELDS = [['org', 'Nom de la structure', 'Ex. MYBAD ESPORT'], ['live', 'Lien de stream', 'twitch.tv/ta-chaine'], ['coach', 'Coach', ''], ['sig', 'Signature (ligne 1)', 'Facultatif'], ['coords', 'Signature (ligne 2)', 'Facultatif']];
+function kitForm(k, wizard) {
+  const T = k.T || {};
+  const roster = g => {
+    const r = (k.rosters || {})[g] || {}, n = GAMES[g].players, items = gameItems(g, S.extraItems);
+    return `<details class="csec kit-roster" ${wizard ? '' : 'open'}><summary class="csec-head"><span>Roster ${GAMES[g].name}</span><span class="muted">facultatif</span></summary>${Array.from({ length: n }, (_, i) => `<div class="prow"><b>${i + 1}</b><input class="input" data-kr="${g}.p${i + 1}" value="${esc(r['p' + (i + 1)] ?? '')}" placeholder="Pseudo"><input class="input" data-kr="${g}.r${i + 1}" value="${esc(r['r' + (i + 1)] ?? '')}" placeholder="Rôle"><select class="input" data-kr="${g}.a${i + 1}"><option value="">${GAMES[g].itemLabel} par défaut</option>${items.map(it => `<option value="${it.key}" ${(r['a' + (i + 1)] ?? '') === it.key ? 'selected' : ''}>${esc(it.name)}</option>`).join('')}</select></div>`).join('')}</details>`;
+  };
+  const accent = (k.themeColors && k.themeColors.accent) || (THEMES.find(t => t.id === (k.theme || 'nuit')) || THEMES[0]).c.accent;
+  const glow = (k.themeColors && k.themeColors.glow) || (THEMES.find(t => t.id === (k.theme || 'nuit')) || THEMES[0]).c.glow;
+  return `
+    ${wizard ? `<div class="wiz-hero"><img src="assets/logo-mark.png" alt=""><div><h3>Bienvenue dans MyBad Creator</h3><p>Configure ta structure une fois : son nom, son logo et ses couleurs seront repris dans toutes tes affiches. Tu pourras tout changer plus tard dans <b>Kit de marque</b>.</p></div></div>
+      <button class="kit-mybad" id="kUseMyBad"><img src="assets/brand/mybad-logo.png" alt=""><span><b>Je fais partie de MyBad Esport</b><small>Remplir avec le kit officiel (logo, nom, signature, ambiance)</small></span></button>
+      <div class="wiz-or"><span>ou configure ta structure</span></div>` : ''}
+    <div class="kit-top">
+      <div class="kit-logo"><div class="kit-logo-prev" id="kLogoPrev">${k.logo ? `<img src="${esc(k.logo)}" alt="">` : '<span>Logo</span>'}</div>
+        <div class="btnrow"><button class="mini-btn" id="kLogoPick">${k.logo ? 'Changer' : 'Importer le logo'}</button>${k.logo ? '<button class="mini-btn danger" id="kLogoDel">Retirer</button>' : ''}</div>
+        <p class="hint">PNG sans fond conseillé</p></div>
+      <div class="cgrid kit-fields">${KIT_FIELDS.map(([f, l, ph]) => `<div class="field ${f === 'org' ? 'full' : ''}"><label>${l}</label><input class="input" data-kt="${f}" value="${esc(T[f] ?? '')}" placeholder="${esc(ph)}"></div>`).join('')}</div>
+    </div>
+    <div class="cgrid">
+      <div class="field"><label>Jeu principal</label><select class="input" id="kGame">${Object.values(GAMES).map(g => `<option value="${g.key}" ${k.game === g.key ? 'selected' : ''}>${g.name}</option>`).join('')}</select></div>
+      <div class="field"><label>Ambiance</label><select class="input" id="kTheme">${THEMES.map(t => `<option value="${t.id}" ${(k.theme || 'nuit') === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
+      <label class="kit-color"><input type="color" id="kAccent" value="${accent}"><span>Couleur d'accent</span></label>
+      <label class="kit-color"><input type="color" id="kGlow" value="${glow}"><span>Couleur de la lumière</span></label>
+    </div>
+    ${roster('valorant')}${roster('rl')}`;
+}
+function readKit(k) {
+  k.T = { ...(k.T || {}) }; k.rosters = { ...(k.rosters || {}) };
+  $$('[data-kt]').forEach(el => { k.T[el.dataset.kt] = el.value.trim(); if (el.dataset.kt === 'live') k.T.liveUrl = el.value.trim(); });
+  $$('[data-kr]').forEach(el => { const [g, f] = el.dataset.kr.split('.'); (k.rosters[g] ||= {}); if (el.value.trim()) k.rosters[g][f] = el.value.trim(); else delete k.rosters[g][f]; });
+  k.game = $('#kGame').value; k.theme = $('#kTheme').value;
+  const base = (THEMES.find(t => t.id === k.theme) || THEMES[0]).c;
+  k.themeColors = {};
+  if ($('#kAccent').value.toLowerCase() !== base.accent.toLowerCase()) k.themeColors.accent = $('#kAccent').value;
+  if ($('#kGlow').value.toLowerCase() !== base.glow.toLowerCase()) k.themeColors.glow = $('#kGlow').value;
+  for (const f of Object.keys(k.T)) if (!k.T[f]) delete k.T[f];
+  k.v = 2;
+  return k;
+}
+function bindKitForm(k, rerender) {
+  $('#kLogoPick').onclick = () => pickFile('image/png,image/webp,image/svg+xml,image/jpeg', async f => {
+    readKit(k);
+    k.logo = /svg/.test(f.type) ? await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); }) : await fileToDataUrl(f, 1600);
+    rerender();
+  });
+  $('#kLogoDel')?.addEventListener('click', () => { readKit(k); k.logo = null; rerender(); });
+  $('#kTheme').onchange = () => { const c = (THEMES.find(t => t.id === $('#kTheme').value) || THEMES[0]).c; $('#kAccent').value = c.accent; $('#kGlow').value = c.glow; };
+  $('#kUseMyBad')?.addEventListener('click', () => { Object.assign(k, JSON.parse(JSON.stringify(MYBAD_KIT)), { rosters: k.rosters || {} }); rerender(); toast('Kit MyBad Esport chargé : vérifie et valide'); });
+}
+async function applyKitToDoc(k) {
+  const t = THEMES.find(x => x.id === (k.theme || 'nuit')) || THEMES[0];
+  change(d => {
+    Object.assign(d.T, k.T || {}, (k.rosters || {})[d.game] || {});
+    if (k.logo) d.assets.logo = k.logo; else delete d.assets.logo;
+    d.themeId = t.id; d.theme = { ...t.c, ...(k.themeColors || {}) };
+  }, { immediate: true, full: true });
+  await prepare(S.doc); requestRender(); refreshTab();
+}
 function openKit() {
   const k = JSON.parse(JSON.stringify(S.kit || { T: {}, rosters: {}, theme: 'nuit', game: 'valorant' }));
-  k.rosters ||= {};
-  const T = { org: S.doc.T.org, sig: S.doc.T.sig, coords: S.doc.T.coords, coach: S.doc.T.coach, live: S.doc.T.live, ...(k.T || {}) };
-  const roster = g => {
-    const r = k.rosters[g] || {}, n = GAMES[g].players, items = gameItems(g, S.extraItems);
-    return `<div class="csec"><div class="csec-head"><span>Roster ${GAMES[g].name}</span></div>${Array.from({ length: n }, (_, i) => `<div class="prow"><b>${i + 1}</b><input class="input" data-kr="${g}.p${i + 1}" value="${esc(r['p' + (i + 1)] ?? (g === S.doc.game ? S.doc.T['p' + (i + 1)] : ''))}" placeholder="Pseudo"><input class="input" data-kr="${g}.r${i + 1}" value="${esc(r['r' + (i + 1)] ?? (g === S.doc.game ? S.doc.T['r' + (i + 1)] : ''))}" placeholder="Rôle"><select class="input" data-kr="${g}.a${i + 1}">${items.map(it => `<option value="${it.key}" ${(r['a' + (i + 1)] ?? (g === S.doc.game ? S.doc.T['a' + (i + 1)] : '')) === it.key ? 'selected' : ''}>${esc(it.name)}</option>`).join('')}</select></div>`).join('')}</div>`;
+  const render = () => {
+    openModal('Kit de marque', `<div class="note">Le kit est repris dans chaque <b>nouveau projet</b> et quand tu changes de jeu.</div>${kitForm(k, false)}`,
+      `<button class="ghost-btn" id="kWizard">Recommencer l'assistant</button><span class="spacer"></span><button class="ghost-btn" id="kApply">Appliquer au projet</button><button class="primary-btn solo" id="kSave">Enregistrer le kit</button>`, true);
+    bindKitForm(k, render);
+    $('#kSave').onclick = async () => { S.kit = readKit(k); await API?.storeSet('kit', S.kit); closeModal(); toast('Kit de marque enregistré'); };
+    $('#kApply').onclick = async () => { S.kit = readKit(k); await API?.storeSet('kit', S.kit); closeModal(); await applyKitToDoc(S.kit); toast('Kit appliqué au projet'); };
+    $('#kWizard').onclick = () => openWizard();
   };
-  openModal('Kit de marque', `
-    <div class="note">Le kit est repris à chaque <b>nouveau projet</b> et quand tu changes de jeu : nom de la structure, coach, lien de stream, rosters et ambiance par défaut.</div>
-    <div class="cgrid">${[['org', 'Structure'], ['coach', 'Coach'], ['live', 'Lien de stream'], ['sig', 'Signature 1'], ['coords', 'Signature 2']].map(([f, l]) => `<div class="field ${f === 'org' ? 'full' : ''}"><label>${l}</label><input class="input" data-kt="${f}" value="${esc(T[f] ?? '')}"></div>`).join('')}</div>
-    <div class="cgrid"><div class="field"><label>Jeu par défaut</label><select class="input" id="kGame">${Object.values(GAMES).map(g => `<option value="${g.key}" ${k.game === g.key ? 'selected' : ''}>${g.name}</option>`).join('')}</select></div>
-    <div class="field"><label>Ambiance par défaut</label><select class="input" id="kTheme">${THEMES.map(t => `<option value="${t.id}" ${k.theme === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div></div>
-    ${roster('valorant')}${roster('rl')}`,
-    `<button class="ghost-btn" id="kApply">Appliquer au projet</button><button class="primary-btn solo" id="kSave">Enregistrer le kit</button>`);
-  const read = () => {
-    k.T = { ...(k.T || {}) };
-    $$('[data-kt]').forEach(el => { k.T[el.dataset.kt] = el.value; });
-    $$('[data-kr]').forEach(el => { const [g, f] = el.dataset.kr.split('.'); (k.rosters[g] ||= {})[f] = el.value; });
-    k.game = $('#kGame').value; k.theme = $('#kTheme').value;
-    return k;
-  };
-  $('#kSave').onclick = async () => { S.kit = read(); await API?.storeSet('kit', S.kit); closeModal(); toast('Kit de marque enregistré'); };
-  $('#kApply').onclick = () => {
-    const kk = read();
-    change(d => { Object.assign(d.T, kk.T, kk.rosters[d.game] || {}); }, { immediate: true });
-    closeModal(); refreshTab(); toast('Kit appliqué au projet');
-  };
+  render();
 }
+function openWizard() {
+  const k = JSON.parse(JSON.stringify(S.kit || { T: {}, rosters: {}, theme: 'nuit', game: 'valorant' }));
+  const render = () => {
+    openModal('Configurer ta structure', kitForm(k, true), `<button class="ghost-btn" id="wSkip">Plus tard</button><span class="spacer"></span><button class="primary-btn solo" id="wDone">Commencer</button>`, true);
+    $('#modal').classList.add('locked');
+    bindKitForm(k, render);
+    const finish = async save => {
+      $('#modal').classList.remove('locked');
+      if (save) { S.kit = readKit(k); }
+      else S.kit = { v: 2, T: {}, rosters: {}, theme: 'nuit', game: 'valorant', skipped: true };
+      await API?.storeSet('kit', S.kit);
+      closeModal();
+      const doc = newDocument(S.kit);
+      S.filePath = null; S.projectName = 'Sans titre';
+      await prepare(doc); setDoc(doc); setDirty(false); afterDocLoad();
+      if (save) toast(`Kit de ${S.kit.T?.org || 'ta structure'} enregistré`);
+      maybeOfferPack();
+    };
+    $('#wDone').onclick = () => finish(true);
+    $('#wSkip').onclick = () => finish(false);
+  };
+  render();
+}
+P.actions.openKit = openKit;
 P.actions.applyKitPlayers = () => {
   const r = S.kit?.rosters?.[S.doc.game];
-  if (!r) { toast('Aucun roster dans le kit pour ce jeu. Ouvre « Kit de marque » pour le remplir.', true); return; }
+  if (!r || !Object.keys(r).length) { toast('Aucun roster dans le kit pour ce jeu. Ouvre « Kit de marque » pour le remplir.', true); return; }
   change(d => Object.assign(d.T, r), { immediate: true }); P.renderContent();
 };
 $('#btnKit').onclick = openKit;
@@ -344,16 +464,21 @@ function openModal(title, body, foot = '', wide = false) {
 }
 function closeModal() { $('#modal').hidden = true; }
 $('#modalClose').onclick = closeModal;
-$('#modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
+$('#modal').onclick = e => { if (e.target.id === 'modal' && !$('#modal').classList.contains('locked')) closeModal(); };
+// Une seule notification à la fois : la nouvelle remplace la précédente.
+let toastEl = null, toastTimer = null;
 on('toast', ({ msg, err, action }) => {
-  const t = document.createElement('div');
+  if (!toastEl || !toastEl.isConnected) { toastEl = document.createElement('div'); $('#toasts').appendChild(toastEl); }
+  const t = toastEl;
   t.className = 'toast' + (err ? ' err' : '');
   t.innerHTML = `<span>${esc(msg)}</span>`;
   if (action) { const b = document.createElement('button'); b.textContent = action.label; b.onclick = () => { action.fn(); t.remove(); }; t.appendChild(b); }
-  $('#toasts').appendChild(t);
-  setTimeout(() => t.remove(), action ? 6500 : 3400);
+  t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.remove(), action ? 6500 : 3400);
 });
 function progressToast(msg) {
+  if (toastEl) { toastEl.remove(); toastEl = null; }
   const t = document.createElement('div'); t.className = 'toast';
   t.innerHTML = `<span class="spin"></span><span class="pmsg">${esc(msg)}</span><span class="ppct"></span>`;
   $('#toasts').appendChild(t);
@@ -377,36 +502,59 @@ function showShortcuts() {
 let update = { state: 'idle' };
 function renderUpdateBtn() {
   const b = $('#btnUpdate');
-  b.hidden = !['available', 'downloading', 'downloaded'].includes(update.state);
-  b.querySelector('span').textContent = update.state === 'downloading' ? `Téléchargement ${Math.round(update.percent || 0)} %` : update.state === 'downloaded' ? 'Redémarrer pour mettre à jour' : `Mise à jour ${update.version || ''}`;
+  const label = {
+    checking: 'Recherche…', available: `Mettre à jour (${update.version || ''})`,
+    downloading: `Téléchargement ${Math.round(update.percent || 0)} %`, downloaded: 'Redémarrer pour installer',
+  }[update.state] || 'Mises à jour';
+  b.querySelector('span').textContent = label;
+  b.classList.toggle('has-update', ['available', 'downloading'].includes(update.state));
   b.classList.toggle('ready', update.state === 'downloaded');
+  b.classList.toggle('spinning', update.state === 'checking');
+  if (!$('#modal').hidden && $('#modalTitle').textContent === 'Mises à jour') openUpdates(true);
 }
-async function openUpdates() {
+const RELEASES = 'https://github.com/mb-apollo/mybad-creator/releases';
+async function openUpdates(refreshOnly = false) {
   const info = await API?.info();
+  const pct = Math.round(update.percent || 0);
   const st = {
-    idle: 'Clique pour vérifier si une nouvelle version est disponible.',
-    checking: 'Recherche en cours…', none: 'Tu as la dernière version.',
-    available: `La version ${update.version} est disponible.`, downloading: `Téléchargement : ${Math.round(update.percent || 0)} %`,
-    downloaded: `La version ${update.version} est prête. Redémarre pour l'installer.`, error: `Impossible de vérifier : ${update.error || 'erreur inconnue'}`, dev: 'Les mises à jour automatiques ne fonctionnent que dans la version installée.',
-  }[update.state];
-  openModal('Mises à jour', `<div class="about"><div class="about-logo"><img src="assets/logo-mark.svg" alt=""><div><h3>MyBad Creator</h3><span>Version installée : ${esc(info?.version || '?')}</span></div></div>
-    <p class="upd-state">${esc(st)}</p>${update.notes ? `<div class="note">${update.notes}</div>` : ''}
-    <p class="hint">Les nouvelles versions sont publiées sur github.com/mb-apollo/mybad-creator. Le logiciel vérifie au démarrage et te prévient avec un bouton dans la barre du haut.</p></div>`,
-    update.state === 'downloaded' ? '<button class="primary-btn solo" id="updInstall">Redémarrer et installer</button>'
-      : update.state === 'available' ? '<button class="primary-btn solo" id="updGet">Télécharger la mise à jour</button>'
-        : '<button class="primary-btn solo" id="updCheck">Rechercher une mise à jour</button>');
-  $('#updCheck')?.addEventListener('click', () => { update = { state: 'checking' }; openUpdates(); API?.updateCheck(); });
-  $('#updGet')?.addEventListener('click', () => { API?.updateDownload(); update.state = 'downloading'; openUpdates(); });
-  $('#updInstall')?.addEventListener('click', () => { flushHistory(); API?.storeSet('session', { doc: S.doc, filePath: S.filePath, projectName: S.projectName, dirty: S.dirty }).then(() => API?.updateInstall()); });
+    idle: ['Aucune vérification pour le moment.', ''], checking: ['Recherche d\'une nouvelle version…', ''],
+    none: ['Tu as la dernière version.', 'ok'], available: [`La version ${update.version} est disponible.`, 'new'],
+    downloading: [`Téléchargement de la version ${update.version}…`, 'new'], downloaded: [`La version ${update.version} est prête à être installée.`, 'ok'],
+    error: [`Vérification impossible : ${update.error || 'erreur inconnue'}`, 'err'], dev: ['Les mises à jour automatiques fonctionnent dans la version installée du logiciel.', ''],
+  }[update.state] || ['', ''];
+  const body = `<div class="about"><div class="about-logo"><img src="assets/logo-mark.png" alt=""><div><h3>MyBad Creator</h3><span>Version installée : <b>${esc(info?.version || '?')}</b>${update.version && update.state !== 'none' ? ` · disponible : <b>${esc(update.version)}</b>` : ''}</span></div></div>
+    <div class="upd-card ${st[1]}"><p class="upd-state">${esc(st[0])}</p>
+    ${update.state === 'downloading' ? `<div class="pbar big"><i style="width:${pct}%"></i></div><p class="hint">${pct} %</p>` : ''}
+    ${update.lastCheck ? `<p class="hint">Dernière vérification : ${new Date(update.lastCheck).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</p>` : ''}</div>
+    ${update.notes ? `<div class="note upd-notes"><b>Nouveautés</b>${update.notes}</div>` : ''}
+    <p class="hint">Le logiciel vérifie automatiquement au démarrage. Ton projet en cours est conservé pendant la mise à jour.</p>
+    <p class="hint">Historique des versions : <a href="${RELEASES}" target="_blank" rel="noopener">${RELEASES.replace('https://', '')}</a></p></div>`;
+  const foot = update.state === 'downloaded' ? '<button class="primary-btn solo" id="updInstall">Redémarrer et installer</button>'
+    : update.state === 'available' ? '<button class="ghost-btn" id="updCheck">Revérifier</button><button class="primary-btn solo" id="updGet">Télécharger et installer</button>'
+      : update.state === 'downloading' ? '<button class="ghost-btn" id="updHide">Continuer à travailler</button>'
+        : `<button class="primary-btn solo" id="updCheck" ${update.state === 'checking' ? 'disabled' : ''}>Rechercher une mise à jour</button>`;
+  if (refreshOnly) { $('#modalBody').innerHTML = body; $('#modalFoot').innerHTML = foot; }
+  else openModal('Mises à jour', body, foot);
+  $('#updCheck')?.addEventListener('click', () => { update = { ...update, state: 'checking' }; renderUpdateBtn(); API?.updateCheck(false); });
+  $('#updGet')?.addEventListener('click', () => { update.state = 'downloading'; update.percent = 0; renderUpdateBtn(); API?.updateDownload(); });
+  $('#updHide')?.addEventListener('click', closeModal);
+  $('#updInstall')?.addEventListener('click', installUpdate);
+}
+async function installUpdate() {
+  flushHistory();
+  await API?.storeSet('session', { doc: S.doc, filePath: S.filePath, projectName: S.projectName, dirty: S.dirty });
+  API?.updateInstall();
 }
 API?.onUpdate(u => {
+  const before = update.state;
   update = { ...update, ...u };
+  if (['none', 'available', 'error'].includes(u.state)) update.lastCheck = Date.now();
+  if (u.state === 'error' && u.silent) update.state = before === 'checking' ? 'idle' : before;
   renderUpdateBtn();
-  if (u.state === 'available' && !u.silent) toast(`Nouvelle version ${u.version} disponible`, false, { label: 'Mettre à jour', fn: () => { API.updateDownload(); } });
-  if (u.state === 'downloaded') toast(`Mise à jour ${u.version} prête`, false, { label: 'Redémarrer', fn: () => API.updateInstall() });
-  if (!$('#modal').hidden && $('#modalTitle').textContent === 'Mises à jour') openUpdates();
+  if (u.state === 'available' && before !== 'available') toast(`Nouvelle version ${u.version} disponible`, false, { label: 'Voir', fn: () => openUpdates() });
+  if (u.state === 'downloaded') toast(`Mise à jour ${u.version} prête`, false, { label: 'Redémarrer', fn: installUpdate });
 });
-$('#btnUpdate').onclick = () => { if (update.state === 'downloaded') API?.updateInstall(); else if (update.state === 'available') { API?.updateDownload(); } else openUpdates(); };
+$('#btnUpdate').onclick = () => { if (update.state === 'downloaded') installUpdate(); else openUpdates(); };
 
 async function showAbout() { openUpdates(); }
 
@@ -425,7 +573,7 @@ API?.onMenu(cmd => {
 });
 API?.onOpenPath(async p => { if (await confirmDiscard()) loadFrom(await API.openPath(p)); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeModal(); closeMenus(); }
+  if (e.key === 'Escape') { if (!$('#modal').classList.contains('locked')) closeModal(); closeMenus(); }
   if (!API && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName)) { e.preventDefault(); e.shiftKey ? redo() : undo(); }
 });
 
@@ -501,6 +649,8 @@ async function boot() {
   afterDocLoad();
   setTab('content');
   setTool('select');
+  if (API && (!S.kit || !S.kit.v)) setTimeout(openWizard, 300);
+  else maybeOfferPack();
   if (API) setTimeout(() => API.updateCheck(true), 4000);
 }
 boot();

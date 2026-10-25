@@ -9,4 +9,3 @@ src/renderer/bgremoval/
 src/renderer/vendor/
 tests/engine-bundle.js
 tests/model-bundle.js
-release-linux/

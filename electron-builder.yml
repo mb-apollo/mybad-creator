@@ -46,3 +46,5 @@ publish:
   owner: mb-apollo
   repo: mybad-creator
   releaseType: release
+releaseInfo:
+  releaseNotesFile: build/release-notes.md

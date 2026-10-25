@@ -1,0 +1,42 @@
+{
+  "name": "mybad-creator",
+  "productName": "MyBad Creator",
+  "version": "2.0.0",
+  "description": "MyBad Creator \u2014 l'\u00e9diteur d'affiches de MyBad Esport",
+  "author": "MyBad Esport",
+  "main": "src/main/main.js",
+  "scripts": {
+    "bundle": "esbuild src/renderer/app.js --bundle --format=iife --outfile=src/renderer/dist/app.js --minify --legal-comments=none",
+    "start": "npm run prepare-assets && npm run bundle && electron .",
+    "dist": "npm run prepare-assets && npm run bundle && node scripts/patch-nsis.js && electron-builder --win nsis --x64 --publish never",
+    "release": "npm run prepare-assets && npm run bundle && node scripts/patch-nsis.js && electron-builder --win nsis --x64 --publish always",
+    "prepare-assets": "node scripts/prepare-assets.js"
+  },
+  "devDependencies": {
+    "@fontsource/allura": "^5.1.0",
+    "@fontsource/anton": "^5.1.0",
+    "@fontsource/archivo-black": "^5.1.0",
+    "@fontsource/barlow-condensed": "^5.1.0",
+    "@fontsource/bebas-neue": "^5.1.0",
+    "@fontsource/great-vibes": "^5.1.0",
+    "@fontsource/ibm-plex-mono": "^5.1.0",
+    "@fontsource/montserrat": "^5.1.0",
+    "@fontsource/pinyon-script": "^5.1.0",
+    "@fontsource/space-grotesk": "^5.1.0",
+    "@fontsource/titan-one": "^5.1.0",
+    "@imgly/background-removal": "^1.4.5",
+    "@imgly/background-removal-data": "^1.4.5",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.0",
+    "three": "^0.169.0"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "electron-updater": "^6.3.9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mb-apollo/mybad-creator.git"
+  }
+}

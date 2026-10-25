@@ -1,0 +1,12 @@
+node_modules/
+release/
+out/
+src/renderer/dist/
+tests/models/
+tests/*-bundle.js
+*.log
+src/renderer/bgremoval/
+src/renderer/vendor/
+tests/engine-bundle.js
+tests/model-bundle.js
+release-linux/

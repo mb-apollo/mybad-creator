@@ -1,0 +1,31 @@
+// Pont sécurisé entre l'interface et le processus principal.
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
+
+contextBridge.exposeInMainWorld('studio', {
+  info: () => ipcRenderer.invoke('app:info'),
+  setDirty: v => ipcRenderer.send('doc:dirty', v),
+  setTitle: t => ipcRenderer.send('win:title', t),
+  storeGet: k => ipcRenderer.invoke('store:get', k),
+  storeSet: (k, v) => ipcRenderer.invoke('store:set', k, v),
+  saveProject: o => ipcRenderer.invoke('project:save', o),
+  openProject: () => ipcRenderer.invoke('project:open'),
+  openPath: p => ipcRenderer.invoke('project:openPath', p),
+  exportImage: o => ipcRenderer.invoke('export:image', o),
+  pickFolder: () => ipcRenderer.invoke('export:pickFolder'),
+  writeInFolder: o => ipcRenderer.invoke('export:writeInFolder', o),
+  showInFolder: p => ipcRenderer.invoke('shell:show', p),
+  copyImage: d => ipcRenderer.invoke('clipboard:image', d),
+  confirm: o => ipcRenderer.invoke('confirm', o),
+  pathForFile: f => { try { return webUtils.getPathForFile(f); } catch { return null; } },
+  libraryList: () => ipcRenderer.invoke('library:list'),
+  libraryImport: o => ipcRenderer.invoke('library:import', o),
+  libraryDelete: o => ipcRenderer.invoke('library:delete', o),
+  libraryExtra: l => ipcRenderer.invoke('library:extra', l),
+  libraryOpen: () => ipcRenderer.invoke('library:open'),
+  updateCheck: silent => ipcRenderer.invoke('update:check', silent),
+  updateDownload: () => ipcRenderer.invoke('update:download'),
+  updateInstall: () => ipcRenderer.invoke('update:install'),
+  onUpdate: fn => ipcRenderer.on('update', (_e, d) => fn(d)),
+  onMenu: fn => ipcRenderer.on('menu', (_e, cmd) => fn(cmd)),
+  onOpenPath: fn => ipcRenderer.on('open-path', (_e, p) => fn(p)),
+});

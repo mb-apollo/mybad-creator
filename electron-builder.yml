@@ -1,0 +1,48 @@
+appId: fr.mybadesport.creator
+productName: MyBad Creator
+copyright: © 2026 MyBad Esport
+directories:
+  output: release
+  buildResources: build
+files:
+  - package.json
+  - src/main/**
+  - src/renderer/index.html
+  - src/renderer/styles.css
+  - src/renderer/fonts.css
+  - src/renderer/dist/**
+  - src/renderer/fonts/**
+  - src/renderer/assets/**
+  - src/renderer/bgremoval/**
+  - src/renderer/vendor/**
+  - "!**/*.map"
+npmRebuild: false
+fileAssociations:
+  - ext: mybad
+    name: Projet MyBad Creator
+    description: Projet d'affiche MyBad Creator
+    icon: build/icon.ico
+win:
+  target: [nsis]
+  icon: build/icon.ico
+  executableName: MyBadCreator
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: MyBad Creator
+  uninstallDisplayName: MyBad Creator
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  language: "1036"
+  installerLanguages: [fr_FR]
+  deleteAppDataOnUninstall: false
+  artifactName: MyBad-Creator-Setup-${version}.exe
+publish:
+  provider: github
+  owner: mb-apollo
+  repo: mybad-creator
+  releaseType: release

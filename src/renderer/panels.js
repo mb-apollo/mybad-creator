@@ -5,7 +5,7 @@ import { THEMES, THEME_TOKENS, FORMATS, applyTemplate, setScriptMode, renderDoc,
 import { TEMPLATES } from './engine/templates.js';
 import * as Custom from './custom.js';
 import { BLENDS, layerText, textLayout, uid } from './engine/scene.js';
-import { GAMES, gameItems } from './engine/games.js';
+import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { align, distribute, arrange, deleteSelected, duplicateSelected, addLayer, requestRender, getPaint, startPaint, stopPaint, setPaintOpt, resetMask } from './editor.js';
 
 export const actions = {};
@@ -251,6 +251,10 @@ export function renderProps() {
   if (L.type === 'bg') {
     h += section('Fond', `${seg('mode', L.mode || 'linear', [['linear', 'Dégradé'], ['radial', 'Radial'], ['solid', 'Uni']], { small: true })}${colorCtl('c1', L.mode === 'radial' ? 'Centre' : 'Haut', L.c1, th)}${L.mode !== 'solid' ? colorCtl('c2', L.mode === 'radial' ? 'Bords' : 'Bas', L.c2, th) : ''}`);
   }
+  if (L.type === 'image') {
+    const cr = L.crop || {};
+    h += section('Recadrage', `${range('crop.l', 'Rogner à gauche', cr.l || 0, 0, 0.9, 0.01, pct)}${range('crop.t', 'Rogner en haut', cr.t || 0, 0, 0.9, 0.01, pct)}${range('crop.r', 'Rogner à droite', cr.r || 0, 0, 0.9, 0.01, pct)}${range('crop.b', 'Rogner en bas', cr.b || 0, 0, 0.9, 0.01, pct)}`, !!(cr.l || cr.t || cr.r || cr.b));
+  }
   if (L.type !== 'bg' && !L.full) {
     h += section('Position et taille', `<div class="grid2">${num('x', 'X', L.x)}${num('y', 'Y', L.y)}${num('w', 'L', L.w, { min: 1 })}${L.type === 'text' ? '' : num('h', 'H', L.h, { min: 1 })}${num('rot', 'Rotation', L.rot || 0, { unit: '°' })}</div>`);
   }
@@ -271,6 +275,7 @@ function bind(box, targets) {
     if (path === 'gameItem') { change(() => targets.forEach(L => { const [, g] = L.asset.split(':'); L.asset = `g:${g}:${value}`; }), { immediate: true }); return; }
     if (path === 'font') { change(() => targets.forEach(L => { if (value) { L.font = value; L.fontOverride = true; } else { L.fontOverride = false; } }), { immediate: true }); return; }
     if (path === 'fx.glow.strength') value = value ? 2 : 1;
+    if (/(^|\.)weapon\.key$/.test(path)) { change(() => targets.forEach(L => setPath(L, path, value || null)), { immediate: true }); if (value) actions.onPropAction?.('weaponAuto', targets[0], { dataset: { prefix: path.replace(/\.key$/, '') } }); renderProps(); return; }
     if (path === 'starColor' && (value === 'none' || !value)) value = 'gradient';
     change(() => targets.forEach(L => setPath(L, path, value)), { immediate: !live, noProps: live });
   };
@@ -322,7 +327,7 @@ function bind(box, targets) {
 function fmtOf(el) {
   const label = el.closest('.range').querySelector('label').textContent;
   const v = +el.value;
-  if (/Opacité|Intensité|Longueur|Zoom|Début|coins|Fin du|Transparence|Force|Dureté|Reflet|Lueur|Taille/i.test(label) && el.max <= 4) return Math.round(v * 100) + ' %';
+  if (/Opacité|Intensité|Longueur|Zoom|Début|coins|Fin du|Transparence|Force|Dureté|Reflet|Lueur|Taille|Rogner/i.test(label) && el.max <= 4) return Math.round(v * 100) + ' %';
   if (/Diffusion|Flou|Épaisseur|Arrondi|Pointillés/.test(label)) return (Math.round(v * 10) / 10) + ' px';
   if (/Angle|Teinte|Inclinaison|Écart|Bras vers|Coude|Genou|Jambe vers|Penché|Rotation|Tête vers|Sens du/.test(label)) return Math.round(v) + '°';
   if (/Luminosité|Contraste|Saturation|Noir/.test(label)) return v + ' %';
@@ -354,13 +359,18 @@ const TITLES = {
 };
 const AGENT_FIELDS = { mvpAgent: 'du MVP', featAgent: 'principal', anAgent1: '1', anAgent2: '2', tAgent: '', cardAgent: 'du joueur', liveAgent: '' };
 
+// Compteur « nombre de lignes » (+ / −) : la mise en page de l'affiche suit automatiquement.
+const COUNT_DEFAULTS = { planning: 4, rec: 4, stats: 4, info: 2 };
+const countOf = key => S.doc.counts?.[key] ?? COUNT_DEFAULTS[key] ?? GAMES[S.doc.game].players;
+const counter = (key, label, min, max) => { const n = countOf(key); return `<div class="counter"><span>${esc(label)}</span><div><button type="button" class="mini-btn" data-count="${key}" data-d="-1" data-min="${min}" data-max="${max}" ${n <= min ? 'disabled' : ''}>−</button><b>${n}</b><button type="button" class="mini-btn" data-count="${key}" data-d="1" data-min="${min}" data-max="${max}" ${n >= max ? 'disabled' : ''}>+</button></div></div>`; };
+
 export function renderContent() {
   const box = $('#contentBody'); if (!box || !S.doc) return;
   const T = S.doc.T, tpl = TEMPLATES[S.doc.tpl], game = GAMES[S.doc.game], items = itemOptions(S.doc.game);
   const field = (k, label, half) => `<div class="field ${half ? '' : 'full'}"><label>${esc(label)}</label><input class="input" data-t="${k}" value="${esc(T[k] ?? '')}" spellcheck="false"></div>`;
   let h = `<div class="content-head"><div><b>${esc(tpl.name)}</b><span class="muted">${esc(tpl.desc)}</span></div><button class="mini-btn" data-act="reapply" title="Recrée les calques du modèle avec le contenu actuel (tes calques ajoutés sont gardés)">${icon('refresh')} Réinitialiser</button></div>`;
   const hasTitle = tpl.fields.some(f => TITLES[f] || f === 'resTitle');
-  const hasRenders = tpl.fields.some(f => f === 'players' || AGENT_FIELDS[f] != null) && S.doc.tpl !== 'matchday';
+  const hasRenders = tpl.fields.some(f => f === 'players' || AGENT_FIELDS[f] != null);
   if (hasTitle || hasRenders) h += `<div class="pad">${hasTitle ? toggleRaw('script', 'Titre manuscrit + gras', S.doc.script) : ''}${hasRenders ? toggleRaw('use3d', 'Personnages en 3D (modèles .glb)', S.doc.use3d) : ''}</div>`;
   let grid = '';
   const flush = () => { if (grid) { h += `<div class="cgrid">${grid}</div>`; grid = ''; } };
@@ -381,17 +391,28 @@ export function renderContent() {
     if (AGENT_FIELDS[f] != null) { grid += `<div class="field full"><label>${game.itemLabel} ${AGENT_FIELDS[f]}</label><select class="input" data-t="${f}">${items.map(([v, l]) => `<option value="${v}" ${T[f] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>`; continue; }
     if (f === 'players') {
       flush();
-      h += `<div class="csec"><div class="csec-head"><span>Joueurs · ${game.name}</span><button class="link-btn" data-act="kitPlayers">Reprendre ceux du kit</button></div>${Array.from({ length: game.players }, (_, i) => `<div class="prow"><b>${i + 1}</b><input class="input" data-t="p${i + 1}" value="${esc(T['p' + (i + 1)])}" placeholder="Pseudo" aria-label="Joueur ${i + 1}"><input class="input" data-t="r${i + 1}" value="${esc(T['r' + (i + 1)])}" placeholder="Rôle" aria-label="Rôle ${i + 1}"><select class="input" data-t="a${i + 1}" aria-label="${game.itemLabel} ${i + 1}">${items.map(([v, l]) => `<option value="${v}" ${T['a' + (i + 1)] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>`).join('')}</div>`;
+      h += `<div class="csec"><div class="csec-head"><span>Joueurs · ${game.name}</span><button class="link-btn" data-act="kitPlayers">Reprendre ceux du kit</button></div>${counter('players', 'Nombre de joueurs', 1, game.players)}${Array.from({ length: Math.min(game.players, countOf('players')) }, (_, i) => `<div class="prow"><b>${i + 1}</b><input class="input" data-t="p${i + 1}" value="${esc(T['p' + (i + 1)])}" placeholder="Pseudo" aria-label="Joueur ${i + 1}"><input class="input" data-t="r${i + 1}" value="${esc(T['r' + (i + 1)])}" placeholder="Rôle" aria-label="Rôle ${i + 1}"><select class="input" data-t="a${i + 1}" aria-label="${game.itemLabel} ${i + 1}">${items.map(([v, l]) => `<option value="${v}" ${T['a' + (i + 1)] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>`).join('')}</div>`;
+      continue;
+    }
+    if (f === 'rec2' || f === 'rec3' || f === 'rec4' || f === 'tInfo2') continue;
+    if (f === 'rec1') {
+      flush();
+      h += `<div class="csec"><div class="csec-head"><span>Postes recherchés</span></div>${counter('rec', 'Nombre de postes', 1, 6)}<div class="cgrid">${Array.from({ length: countOf('rec') }, (_, k) => field('rec' + (k + 1), 'Poste ' + (k + 1))).join('')}</div></div>`;
+      continue;
+    }
+    if (f === 'tInfo1') {
+      flush();
+      h += `<div class="csec"><div class="csec-head"><span>Infos du tournoi</span></div>${counter('info', 'Nombre d\'infos', 0, 4)}<div class="cgrid">${Array.from({ length: countOf('info') }, (_, k) => field('tInfo' + (k + 1), 'Info ' + (k + 1))).join('')}</div></div>`;
       continue;
     }
     if (f === 'planning') {
       flush();
-      h += `<div class="csec"><div class="csec-head"><span>Programme</span><span class="muted">laisser vide pour masquer une ligne</span></div>${[1, 2, 3, 4, 5].map(i => `<div class="plrow"><input class="input" data-t="pl${i}d" value="${esc(T[`pl${i}d`])}" placeholder="Jour"><input class="input" data-t="pl${i}h" value="${esc(T[`pl${i}h`])}" placeholder="Heure"><input class="input" data-t="pl${i}t" value="${esc(T[`pl${i}t`])}" placeholder="Programme"><input class="input" data-t="pl${i}g" value="${esc(T[`pl${i}g`])}" placeholder="Type"></div>`).join('')}</div>`;
+      h += `<div class="csec"><div class="csec-head"><span>Programme</span></div>${counter('planning', 'Nombre de lignes', 1, 6)}${Array.from({ length: countOf('planning') }, (_, k) => k + 1).map(i => `<div class="plrow"><input class="input" data-t="pl${i}d" value="${esc(T[`pl${i}d`])}" placeholder="Jour"><input class="input" data-t="pl${i}h" value="${esc(T[`pl${i}h`])}" placeholder="Heure"><input class="input" data-t="pl${i}t" value="${esc(T[`pl${i}t`])}" placeholder="Programme"><input class="input" data-t="pl${i}g" value="${esc(T[`pl${i}g`])}" placeholder="Type"></div>`).join('')}</div>`;
       continue;
     }
     if (f === 'stats') {
       flush();
-      h += `<div class="csec"><div class="csec-head"><span>Statistiques</span></div>${[1, 2, 3, 4].map(i => `<div class="strow"><input class="input" data-t="st${i}l" value="${esc(T[`st${i}l`])}" placeholder="Libellé"><input class="input" data-t="st${i}v" value="${esc(T[`st${i}v`])}" placeholder="Valeur"></div>`).join('')}</div>`;
+      h += `<div class="csec"><div class="csec-head"><span>Statistiques</span></div>${counter('stats', 'Nombre de statistiques', 1, 6)}${Array.from({ length: countOf('stats') }, (_, k) => k + 1).map(i => `<div class="strow"><input class="input" data-t="st${i}l" value="${esc(T[`st${i}l`])}" placeholder="Libellé"><input class="input" data-t="st${i}v" value="${esc(T[`st${i}v`])}" placeholder="Valeur"></div>`).join('')}</div>`;
       continue;
     }
     grid += field(f, F[f] || f, HALF.has(f));
@@ -403,6 +424,13 @@ export function renderContent() {
 function toggleRaw(id, label, v) { return `<label class="toggle"><span>${esc(label)}</span><input type="checkbox" data-c="${id}" ${v ? 'checked' : ''}></label>`; }
 export function initContent() {
   const box = $('#contentBody');
+  box.addEventListener('click', e => {
+    const b = e.target.closest('[data-count]'); if (!b || b.disabled) return;
+    const key = b.dataset.count, n = Math.max(+b.dataset.min, Math.min(+b.dataset.max, countOf(key) + +b.dataset.d));
+    change(d => { d.counts = { ...(d.counts || {}), [key]: n }; applyTemplate(d, d.tpl); }, { immediate: true, full: true });
+    renderContent();
+    toast('Mise en page recalculée (Ctrl+Z pour annuler)');
+  });
   let plTimer = null;
   box.addEventListener('input', e => {
     const k = e.target.dataset.t; if (!k) return;
@@ -500,6 +528,13 @@ export function initTheme() {
 
 // ================================================================ BIBLIOTHÈQUE
 let libGame = null;
+function weaponsSection() {
+  const n = WEAPONS.filter(w => S.libraryModels.has('g:weapons:' + w.key)).length;
+  return `<div class="csec libweap"><div class="csec-head"><span>Armes 3D</span><span class="muted">${n} / ${WEAPONS.length}</span></div>
+    <p class="hint">Importe tes modèles d'armes (.glb) : ils se placent ensuite dans la main d'un personnage (section Arme des propriétés).</p>
+    <div class="btnrow"><button class="mini-btn" data-lib="folder" data-game="weapons">${icon('folder')} Importer les armes</button></div>
+    ${WEAPONS.map(w => `<div class="weaprow"><b>${esc(w.name)}</b><small>${w.kind === 'rifle' ? 'Fusil' : 'Pistolet'}</small>${S.libraryModels.has('g:weapons:' + w.key) ? '<em class="m3d">3D</em>' : ''}<button class="mini-btn" data-lib="glb" data-game="weapons" data-weapon="${w.key}">3D</button>${S.libraryModels.has('g:weapons:' + w.key) ? `<button class="mini-btn danger" data-lib="del" data-game="weapons" data-weapon="${w.key}">✕</button>` : ''}</div>`).join('')}</div>`;
+}
 export function renderLibrary() {
   const box = $('#libraryBody'); if (!box || !S.doc) return;
   libGame ||= S.doc.game;
@@ -510,6 +545,7 @@ export function renderLibrary() {
     <div class="lib-stats"><span><b>${done}</b> / ${items.length} renders</span><span><b>${models}</b> modèles 3D</span></div>
     <div class="pad btnrow"><button class="mini-btn" data-lib="folder">${icon('folder')} Importer plusieurs renders</button><button class="mini-btn" data-lib="add">${icon('plus')} Ajouter ${g.itemLabel === 'Agent' ? 'un agent' : 'une voiture'}</button></div>
     <p class="hint pad">Nomme tes fichiers comme l'${g.itemLabel === 'Agent' ? 'agent' : 'élément'} (jett.png, kayo.png…) pour un import automatique. Les modèles 3D (.glb, .gltf) s'importent de la même façon.</p>
+    ${weaponsSection()}
     <div class="libgrid">${items.map(i => {
       const k = `g:${libGame}:${i.key}`, url = S.library.get(k), m = S.libraryModels.has(k);
       return `<div class="libitem ${url ? 'has' : ''}" data-key="${i.key}" title="${esc(i.name)}">
@@ -527,8 +563,8 @@ export function initLibrary() {
     if (b.dataset.pack === 'download') { actions.downloadPack?.(); return; }
     if (b.dataset.pack === 'retry') { actions.retryPack?.(); return; }
     const act = b.dataset.lib; if (!act) return;
-    const key = b.closest('.libitem')?.dataset.key;
-    actions.libraryAction?.(act, libGame, key);
+    const key = b.dataset.weapon || b.closest('.libitem')?.dataset.key;
+    actions.libraryAction?.(act, b.dataset.game || libGame, key);
   });
 }
 

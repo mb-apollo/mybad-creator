@@ -26,6 +26,15 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
 - `src/renderer/panels.js` : panneaux Propriétés, Contenu, Thème, Bibliothèque, Calques. `setHTML` garde le focus.
 - `src/renderer/model3d.js` + `pose3d.js` : calques 3D three.js (.glb), éclairage key/rim/fill/ambient, exposition.
   `CAR_FRONT = 270` = rotation où une voiture fait face à la caméra.
+- `src/renderer/pose3d.js` : poses par membre (bras/jambes/buste/tête, flexion des doigts, cinématique inverse), poses prédéfinies,
+  nettoyage des poids de peau et garde-fou anti-triangles étirés (`recordRestShape` / `cullStretched`). Les noms d'os acceptent
+  le suffixe numérique des exports Sketchfab (`L_Shoulder_021`).
+- `src/renderer/weapons.js` : armes tenues en main (bibliothèque `g:weapons:<clé>`, liste dans `games.js`), main gauche par IK.
+- `src/renderer/custom.js` : modèles d'affiches personnalisés (localStorage, clés `custom:<id>` ajoutées à `TEMPLATES`).
+- `src/renderer/engine/mask.js` : masques au pinceau (PNG dans `doc.assets`, clé `mask-<id calque>`).
+- Calque 3D « scène » : un calque `model` avec `actors[]` (plusieurs personnages, sol, ombres, reflets) rendu par `renderStage`.
+- Nombre de lignes des listes (planning, recrutement, stats, infos tournoi, joueurs) : `doc.counts`, lu dans `ctx.counts` des gabarits.
+- La bibliothèque utilisateur (`library/`) prend le pas sur le pack 3D : un ancien `jett.glb` importé masque celui du pack.
 - `src/renderer/app.js` : démarrage, assistant de démarrage, kit de marque, export, pack 3D, mises à jour.
 - `build/` : icônes, images et habillage NSIS de l'installateur (`installer.nsh`, `nsis/assistedInstaller.nsh`
   copié par `scripts/patch-nsis.js`).

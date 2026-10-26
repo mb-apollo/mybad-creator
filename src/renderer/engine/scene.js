@@ -262,13 +262,14 @@ function drawImageLayer(c, L, env, b) {
   c.filter = imageFilter(L.filters);
   c.save();
   if (L.fit === 'cover') { c.beginPath(); c.rect(b.x, b.y, b.w, b.h); c.clip(); }
-  const z = L.zoom || 1;
-  const r = (L.fit === 'cover' ? Math.max(b.w / img.width, b.h / img.height) : Math.min(b.w / img.width, b.h / img.height)) * z;
-  const w = img.width * r, h = img.height * r;
+  const z = L.zoom || 1, cr = L.crop || {};
+  const sx = (cr.l || 0) * img.width, sy = (cr.t || 0) * img.height, sw = Math.max(1, img.width * (1 - (cr.l || 0) - (cr.r || 0))), sh = Math.max(1, img.height * (1 - (cr.t || 0) - (cr.b || 0)));
+  const r = (L.fit === 'cover' ? Math.max(b.w / sw, b.h / sh) : Math.min(b.w / sw, b.h / sh)) * z;
+  const w = sw * r, h = sh * r;
   let x = b.x + (b.w - w) / 2 + (L.panX || 0) * b.w, y = b.y + (b.h - h) / 2 + (L.panY || 0) * b.h;
   if (L.fit !== 'cover' && L.anchor === 'bottom') y = b.y + b.h - h + (L.panY || 0) * b.h;
   if (L.flipX) { c.translate(x + w / 2, 0); c.scale(-1, 1); c.translate(-(x + w / 2), 0); }
-  c.drawImage(img, x, y, w, h);
+  c.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   c.restore();
   c.filter = 'none';
 }

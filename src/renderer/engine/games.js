@@ -28,8 +28,15 @@ export const GAMES = {
   rl: { key: 'rl', name: 'Rocket League', players: 3, itemLabel: 'Voiture', items: RL_CARS, roleLabels: {} },
 };
 
+// Armes 3D tenues en main (bibliothèque « weapons »). kind : fusil (deux mains) ou pistolet (une main).
+export const WEAPONS = [
+  { key: 'vandal', name: 'Vandal', kind: 'rifle' }, { key: 'phantom', name: 'Phantom', kind: 'rifle' },
+  { key: 'classic', name: 'Classic', kind: 'pistol' }, { key: 'ghost', name: 'Ghost', kind: 'pistol' }, { key: 'sheriff', name: 'Sheriff', kind: 'pistol' },
+];
+
 // Éléments ajoutés par l'utilisateur (nouvel agent, voiture personnalisée…)
 export function gameItems(game, extra = []) {
+  if (game === 'weapons') return WEAPONS;
   const base = GAMES[game]?.items || [];
   const keys = new Set(base.map(i => i.key));
   return [...base, ...extra.filter(e => e.game === game && !keys.has(e.key))];

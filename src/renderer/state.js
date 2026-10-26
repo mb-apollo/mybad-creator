@@ -38,7 +38,7 @@ export function normalize(d) {
     const doc = newDocument(S.kit);
     if (d && d.T) Object.assign(doc.T, d.T);
     if (d && d.images) { doc.assets = { ...doc.assets }; if (d.images.logoAdv) doc.assets.logoAdv = d.images.logoAdv; }
-    applyTemplate(doc, TEMPLATES[d?.tpl] ? d.tpl : 'matchday');
+    applyTemplate(doc, TEMPLATES[d?.tpl] ? d.tpl : 'roster');
     return doc;
   }
   const base = newDocument(S.kit);

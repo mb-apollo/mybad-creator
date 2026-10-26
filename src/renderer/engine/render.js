@@ -78,7 +78,7 @@ export function newDocument(kit) {
   const theme = THEMES.find(t => t.id === (k.theme || 'nuit')) || THEMES[0];
   const doc = {
     app: 'mybad-creator', version: 2,
-    fmt: '4x5', W: 1080, H: 1350, game: k.game || 'valorant', tpl: 'matchday',
+    fmt: '4x5', W: 1080, H: 1350, game: k.game || 'valorant', tpl: 'roster',
     themeId: theme.id, theme: { ...theme.c },
     script: true,
     use3d: true,
@@ -87,7 +87,7 @@ export function newDocument(kit) {
     layers: [], assets: { ...(k.assets || {}), ...(k.logo ? { logo: k.logo } : {}) },
   };
   if (k.themeColors) Object.assign(doc.theme, k.themeColors);
-  applyTemplate(doc, 'matchday');
+  applyTemplate(doc, 'roster');
   return doc;
 }
 
@@ -110,7 +110,8 @@ export function applyTemplate(doc, key, opts = {}) {
   const tpl = TEMPLATES[key];
   const ctx = {
     W: doc.W, H: doc.H, u: Math.min(doc.W, doc.H * 0.8) / 1080, T: doc.T, game: doc.game,
-    nPlayers: GAMES[doc.game]?.players || 5, script: doc.script, use3d: !!doc.use3d,
+    nPlayers: Math.max(1, Math.min(GAMES[doc.game]?.players || 5, doc.counts?.players ?? 99)), script: doc.script, use3d: !!doc.use3d,
+    counts: { planning: 4, rec: 4, stats: 4, info: 2, ...doc.counts },
   };
   setDocFonts(doc.fonts);
   const built = tpl.build(ctx).map(L => ({ id: uid(), visible: true, locked: false, ...L, fromTpl: true }));

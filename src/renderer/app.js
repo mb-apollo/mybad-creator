@@ -5,11 +5,11 @@ import { TEMPLATES } from './engine/templates.js';
 import { makeEnv, docImageUrls, whenLoaded, onImageLoaded } from './engine/assets.js';
 import { GAMES, gameItems } from './engine/games.js';
 import { $, $$, esc, icon } from './ui.js';
-import { initEditor, requestRender, fit, zoomTo, getZoom, setTool, addLayer, pasteLayers, copySelected } from './editor.js';
+import { initEditor, requestRender, fit, zoomTo, getZoom, setTool, addLayer, pasteLayers, copySelected, togglePoseEdit, getPoseEdit, startPaint, addGuide, toggleRulers } from './editor.js';
 import * as P from './panels.js';
 import { initCustom, isCustom, scheduleSave as saveCustomModel } from './custom.js';
 initCustom();
-import { initModels, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels } from './model3d.js';
+import { initModels, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels, poseHandles, startPoseDrag, dragPoseHandle } from './model3d.js';
 
 // ---------------------------------------------------------------- environnement de rendu
 function env(doc = S.doc, exporting = false, thumb = false) {
@@ -174,7 +174,7 @@ P.actions.libraryAction = async (act, game, key, file) => {
       let ok = 0; const miss = [];
       for (const f of [].concat(files)) {
         const n = norm(f.name.replace(/[-_ ](render|full|portrait|model)/i, ''));
-        const it = items.find(i => norm(i.key) === n || norm(i.name) === n) || items.find(i => n.startsWith(norm(i.key)));
+        const it = items.find(i => norm(i.key) === n || norm(i.name) === n) || items.find(i => n.startsWith(norm(i.key))) || (game === 'weapons' ? items.find(i => n.includes(norm(i.key))) : null);
         if (!it) { miss.push(f.name); continue; }
         await save(it.key, f, /\.(glb|gltf|zip)$/i.test(f.name) ? 'glb' : 'png'); ok++;
       }
@@ -588,7 +588,48 @@ document.addEventListener('keydown', e => {
 });
 
 // ---------------------------------------------------------------- barre d'outils verticale
+// largeur du panneau d'outils : repliée (icônes) ou étendue (noms), réglable à la souris et mémorisée
+const workEl = $('.work'), toolsEl = $('#tools');
+function setToolsWidth(w, save = true) {
+  w = Math.max(48, Math.min(260, Math.round(w)));
+  if (w < 90) w = 48;
+  workEl.style.setProperty('--toolw', w + 'px'); toolsEl.classList.toggle('open', w > 110);
+  if (save) try { localStorage.setItem('mbc.toolw', String(w)); } catch { /* sans stockage */ }
+  return w;
+}
+try { setToolsWidth(+localStorage.getItem('mbc.toolw') || 48, false); } catch { /* sans stockage */ }
+$('#toolsToggle').onclick = () => setToolsWidth(toolsEl.classList.contains('open') ? 48 : 184);
+$('#toolsResize').addEventListener('pointerdown', e => {
+  e.preventDefault(); const move = ev => setToolsWidth(ev.clientX - workEl.getBoundingClientRect().left, false);
+  const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); setToolsWidth(parseFloat(getComputedStyle(workEl).getPropertyValue('--toolw'))); };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+});
+// pipette : prend une couleur n'importe où à l'écran
+async function eyedrop() {
+  if (!window.EyeDropper) { toast("La pipette n'est pas disponible sur cette version.", true); return; }
+  let hex; try { hex = (await new window.EyeDropper().open()).sRGBHex; } catch { return; }
+  const targets = selected().filter(L => ['text', 'shape', 'effect'].includes(L.type));
+  if (targets.length) { change(() => targets.forEach(L => { if (L.type === 'text') L.color = hex; else if (L.type === 'shape') L.fill = hex; else L.color = hex; }), { immediate: true }); toast(`Couleur ${hex} appliquée`); }
+  else { try { await navigator.clipboard.writeText(hex); } catch { /* presse-papiers indisponible */ } toast(`Couleur ${hex} copiée (sélectionne un texte ou une forme pour l'appliquer)`); }
+}
 $('#tools').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act) {
+    const sel = selected();
+    if (act === 'eyedrop') eyedrop();
+    else if (act === 'guideV') addGuide('v');
+    else if (act === 'guideH') addGuide('h');
+    else if (act === 'rulers') toggleRulers();
+    else if (act === 'maskPaint') {
+      if (sel.length === 1 && !['bg', 'effect'].includes(sel[0].type)) { setTab('props'); startPaint(sel[0]); P.renderProps(); toast('Peins sur l\'affiche : effacer ou restaurer, réglages dans Propriétés'); }
+      else toast('Sélectionne d\'abord un calque (image, modèle 3D, texte…).', true);
+    }
+    else if (act === 'crop') {
+      if (sel.length === 1 && sel[0].type === 'image') { setTab('props'); P.renderProps(); setTimeout(() => { const s = [...document.querySelectorAll('#propsBody summary')].find(x => /Recadrage/.test(x.textContent)); if (s) { s.parentElement.open = true; s.scrollIntoView({ block: 'start' }); } }, 60); }
+      else toast('Sélectionne d\'abord une image à recadrer.', true);
+    }
+    return;
+  }
   const b = e.target.closest('[data-tool]'); if (b) { setTool(b.dataset.tool); return; }
   const a = e.target.closest('[data-add]'); if (a) P.addPreset(a.dataset.add);
 });
@@ -628,7 +669,7 @@ async function loadFonts() {
 
 async function boot() {
   await loadFonts();
-  initEditor({ stage: $('#stage'), poster: $('#poster'), overlay: $('#overlay'), env: exp => env(S.doc, exp) });
+  initEditor({ stage: $('#stage'), poster: $('#poster'), overlay: $('#overlay'), env: exp => env(S.doc, exp), poseApi: { handles: poseHandles, start: startPoseDrag, drag: dragPoseHandle } });
   initModels({ requestRender, toast, actions: P.actions });
   P.actions.modelProps = modelProps;
   P.actions.onPropAction = modelPropAction;
@@ -667,5 +708,7 @@ async function boot() {
 boot();
 
 // Accès pour les tests automatisés
-window.__creator = { S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer };
+window.__creator = { S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles };
+P.actions.togglePoseEdit = togglePoseEdit;
+P.actions.poseEditOn = () => !!getPoseEdit();
 void copySelected; void selected; void resetHistory; void emit; void icon;

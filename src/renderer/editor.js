@@ -6,11 +6,13 @@ import { maskCanvas, paintableMask, stamp, commitMask, clearMask, maskKey } from
 
 const view = { s: 0.5, ox: 0, oy: 0, fit: true };
 let stage, poster, overlay, octx, envFactory;
+let poseApi = null;
 let hover = null, guides = [], marquee = null, preview = null, spaceDown = false, drag = null;
 const DPR = () => window.devicePixelRatio || 1;
 const ACCENT = '#54D8FF', GUIDE = '#FF4FA0';
 
 export function initEditor(opts) {
+  poseApi = opts.poseApi || null;
   stage = opts.stage; poster = opts.poster; overlay = opts.overlay; envFactory = opts.env;
   octx = overlay.getContext('2d');
   new ResizeObserver(() => { sizeOverlay(); if (view.fit) fit(); else layout(); }).observe(stage);
@@ -22,7 +24,7 @@ export function initEditor(opts) {
   window.addEventListener('keydown', onKey);
   window.addEventListener('keyup', e => { if (e.code === 'Space') { spaceDown = false; updateCursor(); } });
   on('doc', o => { if (o && o.full) { fit(); } requestRender(); });
-  on('selection', () => { if (paint && (S.sel.length !== 1 || S.sel[0] !== paint.id)) paint = null; updateCursor(); drawOverlay(); });
+  on('selection', () => { if (poseEdit && (S.sel.length !== 1 || S.sel[0] !== poseEdit.id)) poseEdit = null; if (paint && (S.sel.length !== 1 || S.sel[0] !== paint.id)) paint = null; updateCursor(); drawOverlay(); });
   sizeOverlay();
 }
 
@@ -143,6 +145,8 @@ function drawOverlay() {
     poly([[g.x, g.y], [g.r, g.y], [g.r, g.b], [g.x, g.b]]); octx.setLineDash([6, 4]); octx.strokeStyle = ACCENT; octx.lineWidth = 1; octx.stroke(); octx.setLineDash([]);
   }
   drawPaintOverlay();
+  drawPoseHandles();
+  drawGuidesAndRulers();
   guides.forEach(gd => {
     octx.beginPath();
     if (gd.v != null) { const [x] = toScreen([gd.v, 0]); octx.moveTo(x, 0); octx.lineTo(x, overlay.height); }
@@ -161,6 +165,7 @@ function drawOverlay() {
 function snapTargets(excludeIds) {
   const W = S.doc.W, H = S.doc.H;
   const v = [0, W / 2, W], h = [0, H / 2, H];
+  (S.doc.guides || []).forEach(g => (g.axis === 'v' ? v : h).push(g.pos));
   S.doc.layers.forEach(L => {
     if (excludeIds.includes(L.id) || L.visible === false || L.type === 'bg' || L.full || L.type === 'effect') return;
     const a = aabb(box(L)); v.push(a.x, (a.x + a.r) / 2, a.r); h.push(a.y, (a.y + a.b) / 2, a.b);
@@ -189,6 +194,11 @@ function onDown(e) {
   const p = toDoc(e);
   if (e.button === 1 || S.tool === 'hand' || spaceDown) { drag = { mode: 'pan', sx: e.clientX, sy: e.clientY, ox: view.ox, oy: view.oy }; updateCursor(); return; }
   if (e.button !== 0) return;
+  { const gi = (S.doc.guides || []).findIndex(g => Math.abs(g.pos - p[g.axis === 'v' ? 0 : 1]) < 6 / view.s); if (gi >= 0 && S.tool === 'select') { drag = { mode: 'guide', i: gi }; return; } }
+  if (poseEdit && poseApi) {
+    const PL = layerById(poseEdit.id), hit = PL && poseHandleAt(PL, p);
+    if (hit) { drag = { mode: 'poseh', id: PL.id, h: hit, st: poseApi.start(PL, hit) }; return; }
+  }
   if (paint) {
     const PL = layerById(paint.id);
     if (PL && !PL.locked) {
@@ -237,6 +247,12 @@ function onMove(e) {
   }
   const p = toDoc(e);
   if (drag.mode === 'paint') { strokeTo(p, e); return; }
+  if (drag.mode === 'guide') { const g = S.doc.guides[drag.i]; if (g) { g.pos = p[g.axis === 'v' ? 0 : 1]; drawOverlay(); } return; }
+  if (drag.mode === 'poseh') {
+    const L = layerById(drag.id); if (!L) return;
+    poseApi.drag(L, drag.h, drag.st, docToNdc(box(L), p));
+    emit('doc', { live: true }); requestRender(); return;
+  }
   if (drag.mode === 'pan') { view.ox = drag.ox + e.clientX - drag.sx; view.oy = drag.oy + e.clientY - drag.sy; view.fit = false; layout(); return; }
   if (drag.mode === 'create') {
     const x = Math.min(drag.start[0], p[0]), y = Math.min(drag.start[1], p[1]);
@@ -314,6 +330,9 @@ function onUp(e) {
     if (!r || r.w * view.s < 6) r = null;
     createAt(S.tool, d.start, r);
     setTool('select');
+  } else if (d.mode === 'guide') {
+    const g = S.doc.guides[d.i], lim = g && (g.axis === 'v' ? S.doc.W : S.doc.H);
+    change(doc => { if (g && (g.pos < 0 || g.pos > lim)) doc.guides.splice(d.i, 1); }, { immediate: true });
   } else if (d.mode === 'paint') {
     change(doc => { const L = doc.layers.find(x => x.id === d.id); if (L) commitMask(L, doc, d.cv); }, { immediate: true });
   } else if (d.mode === 'marquee') { marquee = null; drawOverlay(); }
@@ -525,4 +544,55 @@ function drawPaintOverlay() {
     octx.beginPath(); octx.arc(x, y, r, 0, 7); octx.strokeStyle = '#fff'; octx.lineWidth = 1.5; octx.stroke();
     octx.beginPath(); octx.arc(x, y, Math.max(1, r * paint.hard), 0, 7); octx.setLineDash([3, 3]); octx.strokeStyle = 'rgba(255,255,255,.6)'; octx.lineWidth = 1; octx.stroke(); octx.setLineDash([]);
   }
+}
+
+// ---------------------------------------------------------------- poignées de pose sur le personnage
+let poseEdit = null; // { id } : le calque dont on déplace les membres directement
+export const getPoseEdit = () => poseEdit;
+export function togglePoseEdit(L) { poseEdit = poseEdit ? null : { id: L.id }; drawOverlay(); }
+const ndcToDoc = (b, h) => [b.x + (h.x + 1) / 2 * b.w, b.y + (1 - h.y) / 2 * b.h];
+const docToNdc = (b, p) => ({ x: (p[0] - b.x) / b.w * 2 - 1, y: 1 - (p[1] - b.y) / b.h * 2 });
+function poseHandleAt(L, p) {
+  const b = box(L), r = 11 / view.s;
+  let best = null, bd = Infinity;
+  for (const h of poseApi.handles(L)) { const [x, y] = ndcToDoc(b, h), d = Math.hypot(x - p[0], y - p[1]); if (d < r && d < bd) { best = h; bd = d; } }
+  return best;
+}
+const HANDLE_COLOR = { hand: '#54D8FF', elbow: '#ffffff', head: '#FF4FA0', chest: '#FFD873', knee: '#9AF0B0', foot: '#9AF0B0' };
+function drawPoseHandles() {
+  if (!poseEdit || !poseApi) return;
+  const L = layerById(poseEdit.id); if (!L) return;
+  const b = box(L);
+  for (const h of poseApi.handles(L)) {
+    const [x, y] = toScreen(ndcToDoc(b, h)), kind = h.key.replace(/[LR]$/, '');
+    octx.beginPath(); octx.arc(x, y, 7, 0, 7); octx.fillStyle = HANDLE_COLOR[kind] || '#fff'; octx.globalAlpha = 0.9; octx.fill(); octx.globalAlpha = 1;
+    octx.lineWidth = 2; octx.strokeStyle = '#04101a'; octx.stroke();
+  }
+}
+
+// ---------------------------------------------------------------- repères et règles
+let rulers = false;
+export function toggleRulers() { rulers = !rulers; drawOverlay(); }
+export function addGuide(axis) {
+  change(d => { (d.guides ||= []).push({ axis, pos: axis === 'v' ? d.W / 2 : d.H / 2 }); }, { immediate: true });
+  toast('Repère ajouté : glisse-le pour le placer, ou hors de l\'affiche pour le retirer');
+}
+function drawGuidesAndRulers() {
+  if (!S.doc) return;
+  octx.save(); octx.lineWidth = 1; octx.strokeStyle = '#7ADFFF'; octx.setLineDash([5, 4]);
+  for (const g of S.doc.guides || []) {
+    octx.beginPath();
+    if (g.axis === 'v') { const [x] = toScreen([g.pos, 0]); octx.moveTo(x, 0); octx.lineTo(x, overlay.height); }
+    else { const [, y] = toScreen([0, g.pos]); octx.moveTo(0, y); octx.lineTo(overlay.width, y); }
+    octx.stroke();
+  }
+  octx.setLineDash([]); octx.restore();
+  if (!rulers) return;
+  const w = overlay.width / DPR(), h = overlay.height / DPR();
+  octx.save(); octx.fillStyle = 'rgba(12,16,29,.88)'; octx.fillRect(0, 0, w, 16); octx.fillRect(0, 0, 16, h);
+  octx.fillStyle = '#9AA0B8'; octx.strokeStyle = '#2C3352'; octx.font = '9px sans-serif';
+  const step = view.s > 0.8 ? 50 : view.s > 0.35 ? 100 : 200;
+  for (let v = 0; v <= S.doc.W; v += step / 2) { const [x] = toScreen([v, 0]); octx.beginPath(); octx.moveTo(x, v % step ? 11 : 6); octx.lineTo(x, 16); octx.stroke(); if (!(v % step)) octx.fillText(String(v), x + 2, 9); }
+  for (let v = 0; v <= S.doc.H; v += step / 2) { const [, y] = toScreen([0, v]); octx.beginPath(); octx.moveTo(v % step ? 11 : 6, y); octx.lineTo(16, y); octx.stroke(); if (!(v % step)) octx.fillText(String(v), 1, y - 2); }
+  octx.restore();
 }

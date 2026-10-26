@@ -1,9 +1,9 @@
-- Affiches plus lumineuses : ombres relevées, grain plus marqué, et réglages Luminosité, Vignette et Grain dans l'onglet Thème
-- Thèmes : aperçu de ton affiche dans chaque thème, prévisualisation au survol, thèmes personnalisés enregistrables
-- Modèles personnalisés : crée un modèle de zéro ou depuis l'affiche en cours (section sous la galerie), modifications enregistrées automatiquement
-- Fondu progressif réglable (angle, début, fin, courbe, plusieurs dégradés) et pinceau de masque pour effacer ou restaurer des zones à la main
-- Scène 3D : tous les personnages sur un même sol avec ombres, reflets et lumière réglables, utilisée par défaut dans le Roster
-- Poses : réglage des bras, jambes, buste et tête, avec 9 poses prédéfinies
-- Personnages 3D plus lumineux par défaut
-- Correction : les personnages (Jett notamment) ne se déforment plus quand on bouge un bras
-- L'affiche Résultat n'a plus d'agent par défaut, l'affiche Nouveau roster est retirée
+- Poses : réglage fin des bras, jambes, buste, tête et doigts, poses prédéfinies, et poses personnalisées nommées à réutiliser sur n'importe quel agent
+- Bouger les membres directement sur le personnage : mains et pieds (le bras ou la jambe suit), coudes, genoux, tête et buste
+- Armes 3D tenues en main (Vandal, Phantom, Classic, Ghost, Sheriff) avec pose adaptée, importées depuis Bibliothèque › Armes 3D
+- Positions de base des personnages plus naturelles, sans bras qui traversent le corps
+- Nombre de lignes réglable (+ / −) pour le planning, le recrutement, la carte joueur, le tournoi et le roster, avec remise en page automatique
+- Halo autour des personnages désactivé par défaut
+- L'affiche Matchday est retirée
+- Panneau d'outils extensible avec les noms, repliable, et nouveaux outils : pipette, repères, règles, pinceau de masque, scène 3D, recadrage d'image
+- Correction : les personnages ne se déforment plus (pointes, lames) quand on bouge les bras ; compatibilité avec le nouveau Jett

@@ -77,14 +77,19 @@ function emblemAt(cx, cy, h, o = {}) {
   return emblem({ x: cx - w / 2, y: cy - h / 2, w, h, fx: o.glow === false ? undefined : glowFx('$glow', 40, 0.35), ...o });
 }
 
+// Pose de base naturelle : bras légèrement écartés du corps, coudes à peine pliés, mains détendues (rien ne traverse le corps).
+export const DEFAULT_POSE = side => ({ on: true, armL: { out: 17, fwd: 7, elbow: 24, roll: 14 }, armR: { out: 17, fwd: 7, elbow: 24, roll: 14 }, handL: { curl: 22, thumb: 12 }, handR: { curl: 22, thumb: 12 }, torso: { twist: side * 3 }, head: { tilt: side * 1.5 } });
+
 // Scène 3D commune : positions, sol, caméra et lumière par défaut pour n joueurs.
 export const sceneActors = n => {
-  const mid = (n - 1) / 2, sp = n === 5 ? 0.3 : 0.42;
+  const mid = (n - 1) / 2, sp = 0.3 + (5 - Math.min(5, n)) * 0.06;
   return Array.from({ length: n }, (_, i) => {
     const d = i - mid;
-    return { model: '@a' + (i + 1), x: d * sp, z: 0.32 - Math.abs(d) * 0.2, rotY: -d * 9, scale: 1 };
+    return { model: '@a' + (i + 1), x: d * sp, z: 0.32 - Math.abs(d) * 0.2, rotY: -d * 9, scale: 1, pose: DEFAULT_POSE(-Math.sign(d)) };
   });
 };
+// Demi-largeur occupée par n personnages : sert à garder la même taille de personnages quel que soit leur nombre.
+export const sceneHalfWidth = n => ((n - 1) / 2) * (0.3 + (5 - Math.min(5, n)) * 0.06) + 0.32;
 export const sceneDefaults = n => ({
   actors: sceneActors(n),
   floor: { on: true, color: '$bg2', opacity: 0.75, reflect: 0.3, glow: 0.55, shadow: 0.55, rot: 0, tilt: 0, size: 7 },
@@ -95,6 +100,7 @@ export const sceneDefaults = n => ({
 // Réglages 3D par défaut : contre-jour fort, personnages sombres et contrastés (rendu « affiche pro »).
 export const CAR_FRONT = 270; // rotation où la voiture fait face à la caméra
 function agentImage(ctx, field, box, o = {}) {
+  if (o.fx?.glow) o = { ...o, fx: { ...o.fx, glow: { ...o.fx.glow, on: false } } }; // halo autour des personnages : coupé par défaut
   if (ctx.use3d) {
     const car = ctx.game === 'rl';
     // Le fondu pixel découpe les jambes des modèles 3D : on le remplace par un fondu doux vers le bas.
@@ -107,7 +113,7 @@ function agentImage(ctx, field, box, o = {}) {
     return {
       type: 'model', name: (o.name || 'Render').replace('Render', 'Modèle 3D'), model: '@' + field, ...box, rot: 0,
       rotY: o.rotY ?? (car ? CAR_FRONT + 35 : 8), camPitch: car ? 9 : -3, zoom3d: 1, target: car ? 0.5 : 0.52, fov: car ? 30 : 26, anim: 0, animTime: 0,
-      ...light, reflect: !!o.reflect, contact: true, opacity: o.opacity, fx,
+      ...light, ...(car ? {} : { pose: DEFAULT_POSE(0) }), reflect: !!o.reflect, contact: true, opacity: o.opacity, fx,
     };
   }
   return image({ name: o.name || 'Render', asset: '@' + field, ph: 'agent', phField: field, ...box, ...o });
@@ -135,10 +141,10 @@ function playerRow(ctx, base0, o = {}) {
   let base = base0;
   const { W, H, u } = ctx, n = ctx.nPlayers;
   // Valorant en 3D : un seul calque « Scène 3D » (sol, ombres et reflets communs)
-  if (ctx.use3d && ctx.game !== 'rl') return [{ type: 'model', name: 'Scène 3D', model: '@a1', ...sceneDefaults(n), zoom3d: 1.2, x: 0, y: H * 0.19, w: W, h: base0 - H * 0.19 + H * 0.09, rot: 0 }];
+  if (ctx.use3d && ctx.game !== 'rl') return [{ type: 'model', name: 'Scène 3D', model: '@a1', ...sceneDefaults(n), zoom3d: 1.2 * sceneHalfWidth(n) / sceneHalfWidth(5), x: 0, y: H * 0.19, w: W, h: base0 - H * 0.19 + H * 0.09, rot: 0 }];
   const big = Math.min(H, W * 1.25) * (o.h || 0.44);
   const spread = (o.spread || 0.168) * (n === 3 ? 1.45 : 1);
-  const order = n === 5 ? [0, 4, 1, 3, 2] : [0, 2, 1];
+  const order = [...Array(n).keys()].sort((a, b) => Math.abs(b - (n - 1) / 2) - Math.abs(a - (n - 1) / 2) || a - b);
   const mid = (n - 1) / 2;
   const car = ctx.game === 'rl';
   return order.map(i => {
@@ -153,23 +159,6 @@ function playerRow(ctx, base0, o = {}) {
 }
 
 // ================================================================= MODÈLES
-function matchday(ctx) {
-  const { W, H, u } = ctx;
-  return [
-    ...base(ctx, { glowY: 0.25 }),
-    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: 'MATCH' }),
-    emblemAt(W / 2, H * 0.205, H * 0.2),
-    ...title2(ctx, W / 2, H * 0.43, { w1: '{mdW1}', w2: '{mdW2}', plain: '{mdPlain}' }),
-    text({ name: 'Compétition', tpl: '{event} — {stage}', upper: true, size: 27 * u, weight: 500, spacing: 0.26, color: '$muted', x: W * 0.08, y: H * 0.585, w: W * 0.84, fontRole: 'body' }),
-    text({ name: 'Affiche du match', x: W * 0.06, y: H * 0.618, w: W * 0.88, size: 50 * u, gap: 0.45, fontRole: 'body', upper: true,
-      runs: [{ tpl: '{org}', color: '$accent', weight: 700 }, { text: 'vs', color: '$muted', weight: 500, scale: 0.7, upper: false }, { tpl: '{adv}', color: '$accent', weight: 700 }] }),
-    text({ name: 'Infos', tpl: '{date}  ✦  {hour}  ✦  {live}', upper: true, size: 25 * u, weight: 500, spacing: 0.12, color: '$muted', x: W * 0.08, y: H * 0.676, w: W * 0.84, fontRole: 'body' }),
-    shape({ name: 'Séparateur', shape: 'line', stroke: '$line', strokeWidth: 2, x: W * 0.385, y: H * 0.722, w: W * 0.23, h: 4 * u }),
-    ...playerPills(ctx, H * 0.752),
-    ...finish(ctx),
-  ];
-}
-
 function roster(ctx) {
   const { W, H, u } = ctx;
   return [
@@ -269,6 +258,7 @@ function annonce(ctx) {
 
 function tournoi(ctx) {
   const { W, H, u } = ctx;
+  const prizeY = 0.6 + Math.max(0, Math.min(4, ctx.counts.info)) * 0.058 + 0.024;
   const x0 = W * 0.09;
   return [
     ...base(ctx, { glowY: 0.5, glow: 0.6 }),
@@ -280,7 +270,7 @@ function tournoi(ctx) {
     text({ name: 'Jour', tpl: '{tDay}', font: 'Barlow Condensed', fontRole: 'condensed', weight: 900, align: 'left', size: 250 * u, x: x0, y: H * 0.3, w: W * 0.4 }),
     text({ name: 'Mois', tpl: '{tMonth}', upper: true, font: 'Barlow Condensed', fontRole: 'condensed', weight: 800, align: 'left', size: 60 * u, x: x0, y: H * 0.47, w: W * 0.4 }),
     text({ name: 'Année et heure', tpl: '{tYear} · {tHour}', upper: true, align: 'left', size: 32 * u, weight: 600, color: '$accent', x: x0, y: H * 0.522, w: W * 0.4, fontRole: 'body' }),
-    ...[1, 2].map((i) => {
+    ...Array.from({ length: Math.max(0, Math.min(4, ctx.counts.info)) }, (_, k) => k + 1).map((i) => {
       const y = H * (0.6 + (i - 1) * 0.058);
       return [
         shape({ name: `Cadre info ${i}`, shape: 'rect', radius: 10, fill: '$panel', stroke: '$line', strokeWidth: 2, x: x0, y, w: W * 0.42, h: 56 * u }),
@@ -288,17 +278,18 @@ function tournoi(ctx) {
         text({ name: `Info ${i}`, tpl: `{tInfo${i}}`, align: 'left', size: 24 * u, weight: 600, x: x0 + 50 * u, y: y + 15 * u, w: W * 0.42 - 66 * u, fontRole: 'body' }),
       ];
     }).flat(),
-    shape({ name: 'Bloc cashprize', shape: 'rect', radius: 14, fill: '$accent', x: x0, y: H * 0.74, w: W * 0.36, h: 130 * u, fx: glowFx('$accent', 30, 0.35) }),
-    text({ name: 'Cashprize', tpl: '{tPrize}', font: 'Barlow Condensed', fontRole: 'condensed', weight: 900, size: 84 * u, color: '$bg', x: x0 + 10 * u, y: H * 0.74 + 12 * u, w: W * 0.36 - 20 * u }),
-    text({ name: 'Libellé cashprize', tpl: '{tPrizeLbl}', upper: true, size: 20 * u, weight: 700, spacing: 0.1, color: '$bg', x: x0 + 10 * u, y: H * 0.74 + 92 * u, w: W * 0.36 - 20 * u, fontRole: 'body' }),
+    shape({ name: 'Bloc cashprize', shape: 'rect', radius: 14, fill: '$accent', x: x0, y: H * prizeY, w: W * 0.36, h: 130 * u, fx: glowFx('$accent', 30, 0.35) }),
+    text({ name: 'Cashprize', tpl: '{tPrize}', font: 'Barlow Condensed', fontRole: 'condensed', weight: 900, size: 84 * u, color: '$bg', x: x0 + 10 * u, y: H * prizeY + 12 * u, w: W * 0.36 - 20 * u }),
+    text({ name: 'Libellé cashprize', tpl: '{tPrizeLbl}', upper: true, size: 20 * u, weight: 700, spacing: 0.1, color: '$bg', x: x0 + 10 * u, y: H * prizeY + 92 * u, w: W * 0.36 - 20 * u, fontRole: 'body' }),
     ...finish(ctx),
   ];
 }
 
 function planning(ctx) {
   const { W, H, u, T } = ctx;
-  const rows = [1, 2, 3, 4, 5].filter(i => T[`pl${i}d`] || T[`pl${i}t`]);
-  const top = H * 0.395, rh = Math.min(118 * u, H * 0.5 / Math.max(1, rows.length));
+  const rows = Array.from({ length: Math.max(1, Math.min(6, ctx.counts.planning)) }, (_, i) => i + 1);
+  const gap = 16 * u, rh = Math.min(150 * u, (H * 0.5 - gap * (rows.length - 1)) / rows.length);
+  const top = H * 0.395 + Math.max(0, H * 0.5 - (rows.length * rh + gap * (rows.length - 1))) / 2; // moins de lignes : elles grandissent et le bloc se recentre
   return [
     ...base(ctx, { glowY: 0.18, glow: 0.5 }),
     ...frame(ctx, { tl: gameName(ctx), tr: '{plWeek}', bl: '{org}', br: 'PLANNING' }),
@@ -306,7 +297,7 @@ function planning(ctx) {
     ...title2(ctx, W / 2, H * 0.25, { w1: '{plW1}', w2: '{plW2}', plain: '{plPlain}', scale: 0.7 }),
     text({ name: 'Semaine', tpl: '{plWeek}', upper: true, size: 24 * u, weight: 500, spacing: 0.24, color: '$muted', x: W * 0.1, y: H * 0.352, w: W * 0.8, fontRole: 'body' }),
     ...rows.map((i, k) => {
-      const y = top + k * (rh + 16 * u), x = W * 0.09, w = W * 0.82;
+      const y = top + k * (rh + gap), x = W * 0.09, w = W * 0.82;
       return [
         shape({ name: `Ligne ${i}`, shape: 'rect', radius: 12, fill: '$panel', stroke: '$line', strokeWidth: 2, x, y, w, h: rh }),
         text({ name: `Jour ${i}`, tpl: `{pl${i}d}`, upper: true, align: 'left', size: 34 * u, weight: 700, x: x + 30 * u, y: y + rh / 2 - 34 * u, w: w * 0.3 }),
@@ -322,23 +313,24 @@ function planning(ctx) {
 
 function recrutement(ctx) {
   const { W, H, u } = ctx;
+  const nRec = Math.max(1, Math.min(6, ctx.counts.rec)), recStep = Math.min(0.07, 0.26 / nRec), ctaY = Math.min(0.81, 0.535 + nRec * recStep + 0.035);
   return [
     ...base(ctx, { glowY: 0.2, glow: 0.6 }),
     ...frame(ctx, { tl: gameName(ctx), tr: 'RECRUTEMENT', bl: '{org}', br: 'LFP' }),
     emblemAt(W / 2, H * 0.16, H * 0.15),
     ...title2(ctx, W / 2, H * 0.36, { w1: '{recW1}', w2: '{recW2}', plain: '{recPlain}', scale: 0.85 }),
     text({ name: 'Sous-titre', tpl: '{recSub}', upper: true, size: 25 * u, weight: 500, spacing: 0.18, color: '$muted', x: W * 0.08, y: H * 0.475, w: W * 0.84, fontRole: 'body' }),
-    ...[1, 2, 3, 4].map((i) => {
-      const y = H * (0.535 + (i - 1) * 0.07);
+    ...Array.from({ length: Math.max(1, Math.min(6, ctx.counts.rec)) }, (_, k) => k + 1).map((i) => {
+      const y = H * (0.535 + (i - 1) * recStep);
       return [
-        shape({ name: `Cadre poste ${i}`, shape: 'rect', radius: 12, fill: '$panel', stroke: '$line', strokeWidth: 2, x: W * 0.12, y, w: W * 0.76, h: 74 * u }),
+        shape({ name: `Cadre poste ${i}`, shape: 'rect', radius: 12, fill: '$panel', stroke: '$line', strokeWidth: 2, x: W * 0.12, y, w: W * 0.76, h: Math.min(74 * u, recStep * H - 8 * u) }),
         shape({ name: `Étoile poste ${i}`, shape: 'star', fill: '$accent', x: W * 0.12 + 28 * u, y: y + 25 * u, w: 20 * u, h: 24 * u }),
         text({ name: `Poste ${i}`, tpl: `{rec${i}}`, align: 'left', size: 28 * u, weight: 600, x: W * 0.12 + 70 * u, y: y + 22 * u, w: W * 0.76 - 96 * u, fontRole: 'body' }),
       ];
     }).flat(),
-    shape({ name: 'Bouton candidature', shape: 'rect', radius: 40, fill: '$accent', x: W * 0.2, y: H * 0.81, w: W * 0.6, h: 80 * u, fx: glowFx('$accent', 30, 0.35) }),
-    text({ name: 'Candidature', tpl: '{recCta}', upper: true, size: 26 * u, weight: 700, spacing: 0.06, color: '$bg', x: W * 0.22, y: H * 0.81 + 24 * u, w: W * 0.56, fontRole: 'body' }),
-    text({ name: 'Note', tpl: '{recNote}', size: 20 * u, weight: 500, color: '$muted', x: W * 0.1, y: H * 0.81 + 100 * u, w: W * 0.8, fontRole: 'body' }),
+    shape({ name: 'Bouton candidature', shape: 'rect', radius: 40, fill: '$accent', x: W * 0.2, y: H * ctaY, w: W * 0.6, h: 80 * u, fx: glowFx('$accent', 30, 0.35) }),
+    text({ name: 'Candidature', tpl: '{recCta}', upper: true, size: 26 * u, weight: 700, spacing: 0.06, color: '$bg', x: W * 0.22, y: H * ctaY + 24 * u, w: W * 0.56, fontRole: 'body' }),
+    text({ name: 'Note', tpl: '{recNote}', size: 20 * u, weight: 500, color: '$muted', x: W * 0.1, y: H * ctaY + 100 * u, w: W * 0.8, fontRole: 'body' }),
     ...finish(ctx),
   ];
 }
@@ -354,8 +346,8 @@ function carte(ctx) {
     text({ name: 'Étiquette', tpl: '{cardTag}', upper: true, align: 'left', size: 22 * u, weight: 600, spacing: 0.3, color: '$accent', x: W * 0.09, y: H * 0.52, w: W * 0.5, fontRole: 'body' }),
     text({ name: 'Pseudo', tpl: '{cardName}', upper: true, align: 'left', size: 170 * u, weight: 700, x: W * 0.08, y: H * 0.545, w: W * 0.84, fx: glowFx('$glow', 30, 0.55) }),
     text({ name: 'Rôle', tpl: '{cardRole}', upper: true, align: 'left', size: 28 * u, weight: 500, spacing: 0.2, color: '$muted', x: W * 0.09, y: H * 0.69, w: W * 0.8, fontRole: 'body' }),
-    ...[1, 2, 3, 4].map((i) => {
-      const gap = 16 * u, cw = (W * 0.82 - gap * 3) / 4, x = W * 0.09 + (i - 1) * (cw + gap), y = H * 0.75;
+    ...Array.from({ length: Math.max(1, Math.min(6, ctx.counts.stats)) }, (_, k) => k + 1).map((i, _k, arr) => {
+      const nS = arr.length, gap = 16 * u, cw = (W * 0.82 - gap * (nS - 1)) / nS, x = W * 0.09 + (i - 1) * (cw + gap), y = H * 0.75;
       return [
         shape({ name: `Cadre stat ${i}`, shape: 'rect', radius: 12, fill: '$panel', stroke: '$line', strokeWidth: 2, x, y, w: cw, h: 150 * u }),
         text({ name: `Libellé stat ${i}`, tpl: `{st${i}l}`, upper: true, size: 18 * u, weight: 600, spacing: 0.2, color: '$muted', x: x + 10 * u, y: y + 26 * u, w: cw - 20 * u, fontRole: 'body' }),
@@ -386,7 +378,6 @@ function live(ctx) {
 export const blankLayers = ctx => [...base(ctx, { glowY: 0.3 }), ...finish(ctx)];
 
 export const TEMPLATES = {
-  matchday: { name: 'Matchday', desc: 'Annonce de match', build: matchday, fields: ['mdTitle', 'event', 'stage', 'org', 'adv', 'date', 'hour', 'live', 'players', 'coach'] },
   roster: { name: 'Roster', desc: 'Annonce du line-up', build: roster, fields: ['rosTitle', 'org', 'event', 'stage', 'players'] },
   resultat: { name: 'Résultat', desc: 'Victoire ou défaite', build: resultat, fields: ['resMode', 'resTitle', 's1', 's2', 'event', 'stage', 'bo', 'org', 'adv', 'mvp', 'mvpStat'] },
   gameday: { name: 'Game Day', desc: 'Render plein cadre', build: gameday, fields: ['gdTitle', 'featAgent', 'gdSide', 'org', 'adv', 'event', 'date', 'hour'] },

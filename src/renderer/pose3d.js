@@ -3,23 +3,25 @@
 import * as THREE from 'three';
 
 const PAT = {
-  upperL: [/^L_Shoulder$/i, /LeftArm(_\d+)?$/i, /^upperarm_l$/i, /left.?upper.?arm/i, /^L_?UpperArm/i, /^Arm\.L$/i],
-  upperR: [/^R_Shoulder$/i, /RightArm(_\d+)?$/i, /^upperarm_r$/i, /right.?upper.?arm/i, /^R_?UpperArm/i, /^Arm\.R$/i],
-  foreL: [/^L_Elbow$/i, /LeftForeArm(_\d+)?$/i, /^lowerarm_l$/i, /left.?(fore|lower).?arm/i, /^ForeArm\.L$/i],
-  foreR: [/^R_Elbow$/i, /RightForeArm(_\d+)?$/i, /^lowerarm_r$/i, /right.?(fore|lower).?arm/i, /^ForeArm\.R$/i],
-  handL: [/^L_Hand$/i, /LeftHand(_\d+)?$/i, /^hand_l$/i, /^Hand\.L$/i],
-  handR: [/^R_Hand$/i, /RightHand(_\d+)?$/i, /^hand_r$/i, /^Hand\.R$/i],
-  head: [/^Head$/i, /mixamorig.?Head(_\d+)?$/i, /^head$/i],
-  chest: [/^Spine3$/i, /mixamorig.?Spine2(_\d+)?$/i, /^spine_03$/i],
-  thighL: [/^L_Hip$/i, /LeftUpLeg(_\d+)?$/i, /^thigh_l$/i],
-  footL: [/^L_Foot$/i, /LeftFoot(_\d+)?$/i, /^foot_l$/i],
-  toeL: [/^L_Toe$/i, /LeftToeBase(_\d+)?$/i, /^ball_l$/i],
-  thighR: [/^R_Hip$/i, /RightUpLeg(_\d+)?$/i, /^thigh_r$/i],
-  kneeL: [/^L_Knee$/i, /LeftLeg(_\d+)?$/i, /^calf_l$/i],
-  kneeR: [/^R_Knee$/i, /RightLeg(_\d+)?$/i, /^calf_r$/i],
-  footR: [/^R_Foot$/i, /RightFoot(_\d+)?$/i, /^foot_r$/i],
+  upperL: [/^L_Shoulder(_\d+)?$/i, /LeftArm(_\d+)?$/i, /^upperarm_l(_\d+)?$/i, /left.?upper.?arm/i, /^L_?UpperArm/i, /^Arm\.L(_\d+)?$/i],
+  upperR: [/^R_Shoulder(_\d+)?$/i, /RightArm(_\d+)?$/i, /^upperarm_r(_\d+)?$/i, /right.?upper.?arm/i, /^R_?UpperArm/i, /^Arm\.R(_\d+)?$/i],
+  foreL: [/^L_Elbow(_\d+)?$/i, /LeftForeArm(_\d+)?$/i, /^lowerarm_l(_\d+)?$/i, /left.?(fore|lower).?arm/i, /^ForeArm\.L(_\d+)?$/i],
+  foreR: [/^R_Elbow(_\d+)?$/i, /RightForeArm(_\d+)?$/i, /^lowerarm_r(_\d+)?$/i, /right.?(fore|lower).?arm/i, /^ForeArm\.R(_\d+)?$/i],
+  handL: [/^L_Hand(_\d+)?$/i, /LeftHand(_\d+)?$/i, /^hand_l(_\d+)?$/i, /^Hand\.L(_\d+)?$/i],
+  handR: [/^R_Hand(_\d+)?$/i, /RightHand(_\d+)?$/i, /^hand_r(_\d+)?$/i, /^Hand\.R(_\d+)?$/i],
+  head: [/^Head(_\d+)?$/i, /mixamorig.?Head(_\d+)?$/i, /^head(_\d+)?$/i],
+  chest: [/^Spine3(_\d+)?$/i, /mixamorig.?Spine2(_\d+)?$/i, /^spine_03(_\d+)?$/i],
+  thighL: [/^L_Hip(_\d+)?$/i, /LeftUpLeg(_\d+)?$/i, /^thigh_l(_\d+)?$/i],
+  footL: [/^L_Foot(_\d+)?$/i, /LeftFoot(_\d+)?$/i, /^foot_l(_\d+)?$/i],
+  toeL: [/^L_Toe(_\d+)?$/i, /LeftToeBase(_\d+)?$/i, /^ball_l(_\d+)?$/i],
+  thighR: [/^R_Hip(_\d+)?$/i, /RightUpLeg(_\d+)?$/i, /^thigh_r(_\d+)?$/i],
+  kneeL: [/^L_Knee(_\d+)?$/i, /LeftLeg(_\d+)?$/i, /^calf_l(_\d+)?$/i],
+  kneeR: [/^R_Knee(_\d+)?$/i, /RightLeg(_\d+)?$/i, /^calf_r(_\d+)?$/i],
+  footR: [/^R_Foot(_\d+)?$/i, /RightFoot(_\d+)?$/i, /^foot_r(_\d+)?$/i],
 };
-const SPINE = [[/^Spine1$/i, /mixamorig.?Spine(_\d+)?$/i, /^spine_01$/i], [/^Spine2$/i, /mixamorig.?Spine1(_\d+)?$/i, /^spine_02$/i], [/^Spine3$/i, /mixamorig.?Spine2(_\d+)?$/i, /^spine_03$/i], [/^Spine4$/i, /^spine_04$/i]];
+const SPINE = [[/^Spine1(_\d+)?$/i, /mixamorig.?Spine(_\d+)?$/i, /^spine_01(_\d+)?$/i], [/^Spine2(_\d+)?$/i, /mixamorig.?Spine1(_\d+)?$/i, /^spine_02(_\d+)?$/i], [/^Spine3(_\d+)?$/i, /mixamorig.?Spine2(_\d+)?$/i, /^spine_03(_\d+)?$/i], [/^Spine4(_\d+)?$/i, /^spine_04(_\d+)?$/i]];
+export const FINGERS = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky'];
+const fingerPat = (s, f, j) => [new RegExp('^' + s + '_' + f + j + '(_\\d+)?$', 'i'), new RegExp((s === 'L' ? 'Left' : 'Right') + 'Hand' + f + j + '(_\\d+)?$', 'i')];
 function findBone(root, list) {
   let found = null;
   for (const re of list) {
@@ -38,6 +40,30 @@ export function rigOf(root) {
   rig.spine = SPINE.map(l => findBone(root, l)).filter(Boolean);
   rig.rest = new Map();
   root.traverse(o => { if (o.isBone) rig.rest.set(o, o.quaternion.clone()); });
+  rig.finger = { L: {}, R: {} }; rig.fingerAxis = { L: {}, R: {} }; rig.handFrame = {};
+  root.updateMatrixWorld(true);
+  const lat0 = lateral(rig.upperL, rig.upperR);
+  for (const s of ['L', 'R']) {
+    for (const f of FINGERS) rig.finger[s][f] = [1, 2, 3].map(j => findBone(root, fingerPat(s, f, j)));
+    const hand = rig['hand' + s], mid = rig.finger[s].Middle[0], idx = rig.finger[s].Index[0], pin = rig.finger[s].Pinky[0];
+    if (!hand || !mid || !idx || !pin) continue;
+    const hp = worldPos(hand), hq = worldQuat(hand), hqi = hq.clone().invert();
+    const d = worldPos(mid).sub(hp).normalize();
+    const a = worldPos(idx).sub(worldPos(pin)); a.addScaledVector(d, -a.dot(d)); a.normalize();
+    const n = new THREE.Vector3().crossVectors(a, d).normalize();
+    const inward = lat0.clone().multiplyScalar(s === 'L' ? -1 : 1); // la paume regarde vers le corps dans la pose du fichier
+    if (n.dot(inward) < 0) n.negate();
+    rig.handFrame[s] = { d: d.clone().applyQuaternion(hqi), a: a.clone().applyQuaternion(hqi), n: n.clone().applyQuaternion(hqi) };
+    for (const f of FINGERS) {
+      rig.fingerAxis[s][f] = rig.finger[s][f].map((b, j) => {
+        if (!b) return null;
+        const nxt = rig.finger[s][f][j + 1], prv = rig.finger[s][f][j - 1];
+        const dir = nxt ? worldPos(nxt).sub(worldPos(b)) : prv ? worldPos(b).sub(worldPos(prv)) : null;
+        if (!dir || dir.lengthSq() < 1e-12) return null;
+        return new THREE.Vector3().crossVectors(n, dir.normalize()).normalize().applyQuaternion(worldQuat(b).invert());
+      });
+    }
+  }
   root.userData.rig = rig;
   return rig;
 }
@@ -64,10 +90,10 @@ export function cleanSkinWeights(root) {
       cache.set(key, d); return d;
     };
     const p = new THREE.Vector3(), box = new THREE.Box3();
-    for (let v = 0; v < pos.count; v++) box.expandByPoint(p.fromBufferAttribute(pos, v).applyMatrix4(o.bindMatrix));
+    for (let v = 0; v < pos.count; v++) box.expandByPoint(p.fromBufferAttribute(pos, v));
     const far = (box.max.y - box.min.y) * 0.035;
     for (let v = 0; v < idx.count; v++) {
-      p.fromBufferAttribute(pos, v).applyMatrix4(o.bindMatrix);
+      p.fromBufferAttribute(pos, v);
       const ks = [], ds = [];
       let near = -1;
       for (let k = 0; k < 4; k++) {
@@ -87,6 +113,40 @@ export function cleanSkinWeights(root) {
       if (sum > 0) for (let k = 0; k < 4; k++) wt.setComponent(v, k, wt.getComponent(v, k) / sum);
     }
     wt.needsUpdate = true;
+  });
+}
+
+// Garde-fou contre les triangles étirés : certains modèles ont des surfaces repliées à plat dans leur pose
+// d'origine (lames, rabats…) qui s'étirent en pointes dès qu'un membre bouge. On mémorise les longueurs d'arêtes
+// de la pose d'origine, puis, après chaque pose, on masque les triangles dont une arête est devenue démesurée.
+export function recordRestShape(root) {
+  root.updateMatrixWorld(true);
+  root.traverse(o => {
+    if (!o.isSkinnedMesh || !o.geometry.index || o.userData.stretch) return;
+    // référence = forme d'origine du maillage (sans déformation), pas la pose du fichier qui peut déjà être étirée
+    const P0 = o.geometry.attributes.position, n = P0.count, rest = new Float32Array(n * 3);
+    let min = Infinity, max = -Infinity;
+    for (let i = 0; i < n; i++) { rest[i * 3] = P0.getX(i); rest[i * 3 + 1] = P0.getY(i); rest[i * 3 + 2] = P0.getZ(i); min = Math.min(min, P0.getY(i)); max = Math.max(max, P0.getY(i)); }
+    o.userData.stretch = { rest, orig: o.geometry.index.array.slice(), H: max - min, pos: new Float32Array(n * 3), cur: null };
+  });
+}
+export function cullStretched(root) {
+  root.updateMatrixWorld(true);
+  root.traverse(o => {
+    const st = o.isSkinnedMesh && o.userData.stretch; if (!st) return;
+    const n = st.rest.length / 3, v = new THREE.Vector3(), P = st.pos, R = st.rest, I = st.orig;
+    for (let i = 0; i < n; i++) { o.getVertexPosition(i, v); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; }
+    const len = (A, a, b) => Math.hypot(A[a * 3] - A[b * 3], A[a * 3 + 1] - A[b * 3 + 1], A[a * 3 + 2] - A[b * 3 + 2]);
+    const minLen = st.H * 0.06, keep = [];
+    const bad = (a, b) => { const p = len(P, a, b); return p > minLen && p > 2 * len(R, a, b); };
+    for (let t = 0; t < I.length; t += 3) {
+      const a = I[t], b = I[t + 1], c = I[t + 2];
+      if (!(bad(a, b) || bad(b, c) || bad(c, a))) keep.push(a, b, c);
+    }
+    const dropped = keep.length < I.length;
+    if (!dropped && !st.cur) return;
+    o.geometry.setIndex(new THREE.BufferAttribute(dropped ? new I.constructor(keep) : I.slice(), 1));
+    st.cur = dropped;
   });
 }
 
@@ -143,6 +203,7 @@ function settings(P) {
     legL: { ...L0, ...P.legL }, legR: { ...L0, ...P.legR },
     torso: { bend: 0, lean: 0, twist: P.chest || 0, ...P.torso },
     head: { turn: P.headTurn || 0, nod: 0, tilt: P.headTilt || 0, ...P.head },
+    handL: { curl: 0, ...P.handL }, handR: { curl: 0, ...P.handR },
   };
 }
 
@@ -201,11 +262,93 @@ export function applyPose(root, P) {
     }
   }
   root.updateMatrixWorld(true);
+  applyFingers(rig, S);
   return true;
 }
 
+// Flexion des doigts (0 = ouverts, 100 = poing). curl règle tous les doigts, chaque doigt peut être précisé.
+const CURL = { Thumb: [22, 30, 42], Index: [62, 88, 60], Middle: [66, 90, 62], Ring: [68, 92, 64], Pinky: [70, 92, 64] };
+export function applyFingers(rig, S) {
+  if (!rig.finger) return;
+  const q = new THREE.Quaternion();
+  for (const s of ['L', 'R']) {
+    const H = S['hand' + s];
+    for (const f of FINGERS) {
+      const c = (H[f.toLowerCase()] ?? H.curl ?? 0) / 100;
+      if (!c) continue;
+      rig.finger[s][f].forEach((b, j) => { const ax = rig.fingerAxis[s][f][j]; if (b && ax) b.quaternion.multiply(q.setFromAxisAngle(ax, CURL[f][j] * c * RAD)); });
+    }
+  }
+  rig.finger.L.Index[0]?.updateWorldMatrix(true, true); rig.finger.R.Index[0]?.updateWorldMatrix(true, true);
+}
+
+// Le bras atteint un point du monde (épaule → coude → main), le coude plie du côté de poleHint.
+export function reachArm(rig, s, target, poleHint) {
+  const up = rig['upper' + s], fo = rig['fore' + s], ha = rig['hand' + s];
+  if (!up || !fo || !ha) return;
+  const S0 = worldPos(up), l1 = S0.distanceTo(worldPos(fo)), l2 = worldPos(fo).distanceTo(worldPos(ha));
+  const to = target.clone().sub(S0), dir = to.clone().normalize();
+  const d = Math.min(Math.max(to.length(), Math.abs(l1 - l2) + 1e-4), l1 + l2 - 1e-4);
+  const a = (d * d + l1 * l1 - l2 * l2) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const pole = poleHint.clone().addScaledVector(dir, -poleHint.dot(dir)).normalize();
+  const E = S0.clone().addScaledVector(dir, a).addScaledVector(pole, h);
+  aim(up, fo, E.clone().sub(S0));
+  aim(fo, ha, S0.clone().addScaledVector(dir, d).sub(worldPos(fo)));
+}
+// La main prend l'orientation voulue : ses doigts vers wantD, sa paume vers wantN.
+export function orientHand(rig, s, wantD, wantN) {
+  const F = rig.handFrame?.[s], hand = rig['hand' + s];
+  if (!F || !hand) return;
+  const loc = new THREE.Matrix4().makeBasis(F.d, F.n, new THREE.Vector3().crossVectors(F.d, F.n));
+  const d = wantD.clone().normalize(), n = wantN.clone().addScaledVector(d, -wantN.dot(d)).normalize();
+  const wor = new THREE.Matrix4().makeBasis(d, n, new THREE.Vector3().crossVectors(d, n));
+  setWorldQuat(hand, new THREE.Quaternion().setFromRotationMatrix(wor.multiply(loc.transpose())));
+}
+// Réglages (en degrés) d'une chaîne épaule/hanche → coude/genou → main/pied qui atteint la cible T.
+// pole : direction vers laquelle plie le coude (ou le genou). Reprend les conventions de applyPose.
+const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+function solveChain(root0, mid0, end0, T, pole, lat, sign) {
+  const S0 = worldPos(root0), M0 = worldPos(mid0), E0 = worldPos(end0);
+  const l1 = S0.distanceTo(M0), l2 = M0.distanceTo(E0);
+  const to = T.clone().sub(S0), dist = clampN(to.length(), Math.abs(l1 - l2) + 1e-4, l1 + l2 - 1e-4), dir = to.clone().normalize();
+  const A = Math.acos(clampN((l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist), -1, 1));
+  const p = pole.clone().addScaledVector(dir, -pole.dot(dir)).normalize();
+  const ud = dir.clone().multiplyScalar(Math.cos(A)).addScaledVector(p, Math.sin(A)).normalize();
+  const M = S0.clone().addScaledVector(ud, l1), E = S0.clone().addScaledVector(dir, dist);
+  const fd = E.clone().sub(M).normalize();
+  const f = new THREE.Vector3().crossVectors(lat, UP), outward = lat.clone().multiplyScalar(sign);
+  return { ud, fd, f, outward, out: Math.atan2(ud.dot(outward), Math.hypot(ud.dot(f), ud.y)) / RAD, fwd: Math.atan2(ud.dot(f), -ud.y) / RAD };
+}
+export function solveArmParams(rig, s, T, pole) {
+  const sign = s === 'L' ? 1 : -1, lat = lateral(rig.upperL, rig.upperR);
+  const r = solveChain(rig['upper' + s], rig['fore' + s], rig['hand' + s], T, pole, lat, sign);
+  const fp = r.f.clone().addScaledVector(r.ud, -r.f.dot(r.ud)).normalize();
+  const ip = r.outward.clone().negate(); ip.addScaledVector(r.ud, -ip.dot(r.ud)); ip.addScaledVector(fp, -ip.dot(fp)); ip.normalize();
+  const perp = r.fd.clone().addScaledVector(r.ud, -r.fd.dot(r.ud));
+  let roll = Math.atan2(perp.dot(ip), perp.dot(fp)) / RAD; if (roll < -90) roll += 360;
+  return { out: clampN(r.out, -20, 160), fwd: clampN(r.fwd, -90, 150), elbow: clampN(Math.acos(clampN(r.ud.dot(r.fd), -1, 1)) / RAD, 0, 150), roll: clampN(roll, -90, 180) };
+}
+// Direction de l'épaule vers un point : règle seulement l'écart et l'avancée du bras (le coude garde son pli).
+export function solveUpperArm(rig, s, M) {
+  const sign = s === 'L' ? 1 : -1, lat = lateral(rig.upperL, rig.upperR), f = new THREE.Vector3().crossVectors(lat, UP);
+  const ud = M.clone().sub(worldPos(rig['upper' + s])).normalize(), outward = lat.clone().multiplyScalar(sign);
+  return { out: clampN(Math.atan2(ud.dot(outward), Math.hypot(ud.dot(f), ud.y)) / RAD, -20, 160), fwd: clampN(Math.atan2(ud.dot(f), -ud.y) / RAD, -90, 150) };
+}
+export function solveLegParams(rig, s, T) {
+  const sign = s === 'L' ? 1 : -1, lat = lateral(rig.thighL, rig.thighR), f = new THREE.Vector3().crossVectors(lat, UP);
+  const r = solveChain(rig['thigh' + s], rig['knee' + s], rig['foot' + s], T, f, lat, sign);
+  const knee = Math.atan2(new THREE.Vector3().crossVectors(r.ud, r.fd).dot(lat), r.ud.dot(r.fd)) / RAD;
+  return { out: clampN(r.out, 0, 45), fwd: clampN(r.fwd, -45, 90), knee: clampN(knee, 0, 120) };
+}
+export { worldPos, worldQuat, aim, lateral };
+
 // Poses prédéfinies (chacune se règle ensuite à la main).
 const SAME = a => ({ armL: { ...a }, armR: { ...a } });
+// Poses adaptées à l'arme tenue : fusil à deux mains (main gauche sur le garde-main), pistolet à une main.
+export const WEAPON_POSES = {
+  rifle: { armR: { out: 14, fwd: 35, elbow: 80, roll: 60 }, armL: { out: 20, fwd: 40, elbow: 60, roll: 40 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 70 }, torso: { twist: -6 } },
+  pistol: { armR: { out: 14, fwd: 58, elbow: 34, roll: 25 }, armL: { out: 14, fwd: 8, elbow: 20, roll: 10 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 10 } },
+};
 export const POSES = [
   ['neutre', 'Neutre', { armL: { out: 18, fwd: 0, elbow: 0, roll: 0 }, armR: { out: 18, fwd: 0, elbow: 0, roll: 0 } }],
   ['detendu', 'Décontracté', { ...SAME({ out: 12, fwd: 8, elbow: 22, roll: 20 }), torso: { twist: 4 }, head: { tilt: 3 } }],

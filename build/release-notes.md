@@ -1,8 +1,9 @@
-- Assistant de démarrage : configure ta structure (nom, logo, couleurs, rosters) ou charge le kit MyBad en un clic
-- Logo officiel de la structure dans toutes les affiches
-- Pack 3D de base (27 agents, 3 voitures) téléchargé une seule fois depuis l'onglet Bibliothèque
-- Rendu 3D retravaillé : contre-jour, fumée, sol réfléchissant, étalonnage, bloom et grain
-- Voitures mieux orientées par défaut
-- Onglet Mises à jour dans la barre du haut
-- Les notifications se remplacent au lieu de s'empiler
-- Correction : la saisie de texte ne perd plus le focus à chaque lettre
+- Affiches plus lumineuses : ombres relevées, grain plus marqué, et réglages Luminosité, Vignette et Grain dans l'onglet Thème
+- Thèmes : aperçu de ton affiche dans chaque thème, prévisualisation au survol, thèmes personnalisés enregistrables
+- Modèles personnalisés : crée un modèle de zéro ou depuis l'affiche en cours (section sous la galerie), modifications enregistrées automatiquement
+- Fondu progressif réglable (angle, début, fin, courbe, plusieurs dégradés) et pinceau de masque pour effacer ou restaurer des zones à la main
+- Scène 3D : tous les personnages sur un même sol avec ombres, reflets et lumière réglables, utilisée par défaut dans le Roster
+- Poses : réglage des bras, jambes, buste et tête, avec 9 poses prédéfinies
+- Personnages 3D plus lumineux par défaut
+- Correction : les personnages (Jett notamment) ne se déforment plus quand on bouge un bras
+- L'affiche Résultat n'a plus d'agent par défaut, l'affiche Nouveau roster est retirée

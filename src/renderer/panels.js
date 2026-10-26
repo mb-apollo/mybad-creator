@@ -11,6 +11,20 @@ import { align, distribute, arrange, deleteSelected, duplicateSelected, addLayer
 export const actions = {};
 
 // Remplace le contenu d'un panneau sans perdre le champ en cours d'édition (focus, curseur, défilement).
+// Catégories (sections) des panneaux de droite : repliées par défaut, et celles que l'utilisateur ouvre restent ouvertes
+// quand le panneau est reconstruit (après un curseur, un champ, un changement de sélection…).
+const SEC_OPEN = new Map();
+const secKey = (box, d) => box.id + '/' + (d.querySelector(':scope > summary > span')?.textContent.trim() || '');
+function rememberSections(box) {
+  if (box._secMem) return; box._secMem = true;
+  box.addEventListener('click', e => {
+    const s = e.target.closest('summary'); if (!s || !s.parentElement.matches('details.sec')) return;
+    setTimeout(() => SEC_OPEN.set(secKey(box, s.parentElement), s.parentElement.open), 0);
+  });
+}
+function applySections(box) {
+  box.querySelectorAll('details.sec').forEach(d => { if (!d.closest('.empty-props')) d.open = SEC_OPEN.get(secKey(box, d)) ?? false; });
+}
 function setHTML(box, html) {
   const a = document.activeElement;
   let key = null, s = null, e = null;
@@ -20,6 +34,7 @@ function setHTML(box, html) {
   }
   const top = box.scrollTop;
   box.innerHTML = html;
+  if (box.id === 'propsBody' || box.id === 'model3dBody') { rememberSections(box); applySections(box); }
   box.scrollTop = top;
   if (key) {
     const n = box.querySelector(key);
@@ -170,7 +185,28 @@ function fxSections(L, th) {
 
 function itemOptions(game) { return gameItems(game, S.extraItems).map(i => [i.key, i.name]); }
 
-export function renderProps() {
+export function renderProps() { renderPropsPane(); renderModel3d(); }
+// Ouvre une catégorie du panneau Propriétés (et la mémorise), puis la fait défiler à l'écran.
+export function openSection(title) {
+  SEC_OPEN.set('propsBody/' + title, true); renderPropsPane();
+  setTimeout(() => { const s = [...document.querySelectorAll('#propsBody summary')].find(x => x.textContent.trim() === title); if (s) s.scrollIntoView({ block: 'start' }); }, 40);
+}
+
+// Panneau 3D : tous les réglages du modèle 3D ou de la scène 3D sélectionnés (caméra, personnages, pose, arme, sol, éclairage).
+export function renderModel3d() {
+  const box = $('#model3dBody'); if (!box || !S.doc) return;
+  const cur = selected(), L = cur.length === 1 && cur[0].type === 'model' ? cur[0] : null;
+  if (!L) {
+    setHTML(box, `<div class="empty-props"><p class="muted">Sélectionne un modèle 3D ou une scène 3D dans l'affiche pour régler ici la caméra, les personnages, les poses, les armes, le sol et l'éclairage.</p>
+      <div class="addgrid"><button class="addbtn" data-addp="model">${icon('model')}<span>Modèle 3D</span></button><button class="addbtn" data-addp="scene">${icon('model')}<span>Scène 3D</span></button></div></div>`);
+    bind(box, []);
+    return;
+  }
+  setHTML(box, `<div class="props-head"><span class="ptype">${icon('model')}</span><input class="input pname" data-path="name" value="${esc(L.name || '')}" aria-label="Nom du calque"></div>${actions.modelProps ? actions.modelProps(L) : ''}`);
+  bind(box, [L]);
+}
+
+function renderPropsPane() {
   const box = $('#propsBody'); if (!box || !S.doc) return;
   const cur = selected(), th = S.doc.theme;
   if (!cur.length) {
@@ -244,7 +280,7 @@ export function renderProps() {
     const t = L.tint || {};
     h += section('Coloration', `${toggle('tint.on', 'Colorer l\'image', t.on)}${t.on ? colorCtl('tint.color', 'Couleur', t.color || '$glow', th) + range('tint.amount', 'Intensité', t.amount ?? 0.6, 0, 1, 0.01, pct) + sel('tint.mode', 'Mode', t.mode || 'color', [['color', 'Couleur'], ['multiply', 'Produit'], ['screen', 'Écran'], ['overlay', 'Incrustation'], ['soft-light', 'Lumière tamisée'], ['source-atop', 'Aplat']]) : ''}`, !!t.on);
   }
-  if (L.type === 'model') h += actions.modelProps ? actions.modelProps(L) : '';
+  if (L.type === 'model') h += `<div class="pad"><button class="mini-btn on" data-act="open3d">${icon('model')} Réglages 3D (caméra, poses, armes, sol…)</button></div>`;
   if (L.type === 'effect') {
     h += section('Effet', `${sel('effect', 'Type', L.effect, EFFECTS)}${L.effect !== 'grain' ? colorCtl('color', 'Couleur', L.color, th) : ''}${range('amount', 'Intensité', L.amount ?? 0.5, 0, 1.5, 0.01, pct)}${toggle('themed', 'Suit l\'intensité lumineuse du thème', L.themed)}${['stars', 'streaks', 'bars', 'constellation'].includes(L.effect) ? '<button class="mini-btn" data-act="reseed">Varier la disposition</button>' : ''}${L.effect === 'grid' ? range('horizon', 'Horizon', L.horizon ?? 0.35, 0, 0.9, 0.01, pct) : ''}`);
   }
@@ -312,6 +348,7 @@ function bind(box, targets) {
     if (act === 'delete') deleteSelected();
     if (act === 'duplicate') duplicateSelected();
     if (act === 'unlock') change(() => targets.forEach(L => { L.locked = false; }), { immediate: true });
+    if (act === 'open3d') actions.setTab?.('model3d');
     if (act === 'fadeAdd') { const ang = +b.dataset.angle; change(() => targets.forEach(L => { L.fx ||= {}; (L.fx.fades ||= []).push({ angle: ang, start: 0.65, end: 1, strength: 1, curve: 1 }); }), { immediate: true }); renderProps(); }
     if (act === 'fadeDel') { const i = +b.dataset.i; change(() => targets.forEach(L => { L.fx?.fades?.splice(i, 1); }), { immediate: true }); renderProps(); }
     if (act === 'paintToggle') { if (getPaint()) stopPaint(); else startPaint(targets[0]); renderProps(); }

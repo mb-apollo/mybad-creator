@@ -113,7 +113,7 @@ input, select, textarea { font: inherit; color: var(--fg); user-select: text; }
 /* ---------- panneau de droite ---------- */
 .side { background: var(--panel); border-left: 1px solid var(--line); min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) 280px; }
 .side-top { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
-.tabs { display: grid; grid-template-columns: repeat(4, auto); justify-content: space-between; border-bottom: 1px solid var(--line); padding: 0 10px; }
+.tabs { display: grid; grid-template-columns: repeat(5, auto); justify-content: space-between; border-bottom: 1px solid var(--line); padding: 0 10px; }
 .tabs button { border: 0; background: transparent; padding: 12px 2px 10px; color: var(--muted); font-size: 12px; font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .tabs button:hover { color: var(--fg); }
 .tabs button.on { color: var(--fg); border-bottom-color: var(--cyan); }

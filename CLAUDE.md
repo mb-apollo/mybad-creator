@@ -36,6 +36,8 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
 - Calque 3D « scène » : un calque `model` avec `actors[]` (plusieurs personnages, sol, ombres, reflets) rendu par `renderStage`.
 - Nombre de lignes des listes (planning, recrutement, stats, infos tournoi, joueurs) : `doc.counts`, lu dans `ctx.counts` des gabarits.
 - La bibliothèque utilisateur (`library/`) prend le pas sur le pack 3D : un ancien `jett.glb` importé masque celui du pack.
+- Panneaux de droite : onglet **3D** (`renderModel3d`, réglages du modèle/scène 3D) séparé de **Propriétés**. Leurs catégories sont
+  repliées par défaut et celles ouvertes par l'utilisateur sont mémorisées (`SEC_OPEN` dans `panels.js`) pour survivre aux reconstructions.
 - `src/renderer/app.js` : démarrage, assistant de démarrage, kit de marque, export, pack 3D, mises à jour.
 - `build/` : icônes, images et habillage NSIS de l'installateur (`installer.nsh`, `nsis/assistedInstaller.nsh`
   copié par `scripts/patch-nsis.js`).

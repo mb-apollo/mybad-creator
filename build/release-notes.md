@@ -1,2 +1,3 @@
-- Les armes (Vandal, Phantom, Classic, Ghost, Sheriff) sont intégrées au logiciel : plus besoin de les importer
-- Correction : l'arme restait invisible avec certains modèles de personnages (ex. le nouveau Jett)
+- Nouvel onglet 3D : tous les réglages du modèle ou de la scène 3D (caméra, personnages, poses, armes, sol, éclairage) sont à part, les Propriétés restent simples
+- Toutes les catégories du panneau de droite sont repliées par défaut
+- Correction : une catégorie ouverte ne se referme plus et le champ ne perd plus le focus quand tu modifies un curseur ou un texte

@@ -16,6 +16,7 @@ function env(doc = S.doc, exporting = false, thumb = false) {
   return makeEnv(doc, S.library, { exporting, extraItems: S.extraItems, model3d: thumb ? null : modelEnv(doc, exporting) });
 }
 P.actions.env = (d, exp, thumb) => env(d, exp, thumb);
+P.actions.setTab = t => setTab(t);
 
 // ---------------------------------------------------------------- onglets & interface
 let tab = 'props';
@@ -27,6 +28,7 @@ function setTab(t) {
 }
 function refreshTab() {
   if (tab === 'props') P.renderProps();
+  if (tab === 'model3d') P.renderModel3d();
   if (tab === 'content') P.renderContent();
   if (tab === 'theme') P.renderTheme();
   if (tab === 'library') P.renderLibrary();
@@ -621,11 +623,11 @@ $('#tools').addEventListener('click', e => {
     else if (act === 'guideH') addGuide('h');
     else if (act === 'rulers') toggleRulers();
     else if (act === 'maskPaint') {
-      if (sel.length === 1 && !['bg', 'effect'].includes(sel[0].type)) { setTab('props'); startPaint(sel[0]); P.renderProps(); toast('Peins sur l\'affiche : effacer ou restaurer, réglages dans Propriétés'); }
+      if (sel.length === 1 && !['bg', 'effect'].includes(sel[0].type)) { setTab('props'); startPaint(sel[0]); P.openSection('Masque au pinceau'); toast('Peins sur l\'affiche : effacer ou restaurer, réglages dans Propriétés'); }
       else toast('Sélectionne d\'abord un calque (image, modèle 3D, texte…).', true);
     }
     else if (act === 'crop') {
-      if (sel.length === 1 && sel[0].type === 'image') { setTab('props'); P.renderProps(); setTimeout(() => { const s = [...document.querySelectorAll('#propsBody summary')].find(x => /Recadrage/.test(x.textContent)); if (s) { s.parentElement.open = true; s.scrollIntoView({ block: 'start' }); } }, 60); }
+      if (sel.length === 1 && sel[0].type === 'image') { setTab('props'); P.openSection('Recadrage'); }
       else toast('Sélectionne d\'abord une image à recadrer.', true);
     }
     return;
@@ -647,11 +649,11 @@ on('doc', o => {
   updateUndo(); saveSession();
   if (!layersRaf) layersRaf = requestAnimationFrame(() => { layersRaf = 0; P.renderLayers(); });
   if (o && o.live) return; // pendant un glisser, on ne reconstruit pas les panneaux
-  if (tab === 'props' && !(o && o.noProps)) P.renderProps();
+  if ((tab === 'props' || tab === 'model3d') && !(o && o.noProps)) P.renderProps();
   if (!(o && o.live)) { P.scheduleThumbs(); if (tab === 'theme') P.scheduleThemeThumbs(); if (S.doc && isCustom(S.doc.tpl)) saveCustomModel(); }
   if (o && o.full) { buildFormats(); buildGame(); P.markGallery(); updateStatus(); if (tab !== 'props') refreshTab(); }
 });
-on('selection', () => { P.renderLayers(); if (tab === 'props') P.renderProps(); else if (S.sel.length) setTab('props'); });
+on('selection', () => { P.renderLayers(); if (tab === 'props' || tab === 'model3d') P.renderProps(); else if (S.sel.length) setTab('props'); });
 on('history', updateUndo);
 on('dirty', updateTitle);
 on('editText', () => { setTab('props'); setTimeout(P.focusText, 30); });

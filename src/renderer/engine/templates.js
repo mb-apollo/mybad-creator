@@ -222,7 +222,7 @@ function gameday(ctx) {
     agentImage(ctx, 'featAgent', { x: -W * 0.05, y: H * 0.04, w: W * 1.0, h: H * 0.8 }, { name: 'Render principal', fx: { smear: 0.55, smearCut: 0.78, glow: { on: true, color: '$glow', blur: 40, opacity: 0.5 } } }),
     shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.48, w: W, h: H * 0.52, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     shape({ name: 'Chevrons', shape: 'chevrons', stroke: '$text', strokeWidth: 2.5, count: 3, x: W * 0.62, y: H * 0.33, w: 170 * u, h: 86 * u, opacity: 0.4 }),
-    text({ name: 'Texte vertical', tpl: '{gdSide}', upper: true, style: 'outline', strokeColor: '$text', strokeWidth: 1.4, opacity: 0.3, size: 150 * u, x: W * 0.955 - H * 0.36, y: H * 0.42 - 75 * u, w: H * 0.72, rot: 90 }),
+    text({ name: 'Texte vertical', tpl: '{gdSide}', upper: true, style: 'outline', strokeColor: '$text', strokeWidth: 1.4, opacity: 0.3, size: 150 * u, x: W * 0.91 - H * 0.36, y: H * 0.42 - 75 * u, w: H * 0.72, rot: 90 }), // centré à 91 % de la largeur : la hauteur des lettres (tournées) reste dans l'affiche
     ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bc: false }),
     text({ name: 'Infos', tpl: '{date} · {hour}', upper: true, align: 'left', size: 20 * u, weight: 500, spacing: 0.14, color: '$muted', x: W * 0.07, y: H * 0.565, w: W * 0.5, fontRole: 'body' }),
     text({ name: 'Affiche', tpl: '{org} vs {adv}', upper: true, align: 'left', size: 20 * u, weight: 600, spacing: 0.14, color: '$accent', x: W * 0.07, y: H * 0.59, w: W * 0.6, fontRole: 'body' }),

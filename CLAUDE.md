@@ -29,7 +29,12 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
 - `src/renderer/pose3d.js` : poses par membre (bras/jambes/buste/tête, flexion des doigts, cinématique inverse), poses prédéfinies,
   nettoyage des poids de peau et garde-fou anti-triangles étirés (`recordRestShape` / `cullStretched`). Les noms d'os acceptent
   le suffixe numérique des exports Sketchfab (`L_Shoulder_021`).
-- `src/renderer/weapons.js` : armes tenues en main (liste dans `games.js`), main gauche par IK. Les 5 armes sont livrées dans
+  Visage : `applyFace` (os de la mâchoire, paupières, sourcils, coins des lèvres ; pas de morph targets), réglages `face` {mouth, smile, eyeL, eyeR,
+  brows, anger} d'un calque ou d'un acteur de scène, préréglages `FACES`. `face` doit rester dans la clé de cache du rendu (`params`).
+- `src/renderer/weapons.js` : armes tenues en main (liste dans `games.js`, `frac` = longueur de l'arme en part de la taille du personnage),
+  main gauche par IK, doigts enroulés sur la surface (`wrapFingers`, courbure minimale 40 pistolet / 25 fusil). Fusil : `aimHand` place la
+  main droite par rapport au corps (`def.aim` = x avant, y haut, z droite, pitch, yaw) ; pistolet : bras réglés par `WEAPON_POSES`.
+  `WEAPON_POSES[type][position]` (pose3d.js) : prêt, visée, détendu, présentation, bras libres. Les 5 armes sont livrées dans
   `src/renderer/assets/games/weapons/*.glb` (WebP 1024 px) ; une arme importée dans la bibliothèque (`g:weapons:<clé>`) les remplace.
 - `src/renderer/custom.js` : modèles d'affiches personnalisés (localStorage, clés `custom:<id>` ajoutées à `TEMPLATES`).
 - `src/renderer/engine/mask.js` : masques au pinceau (PNG dans `doc.assets`, clé `mask-<id calque>`).
@@ -40,7 +45,8 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   repliées par défaut et celles ouvertes par l'utilisateur sont mémorisées (`SEC_OPEN` dans `panels.js`) pour survivre aux reconstructions.
 - `src/renderer/app.js` : démarrage, assistant de démarrage, kit de marque, export, pack 3D, mises à jour.
 - `build/` : icônes, images et habillage NSIS de l'installateur (`installer.nsh`, `nsis/assistedInstaller.nsh`
-  copié par `scripts/patch-nsis.js`).
+  copié par `scripts/patch-nsis.js`). Les bitmaps `build/*.bmp` sont générés en ×3 par `npx electron scripts/make-installer-art.js`
+  (l'assistant NSIS les étire) ; boutons en mode sombre via `DarkMode_Explorer`, police Segoe UI, `ManifestDPIAware`.
 
 ## Points importants
 - Pack 3D : branche `pack-3d` du dépôt (`index.json` + `.glb` compressés WebP 2048 px via gltf-transform).

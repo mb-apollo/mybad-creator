@@ -268,6 +268,18 @@ export function applyPose(root, P) {
 
 // Flexion des doigts (0 = ouverts, 100 = poing). curl règle tous les doigts, chaque doigt peut être précisé.
 const CURL = { Thumb: [22, 30, 42], Index: [62, 88, 60], Middle: [66, 90, 62], Ring: [68, 92, 64], Pinky: [70, 92, 64] };
+// Plie un doigt à une valeur absolue (0 = ouvert, 100 = poing), à partir de sa pose de repos.
+export function setFingerCurl(rig, s, f, c) {
+  const q = new THREE.Quaternion();
+  rig.finger[s][f].forEach((b, j) => {
+    if (!b) return;
+    b.quaternion.copy(rig.rest.get(b) || b.quaternion);
+    const ax = rig.fingerAxis[s][f][j];
+    if (ax) b.quaternion.multiply(q.setFromAxisAngle(ax, CURL[f][j] * (c / 100) * RAD));
+    b.updateMatrix();
+  });
+  const first = rig.finger[s][f].find(Boolean); if (first) first.updateWorldMatrix(true, true);
+}
 export function applyFingers(rig, S) {
   if (!rig.finger) return;
   const q = new THREE.Quaternion();
@@ -342,12 +354,96 @@ export function solveLegParams(rig, s, T) {
 }
 export { worldPos, worldQuat, aim, lateral };
 
+// ---------------------------------------------------------------- visage
+// Expressions par os du visage (aucun morph target dans les modèles) : bouche (mâchoire), sourire (coins des lèvres),
+// paupières (une par œil) et sourcils (hauteur + froncement). Deux familles de squelettes : « riche » (Jett, Reyna…, paupières et
+// sourcils en plusieurs os) et « simple » (Jaw, EyeLids, Brows, MouthCorner) ; sans os correspondant, le réglage est ignoré.
+const findAll = (root, re) => { const out = []; root.traverse(o => { if (o.name && re.test(o.name)) out.push(o); }); return out; };
+function faceOf(root, rig) {
+  if (rig.face) return rig.face;
+  const f = { rest: new Map(), lip: { L: [], R: [] }, up: { L: [], R: [] }, low: { L: [], R: [] }, brow: { L: [], R: [] } };
+  f.jaw = findAll(root, /^Jaw(_\d+)?$/i)[0] || null;
+  for (const s of ['L', 'R']) {
+    f.lip[s] = [...findAll(root, new RegExp('^' + s + '_LipCorner(_\\d+)?$', 'i'))];
+    f.up[s] = [...findAll(root, new RegExp('^' + s + '_Eyelid_Up_(Base|In|Mid|Out)(_\\d+)?$', 'i')), ...findAll(root, new RegExp('^' + s + '_EyeLids(_\\d+)?$', 'i'))];
+    f.low[s] = [...findAll(root, new RegExp('^' + s + '_Eyelid_Bot_(Base|In|Mid|Out)(_\\d+)?$', 'i')), ...findAll(root, new RegExp('^' + s + '_Lower_EyeLid(_\\d+)?$', 'i'))];
+    for (const b of findAll(root, new RegExp('^' + s + '_Brow_(In|Mid|Out)_\\d+(_\\d+)?$', 'i'))) f.brow[s].push({ b, zone: /_In_/i.test(b.name) ? 'in' : /_Out_/i.test(b.name) ? 'out' : 'mid' });
+    for (const b of findAll(root, new RegExp('^' + s + '_Brows(_\\d+)?$', 'i'))) f.brow[s].push({ b, zone: 'all' });
+  }
+  f.corner = findAll(root, /^MouthCorner(_\d+)?$/i);
+  const all = [f.jaw, ...f.corner, ...['L', 'R'].flatMap(s => [...f.lip[s], ...f.up[s], ...f.low[s], ...f.brow[s].map(x => x.b)])].filter(Boolean);
+  all.forEach(b => f.rest.set(b, b.position.clone()));
+  rig.face = f;
+  return f;
+}
+export const FACE_KEYS = ['mouth', 'smile', 'eyeL', 'eyeR', 'brows', 'anger'];
+export function applyFace(root, F) {
+  const rig = rigOf(root);
+  if (!rig || !rig.head || !rig.footL) return;
+  const fc = faceOf(root, rig);
+  fc.rest.forEach((p, b) => { b.position.copy(p); const q = rig.rest.get(b); if (q) b.quaternion.copy(q); });
+  root.updateMatrixWorld(true);
+  if (!F) return;
+  const v = { mouth: 0, smile: 0, eyeL: 0, eyeR: 0, brows: 0, anger: 0, ...F };
+  if (!FACE_KEYS.some(k => v[k])) return;
+  const H = (worldPos(rig.head).y - worldPos(rig.footL).y) * 1.12, lat = lateral(rig.upperL, rig.upperR), fwd = facingOf(root) || V3(0, 0, 1);
+  const move = (b, d) => { if (!b.parent) return; const p = worldPos(b).add(d); b.parent.updateWorldMatrix(true, false); b.position.copy(b.parent.worldToLocal(p)); b.updateWorldMatrix(false, true); };
+  const side = { L: 1, R: -1 };
+  if (fc.jaw && v.mouth) {
+    const j = fc.jaw, tip = j.children.find(c => c.isObject3D), ang = (v.mouth / 100) * 24 * RAD;
+    if (tip) { const y0 = worldPos(tip).y; rotateWorld(j, lat, ang); if (worldPos(tip).y > y0) { rotateWorld(j, lat, -2 * ang); } }
+    else rotateWorld(j, lat, ang);
+  }
+  const sm = v.smile / 100;
+  if (sm) {
+    for (const s of ['L', 'R']) fc.lip[s].forEach(b => move(b, UP.clone().multiplyScalar(H * 0.009 * sm).addScaledVector(lat, side[s] * H * 0.006 * sm)));
+    fc.corner.forEach(b => move(b, UP.clone().multiplyScalar(H * 0.004 * sm)));
+  }
+  for (const s of ['L', 'R']) {
+    const c = (s === 'L' ? v.eyeL : v.eyeR) / 100;
+    if (c) {
+      fc.up[s].forEach(b => move(b, UP.clone().multiplyScalar(-H * 0.0034 * c)));
+      fc.low[s].forEach(b => move(b, UP.clone().multiplyScalar(H * 0.001 * c)));
+    }
+    const lift = v.brows / 100, ang = v.anger / 100, tilt = Math.sign(new THREE.Vector3().crossVectors(fwd, lat).y) || 1;
+    for (const { b, zone } of fc.brow[s]) {
+      let dy = H * 0.008 * lift;
+      if (zone === 'in') dy -= H * 0.006 * ang; else if (zone === 'out') dy += H * 0.003 * ang;
+      if (dy) move(b, UP.clone().multiplyScalar(dy));
+      if (zone === 'all' && ang) rotateWorld(b, fwd, side[s] * tilt * ang * 0.35);
+    }
+  }
+}
+// Expressions prédéfinies (chacune se règle ensuite à la main).
+export const FACES = [
+  ['neutre', 'Neutre', {}],
+  ['content', 'Content', { smile: 65, mouth: 12, eyeL: 14, eyeR: 14, brows: 20 }],
+  ['triste', 'Triste / fatigué', { smile: -50, eyeL: 45, eyeR: 45, brows: 5, anger: -60 }],
+  ['colere', 'Colère / concentré', { smile: -30, mouth: 8, eyeL: 28, eyeR: 28, brows: -40, anger: 75 }],
+  ['surprise', 'Surprise', { smile: 10, mouth: 55, brows: 85 }],
+  ['clin', 'Clin d\'œil', { smile: 55, mouth: 10, eyeL: 100, brows: 15 }],
+];
+
 // Poses prédéfinies (chacune se règle ensuite à la main).
 const SAME = a => ({ armL: { ...a }, armR: { ...a } });
-// Poses adaptées à l'arme tenue : fusil à deux mains (main gauche sur le garde-main), pistolet à une main.
+// Poses adaptées à l'arme tenue, par type d'arme et par position : prêt (arme baissée comme en jeu), visée (épaulée),
+// détendu (arme le long du corps) et présentation (arme tendue vers la caméra). 'both' : main gauche sur l'arme.
+export const WEAPON_STANCES = [['pret', 'Prêt'], ['vise', 'Visée'], ['detendu', 'Détendu'], ['presentation', 'Présentation'], ['libre', 'Bras libres']];
 export const WEAPON_POSES = {
-  rifle: { armR: { out: 14, fwd: 35, elbow: 80, roll: 60 }, armL: { out: 20, fwd: 40, elbow: 60, roll: 40 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 70 }, torso: { twist: -6 } },
-  pistol: { armR: { out: 14, fwd: 58, elbow: 34, roll: 25 }, armL: { out: 14, fwd: 8, elbow: 20, roll: 10 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 10 } },
+  rifle: {
+    pret: { both: true, aim: { x: 0.09, y: -0.16, z: 0.02, pitch: 26, yaw: 0 }, armR: { out: 14, fwd: 30, elbow: 75, roll: 60 }, armL: { out: 20, fwd: 42, elbow: 62, roll: 40 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 70 }, torso: { twist: -6 } },
+    vise: { both: true, aim: { x: 0.15, y: -0.07, z: 0, pitch: 0, yaw: -4 }, armR: { out: 12, fwd: 62, elbow: 105, roll: 70 }, armL: { out: 24, fwd: 80, elbow: 30, roll: 40 }, handR: { curl: 85, index: 40, thumb: 55 }, handL: { curl: 70 }, torso: { twist: -10, bend: 2 }, head: { tilt: 5, turn: -4 } },
+    detendu: { both: false, aim: { x: 0.06, y: -0.3, z: 0.05, pitch: 80, yaw: 0 }, armR: { out: 12, fwd: 14, elbow: 40, roll: 55 }, armL: { out: 16, fwd: 4, elbow: 14, roll: 8 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 12 }, torso: { twist: -2 } },
+    presentation: { both: true, aim: { x: 0.16, y: -0.1, z: 0.03, pitch: 12, yaw: 38 }, armR: { out: 18, fwd: 52, elbow: 62, roll: 60 }, armL: { out: 28, fwd: 62, elbow: 40, roll: 40 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 70 }, torso: { twist: 10 }, head: { turn: 6 } },
+    libre: { both: true, armR: { out: 14, fwd: 30, elbow: 75, roll: 60 }, armL: { out: 20, fwd: 42, elbow: 62, roll: 40 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 70 }, torso: { twist: -6 } },
+  },
+  pistol: {
+    pret: { both: false, armR: { out: 12, fwd: 18, elbow: 85, roll: 25 }, armL: { out: 14, fwd: 8, elbow: 20, roll: 10 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 10 }, torso: { twist: -4 } },
+    vise: { both: true, armR: { out: 8, fwd: 84, elbow: 6, roll: 20 }, armL: { out: 14, fwd: 78, elbow: 24, roll: 30 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 60 }, torso: { twist: -8 }, head: { tilt: 4 } },
+    detendu: { both: false, armR: { out: 12, fwd: 6, elbow: 14, roll: 20 }, armL: { out: 14, fwd: 8, elbow: 20, roll: 10 }, handR: { curl: 85, index: 40, thumb: 55 }, handL: { curl: 10 }, torso: { twist: -2 } },
+    presentation: { both: false, armR: { out: 20, fwd: 50, elbow: 70, roll: 20 }, armL: { out: 14, fwd: 8, elbow: 20, roll: 10 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 10 }, torso: { twist: 10 }, head: { turn: 6 } },
+    libre: { both: false, armR: { out: 12, fwd: 18, elbow: 85, roll: 25 }, armL: { out: 14, fwd: 8, elbow: 20, roll: 10 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 10 } },
+  },
 };
 export const POSES = [
   ['neutre', 'Neutre', { armL: { out: 18, fwd: 0, elbow: 0, roll: 0 }, armR: { out: 18, fwd: 0, elbow: 0, roll: 0 } }],

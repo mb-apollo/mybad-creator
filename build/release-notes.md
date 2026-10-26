@@ -1,3 +1,4 @@
-- Nouvel onglet 3D : tous les réglages du modèle ou de la scène 3D (caméra, personnages, poses, armes, sol, éclairage) sont à part, les Propriétés restent simples
-- Toutes les catégories du panneau de droite sont repliées par défaut
-- Correction : une catégorie ouverte ne se referme plus et le champ ne perd plus le focus quand tu modifies un curseur ou un texte
+- Visage : ouvrir / fermer la bouche et chaque œil, sourire, sourcils, et expressions prêtes à l'emploi (content, triste / fatigué, colère / concentré, surprise, clin d'œil)
+- Armes : taille cohérente avec celle de l'agent, prise en main refaite (doigts refermés sur l'arme, main gauche sur le garde-main) et quatre positions : prêt, visée, détendu, présentation
+- Affiche Game Day : le texte vertical « MATCHDAY » n'est plus coupé
+- Installateur : thème sombre complet (boutons compris), textes nets sur les écrans à haute densité, visuels haute définition

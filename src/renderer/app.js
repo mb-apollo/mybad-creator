@@ -710,7 +710,7 @@ async function boot() {
 boot();
 
 // Accès pour les tests automatisés
-window.__creator = { S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles };
+window.__creator = { modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles };
 P.actions.togglePoseEdit = togglePoseEdit;
 P.actions.poseEditOn = () => !!getPoseEdit();
 void copySelected; void selected; void resetHistory; void emit; void icon;

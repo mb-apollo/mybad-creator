@@ -7,7 +7,9 @@ import { GAMES, gameItems } from './engine/games.js';
 import { $, $$, esc, icon } from './ui.js';
 import { initEditor, requestRender, fit, zoomTo, getZoom, setTool, addLayer, pasteLayers, copySelected } from './editor.js';
 import * as P from './panels.js';
-import { initModels, modelEnv, modelProps, modelPropAction, newModelLayer, preloadModels } from './model3d.js';
+import { initCustom, isCustom, scheduleSave as saveCustomModel } from './custom.js';
+initCustom();
+import { initModels, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels } from './model3d.js';
 
 // ---------------------------------------------------------------- environnement de rendu
 function env(doc = S.doc, exporting = false, thumb = false) {
@@ -463,6 +465,14 @@ function openModal(title, body, foot = '', wide = false) {
   setTimeout(() => $('#modal').querySelector('input, select, button.primary-btn')?.focus(), 30);
 }
 function closeModal() { $('#modal').hidden = true; }
+// Petite fenêtre « saisis un nom » (window.prompt n'existe pas dans Electron).
+P.actions.askName = (title, value, cb) => {
+  openModal(title, `<div class="field full"><input class="input" id="askNameInput" value="${esc(value)}" maxlength="40" spellcheck="false"></div>`, '<button class="ghost-btn" id="askNameNo">Annuler</button><span class="spacer"></span><button class="primary-btn solo" id="askNameOk">Valider</button>');
+  const input = $('#askNameInput'), done = ok => { closeModal(); if (ok && input.value.trim()) cb(input.value.trim()); };
+  $('#askNameOk').onclick = () => done(true); $('#askNameNo').onclick = () => done(false);
+  input.onkeydown = e => { if (e.key === 'Enter') done(true); };
+  input.select();
+};
 $('#modalClose').onclick = closeModal;
 $('#modal').onclick = e => { if (e.target.id === 'modal' && !$('#modal').classList.contains('locked')) closeModal(); };
 // Une seule notification à la fois : la nouvelle remplace la précédente.
@@ -597,7 +607,7 @@ on('doc', o => {
   if (!layersRaf) layersRaf = requestAnimationFrame(() => { layersRaf = 0; P.renderLayers(); });
   if (o && o.live) return; // pendant un glisser, on ne reconstruit pas les panneaux
   if (tab === 'props' && !(o && o.noProps)) P.renderProps();
-  if (!(o && o.live)) P.scheduleThumbs();
+  if (!(o && o.live)) { P.scheduleThumbs(); if (tab === 'theme') P.scheduleThemeThumbs(); if (S.doc && isCustom(S.doc.tpl)) saveCustomModel(); }
   if (o && o.full) { buildFormats(); buildGame(); P.markGallery(); updateStatus(); if (tab !== 'props') refreshTab(); }
 });
 on('selection', () => { P.renderLayers(); if (tab === 'props') P.renderProps(); else if (S.sel.length) setTab('props'); });
@@ -623,6 +633,7 @@ async function boot() {
   P.actions.modelProps = modelProps;
   P.actions.onPropAction = modelPropAction;
   P.actions.addModelLayer = () => newModelLayer();
+  P.actions.addSceneLayer = () => newSceneLayer();
   P.initLayers(); P.initContent(); P.initTheme(); P.initLibrary(); P.initGallery();
   let doc = null;
   if (API) {

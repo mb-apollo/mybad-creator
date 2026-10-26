@@ -3,9 +3,10 @@ import { S, API, on, emit, change, select, toggleSelect, layerById, selected, to
 import { $, $$, esc, getPath, setPath, section, num, range, toggle, select as sel, seg, textInput, colorCtl, syncRange, pct, px, deg, icon } from './ui.js';
 import { THEMES, THEME_TOKENS, FORMATS, applyTemplate, setScriptMode, renderDoc, FONT_ROLES, FONT_LIST, setGameDefaults } from './engine/render.js';
 import { TEMPLATES } from './engine/templates.js';
+import * as Custom from './custom.js';
 import { BLENDS, layerText, textLayout, uid } from './engine/scene.js';
 import { GAMES, gameItems } from './engine/games.js';
-import { align, distribute, arrange, deleteSelected, duplicateSelected, addLayer, requestRender } from './editor.js';
+import { align, distribute, arrange, deleteSelected, duplicateSelected, addLayer, requestRender, getPaint, startPaint, stopPaint, setPaintOpt, resetMask } from './editor.js';
 
 export const actions = {};
 
@@ -126,6 +127,7 @@ export function addPreset(k) {
     image: () => { actions.importImageLayer?.(); return null; },
     agent: () => ({ type: 'image', name: `Render ${GAMES[S.doc.game].itemLabel.toLowerCase()}`, asset: 'g:' + S.doc.game + ':' + (gameItems(S.doc.game, S.extraItems)[0]?.key || ''), ph: 'agent', fit: 'contain', anchor: 'bottom', x: c.x - 250 * u, y: c.y - 350 * u, w: 500 * u, h: 700 * u, fx: { glow: { on: true, color: '$glow', blur: 34, opacity: 0.5 } } }),
     model: () => actions.addModelLayer?.() || null,
+    scene: () => actions.addSceneLayer?.() || null,
   };
   const L = P[k]?.();
   if (L) addLayer(L);
@@ -149,7 +151,19 @@ function fxSections(L, th) {
   h += section('Lueur', `${toggle('fx.glow.on', 'Activer', g.on)}${g.on ? colorCtl('fx.glow.color', 'Couleur', g.color || '$glow', th) + range('fx.glow.blur', 'Diffusion', g.blur ?? 30, 0, 120, 1, px) + range('fx.glow.opacity', 'Intensité', g.opacity ?? 0.9, 0, 1, 0.01, pct) + toggle('fx.glow.strength', 'Renforcer', (g.strength ?? 1) > 1) : ''}`, !!g.on);
   h += section('Ombre portée', `${toggle('fx.shadow.on', 'Activer', s.on)}${s.on ? colorCtl('fx.shadow.color', 'Couleur', s.color || '#000000', th) + range('fx.shadow.blur', 'Flou', s.blur ?? 20, 0, 120, 1, px) + range('fx.shadow.opacity', 'Opacité', s.opacity ?? 0.6, 0, 1, 0.01, pct) + `<div class="grid2">${num('fx.shadow.x', 'X', s.x ?? 0)}${num('fx.shadow.y', 'Y', s.y ?? 10)}</div>` : ''}`, !!s.on);
   if (L.type !== 'effect') h += section('Contour', `${toggle('fx.stroke.on', 'Activer', st.on)}${st.on ? colorCtl('fx.stroke.color', 'Couleur', st.color || '$text', th) + range('fx.stroke.width', 'Épaisseur', st.width ?? 4, 0, 40, 0.5, px) : ''}`, !!st.on);
-  h += section('Fondu progressif', `${toggle('fx.fade.on', 'Activer', fd.on)}${fd.on ? seg('fx.fade.dir', fd.dir || 'bottom', [['bottom', 'Bas'], ['top', 'Haut'], ['left', 'Gauche'], ['right', 'Droite']], { small: true }) + range('fx.fade.amount', 'Longueur', fd.amount ?? 0.3, 0, 1, 0.01, pct) : ''}`, !!fd.on);
+  const fades = f.fades || [];
+  h += section('Fondu progressif', `${fades.map((g, i) => `<div class="fadebox"><div class="fadehead"><b>Fondu ${i + 1}</b><button class="mini-btn danger" data-act="fadeDel" data-i="${i}" title="Supprimer ce fondu">${icon('trash')}</button></div>
+    ${range(`fx.fades.${i}.angle`, 'Angle du fondu', g.angle ?? 180, 0, 360, 1, deg)}
+    ${range(`fx.fades.${i}.start`, 'Début du fondu', g.start ?? 0.7, 0, 1, 0.01, pct)}
+    ${range(`fx.fades.${i}.end`, 'Fin du fondu', g.end ?? 1, 0, 1, 0.01, pct)}
+    ${range(`fx.fades.${i}.strength`, 'Transparence finale', g.strength ?? 1, 0, 1, 0.01, pct)}
+    ${range(`fx.fades.${i}.curve`, 'Courbe', g.curve ?? 1, 0.3, 3, 0.01, v => v.toFixed(2))}</div>`).join('')}
+    <p class="hint">Ajoute un fondu vers le :</p>
+    <div class="btnrow"><button class="mini-btn" data-act="fadeAdd" data-angle="180">${icon('plus')} Bas</button><button class="mini-btn" data-act="fadeAdd" data-angle="0">${icon('plus')} Haut</button><button class="mini-btn" data-act="fadeAdd" data-angle="270">${icon('plus')} Gauche</button><button class="mini-btn" data-act="fadeAdd" data-angle="90">${icon('plus')} Droite</button></div>`, fades.length > 0);
+  const pt = getPaint();
+  if (L.type !== 'effect' && L.type !== 'bg') h += section('Masque au pinceau', `<p class="hint">Peins sur l'affiche pour effacer ou restaurer des zones de ce calque (un côté, les pieds, un bras…). Alt inverse effacer et restaurer.</p>
+    <div class="btnrow"><button class="mini-btn ${pt ? 'on' : ''}" data-act="paintToggle">${icon('wand')} ${pt ? 'Terminer le pinceau' : 'Peindre le masque'}</button>${L.mask ? `<button class="mini-btn danger" data-act="maskClear">${icon('trash')} Effacer le masque</button>` : ''}</div>
+    ${pt ? `${seg('__paint.mode', pt.mode, [['erase', 'Effacer'], ['restore', 'Restaurer']], { small: true })}${range('__paint.size', 'Taille du pinceau', pt.size, 10, 600, 1, v => Math.round(v) + ' px')}${range('__paint.hard', 'Dureté', pt.hard, 0, 1, 0.01, pct)}${range('__paint.flow', 'Force', pt.flow, 0.05, 1, 0.01, pct)}` : ''}`, !!pt || !!L.mask);
   if (L.type === 'image' || L.type === 'model' || L.type === 'emblem' || L.type === 'text') h += section('Fondu pixel', `${range('fx.smear', 'Intensité', f.smear || 0, 0, 1, 0.01, pct)}${(f.smear || 0) > 0 ? range('fx.smearCut', 'Début du fondu', f.smearCut ?? 0.72, 0.2, 1, 0.01, pct) + `<button class="mini-btn" data-act="reseed">Varier les traînées</button>` : ''}`, (f.smear || 0) > 0);
   return h;
 }
@@ -162,7 +176,7 @@ export function renderProps() {
   if (!cur.length) {
     setHTML(box, `<div class="empty-props">
       <p class="muted">Aucun calque sélectionné. Clique sur un élément de l'affiche ou dans la liste des calques.</p>
-      ${section('Ajouter', `<div class="addgrid">${[['text', 'text', 'Texte'], ['script', 'text', 'Manuscrit'], ['image', 'image', 'Image'], ['agent', 'image', GAMES[S.doc.game].itemLabel], ['model', 'model', 'Modèle 3D'], ['emblem', 'emblem', 'Logo'], ['pill', 'shape', 'Cadre'], ['star', 'star', 'Étoile'], ['glow', 'effect', 'Halo']].map(([k, i, l]) => `<button class="addbtn" data-addp="${k}">${icon(i)}<span>${l}</span></button>`).join('')}</div>`)}
+      ${section('Ajouter', `<div class="addgrid">${[['text', 'text', 'Texte'], ['script', 'text', 'Manuscrit'], ['image', 'image', 'Image'], ['agent', 'image', GAMES[S.doc.game].itemLabel], ['model', 'model', 'Modèle 3D'], ['scene', 'model', 'Scène 3D'], ['emblem', 'emblem', 'Logo'], ['pill', 'shape', 'Cadre'], ['star', 'star', 'Étoile'], ['glow', 'effect', 'Halo']].map(([k, i, l]) => `<button class="addbtn" data-addp="${k}">${icon(i)}<span>${l}</span></button>`).join('')}</div>`)}
       ${section('Raccourcis utiles', `<div class="kbd-mini"><span>Déplacer</span><kbd>Glisser</kbd><span>Garder les proportions / libre</span><kbd>Maj</kbd><span>Depuis le centre</span><kbd>Alt</kbd><span>Dupliquer</span><kbd>Ctrl+D</kbd><span>Déplacer la vue</span><kbd>Espace</kbd><span>Zoom</span><kbd>Ctrl+molette</kbd></div>`, false)}
     </div>`);
     bind(box, []);
@@ -252,6 +266,7 @@ export function renderProps() {
 // Liaison générique : tout champ [data-path] modifie les calques sélectionnés.
 function bind(box, targets) {
   const apply = (path, value, live) => {
+    if (path.startsWith('__paint.')) { setPaintOpt(path.slice(8), value); return; }
     if (path.startsWith('T.')) { change(d => { d.T[path.slice(2)] = value; }, { immediate: !live }); return; }
     if (path === 'gameItem') { change(() => targets.forEach(L => { const [, g] = L.asset.split(':'); L.asset = `g:${g}:${value}`; }), { immediate: true }); return; }
     if (path === 'font') { change(() => targets.forEach(L => { if (value) { L.font = value; L.fontOverride = true; } else { L.fontOverride = false; } }), { immediate: true }); return; }
@@ -292,6 +307,10 @@ function bind(box, targets) {
     if (act === 'delete') deleteSelected();
     if (act === 'duplicate') duplicateSelected();
     if (act === 'unlock') change(() => targets.forEach(L => { L.locked = false; }), { immediate: true });
+    if (act === 'fadeAdd') { const ang = +b.dataset.angle; change(() => targets.forEach(L => { L.fx ||= {}; (L.fx.fades ||= []).push({ angle: ang, start: 0.65, end: 1, strength: 1, curve: 1 }); }), { immediate: true }); renderProps(); }
+    if (act === 'fadeDel') { const i = +b.dataset.i; change(() => targets.forEach(L => { L.fx?.fades?.splice(i, 1); }), { immediate: true }); renderProps(); }
+    if (act === 'paintToggle') { if (getPaint()) stopPaint(); else startPaint(targets[0]); renderProps(); }
+    if (act === 'maskClear') { resetMask(targets[0]); renderProps(); }
     if (act === 'reseed') change(() => targets.forEach(L => { L.seed = Math.floor(Math.random() * 9999); }), { immediate: true });
     if (act === 'resetFilters') { change(() => targets.forEach(L => { L.filters = {}; }), { immediate: true }); renderProps(); }
     if (act === 'replaceImage') actions.replaceImage?.(targets[0]);
@@ -303,9 +322,9 @@ function bind(box, targets) {
 function fmtOf(el) {
   const label = el.closest('.range').querySelector('label').textContent;
   const v = +el.value;
-  if (/Opacité|Intensité|Longueur|Zoom|Début|coins/i.test(label) && el.max <= 4) return Math.round(v * 100) + ' %';
+  if (/Opacité|Intensité|Longueur|Zoom|Début|coins|Fin du|Transparence|Force|Dureté|Reflet|Lueur|Taille/i.test(label) && el.max <= 4) return Math.round(v * 100) + ' %';
   if (/Diffusion|Flou|Épaisseur|Arrondi|Pointillés/.test(label)) return (Math.round(v * 10) / 10) + ' px';
-  if (/Angle|Teinte/.test(label)) return Math.round(v) + '°';
+  if (/Angle|Teinte|Inclinaison|Écart|Bras vers|Coude|Genou|Jambe vers|Penché|Rotation|Tête vers|Sens du/.test(label)) return Math.round(v) + '°';
   if (/Luminosité|Contraste|Saturation|Noir/.test(label)) return v + ' %';
   if (/Décalage/.test(label)) return Math.round(v * 100);
   if (/Espacement/.test(label)) return (v * 100).toFixed(1);
@@ -324,11 +343,11 @@ export function focusText() {
 const F = {
   event: 'Compétition', stage: 'Phase / étape', org: 'Structure', adv: 'Équipe adverse', date: 'Date', hour: 'Heure', live: 'Lien de diffusion', coach: 'Coach',
   bo: 'Format', s1: 'Notre score', s2: 'Score adverse', mvp: 'MVP', mvpStat: 'Stats du MVP', gdSide: 'Texte vertical', anNames: 'Noms (séparés par ·)', anSide: 'Texte vertical',
-  nrL1: 'Ligne 1', nrL2: 'Ligne 2', tTitle: 'Titre', tGame: 'Sous-titre', tDay: 'Jour', tMonth: 'Mois', tYear: 'Année', tHour: 'Heure', tInfo1: 'Info 1', tInfo2: 'Info 2', tPrize: 'Cashprize', tPrizeLbl: 'Libellé',
+  tTitle: 'Titre', tGame: 'Sous-titre', tDay: 'Jour', tMonth: 'Mois', tYear: 'Année', tHour: 'Heure', tInfo1: 'Info 1', tInfo2: 'Info 2', tPrize: 'Cashprize', tPrizeLbl: 'Libellé',
   plWeek: 'Semaine', recSub: 'Sous-titre', rec1: 'Poste 1', rec2: 'Poste 2', rec3: 'Poste 3', rec4: 'Poste 4', recCta: 'Bouton', recNote: 'Note',
   cardName: 'Pseudo', cardTag: 'Étiquette', cardRole: 'Rôle', liveTitle: 'Titre du stream', liveUrl: 'Lien',
 };
-const HALF = new Set(['date', 'hour', 's1', 's2', 'nrL1', 'nrL2', 'tDay', 'tMonth', 'tYear', 'tHour', 'tPrize', 'tPrizeLbl']);
+const HALF = new Set(['date', 'hour', 's1', 's2', 'tDay', 'tMonth', 'tYear', 'tHour', 'tPrize', 'tPrizeLbl']);
 const TITLES = {
   mdTitle: ['mdW1', 'mdW2', 'mdPlain'], rosTitle: ['rosW1', 'rosW2', 'rosPlain'], gdTitle: ['gdW1', 'gdW2', 'gdPlain1', 'gdPlain2'],
   anTitle: ['anW1'], plTitle: ['plW1', 'plW2', 'plPlain'], recTitle: ['recW1', 'recW2', 'recPlain'], liveTitleW: ['liveW1', 'liveW2', 'livePlain'],
@@ -412,20 +431,50 @@ export function initContent() {
 function planningRows() { return [1, 2, 3, 4, 5].map(i => (S.doc.T[`pl${i}d`] || S.doc.T[`pl${i}t`] ? 1 : 0)).join(''); }
 
 // ================================================================ THÈME
+let themePreview = null;
+const loadCustomThemes = () => { try { return JSON.parse(localStorage.getItem('mbc.themes') || '[]'); } catch { return []; } };
+const saveCustomThemes = list => { try { localStorage.setItem('mbc.themes', JSON.stringify(list)); } catch { /* stockage indisponible */ } };
+const allThemes = () => [...THEMES, ...loadCustomThemes()];
+let themeTimer = null;
+export function scheduleThemeThumbs() { clearTimeout(themeTimer); themeTimer = setTimeout(renderThemeThumbs, 250); }
+function renderThemeThumbs() {
+  if (!S.doc) return;
+  const all = allThemes();
+  $$('#themeBody canvas[data-tv]').forEach(cv => {
+    const t = all.find(x => x.id === cv.dataset.tv); if (!t) return;
+    const d = { ...S.doc, theme: { ...t.c }, themeId: t.id };
+    try { renderDoc(cv, d, actions.env(d, true, true), 0.13); } catch (err) { console.error(err); }
+  });
+}
 export function renderTheme() {
   const box = $('#themeBody'); if (!box || !S.doc) return;
+  setTimeout(scheduleThemeThumbs, 0);
   const th = S.doc.theme;
-  let h = section('Ambiance', `<div class="presets">${THEMES.map(t => `<button class="preset ${S.doc.themeId === t.id ? 'on' : ''}" data-theme="${t.id}"><div class="sw" style="background:radial-gradient(circle at 50% 30%, ${t.c.glow}88, transparent 60%), linear-gradient(180deg, ${t.c.bg2}, ${t.c.bg})"><i style="background:${t.c.accent}"></i></div><span>${esc(t.name)}</span></button>`).join('')}</div>
+  let h = section('Ambiance', `<div class="presets live">${allThemes().map(t => `<button class="preset ${S.doc.themeId === t.id ? 'on' : ''}" data-theme="${esc(t.id)}" title="Survole pour prévisualiser, clique pour appliquer"><canvas data-tv="${esc(t.id)}"></canvas><span>${esc(t.name)}</span>${t.custom ? `<i class="del" data-deltheme="${esc(t.id)}" title="Supprimer ce thème">×</i>` : ''}</button>`).join('')}</div>
+    <div class="themesave"><input class="input" id="themeName" placeholder="Nom de ton thème" maxlength="24" spellcheck="false"><button class="mini-btn" data-act="saveTheme">${icon('plus')} Enregistrer le thème actuel</button></div>
     ${range('light', 'Intensité lumineuse', th.light ?? 1, 0, 2, 0.01, pct)}`);
+  const fin = S.doc.finish || {};
+  h += section('Finition', `${range('fin.bright', 'Luminosité', fin.bright ?? 1, 0, 2, 0.01, pct)}${range('fin.vignette', 'Vignette (bords sombres)', fin.vignette ?? 1, 0, 2, 0.01, pct)}${range('fin.grain', 'Grain', fin.grain ?? 1, 0, 3, 0.01, pct)}`);
   h += section('Couleurs', `<div class="tokens">${THEME_TOKENS.map(([k, l]) => `<label class="token"><input type="color" data-token="${k}" value="${th[k]}"><span>${esc(l)}</span><code>${esc(th[k])}</code></label>`).join('')}</div>`);
   h += section('Polices', FONT_ROLES.map(([k, l]) => `<div class="field"><label>${esc(l)}</label><select class="input" data-font="${k}">${FONT_LIST.map(f => `<option ${S.doc.fonts[k] === f ? 'selected' : ''} style="font-family:'${f}'">${f}</option>`).join('')}</select></div>`).join('') + '<p class="hint">Les calques sans police forcée suivent ces polices.</p>');
   setHTML(box, h);
 }
 export function initTheme() {
   const box = $('#themeBody');
+  box.addEventListener('mouseover', e => {
+    const b = e.target.closest('[data-theme]'); if (!b || e.target.closest('[data-deltheme]')) return;
+    const t = allThemes().find(x => x.id === b.dataset.theme); if (!t) return;
+    themePreview ||= { theme: S.doc.theme, themeId: S.doc.themeId };
+    S.doc.theme = { ...t.c }; S.doc.themeId = t.id; requestRender();
+  });
+  box.addEventListener('mouseout', e => {
+    if (!themePreview || e.target.closest('[data-theme]')?.contains(e.relatedTarget)) return;
+    S.doc.theme = themePreview.theme; S.doc.themeId = themePreview.themeId; themePreview = null; requestRender();
+  });
   box.addEventListener('input', e => {
     const el = e.target;
     if (el.dataset.token) { change(d => { d.theme[el.dataset.token] = el.value; d.themeId = 'custom'; }); el.parentElement.querySelector('code').textContent = el.value; $$('.preset', box).forEach(p => p.classList.remove('on')); }
+    if (el.dataset.path?.startsWith('fin.')) { change(d => { (d.finish ||= {})[el.dataset.path.slice(4)] = +el.value; }); syncRange(el, pct(+el.value)); }
     if (el.dataset.path === 'light') { change(d => { d.theme.light = +el.value; }); syncRange(el, pct(+el.value)); }
   });
   box.addEventListener('change', e => {
@@ -434,8 +483,16 @@ export function initTheme() {
     if (el.dataset.token || el.type === 'range') change(() => {}, { immediate: true });
   });
   box.addEventListener('click', e => {
+    const del = e.target.closest('[data-deltheme]');
+    if (del) { e.stopPropagation(); saveCustomThemes(loadCustomThemes().filter(x => x.id !== del.dataset.deltheme)); renderTheme(); return; }
+    if (e.target.closest('[data-act="saveTheme"]')) {
+      const name = $('#themeName', box).value.trim() || `Mon thème ${loadCustomThemes().length + 1}`;
+      const t = { id: 'custom-' + Date.now().toString(36), name, custom: true, c: { ...S.doc.theme } };
+      saveCustomThemes([...loadCustomThemes(), t]); change(d => { d.themeId = t.id; }, { immediate: true }); renderTheme(); toast(`Thème « ${name} » enregistré`); return;
+    }
     const b = e.target.closest('[data-theme]'); if (!b) return;
-    const t = THEMES.find(x => x.id === b.dataset.theme);
+    const t = allThemes().find(x => x.id === b.dataset.theme); if (!t) return;
+    themePreview = null;
     change(d => { d.themeId = t.id; d.theme = { ...t.c }; }, { immediate: true });
     renderTheme();
   });
@@ -478,7 +535,12 @@ export function initLibrary() {
 // ================================================================ MODÈLES (galerie)
 export function renderGallery() {
   const box = $('#thumbs'); if (!box) return;
-  box.innerHTML = Object.entries(TEMPLATES).map(([k, t]) => `<button class="thumb ${S.doc.tpl === k ? 'on' : ''}" data-key="${k}" title="${esc(t.desc)}"><canvas data-key="${k}"></canvas><span>${esc(t.name)}</span></button>`).join('');
+  const card = ([k, t]) => `<button class="thumb ${S.doc.tpl === k ? 'on' : ''}" data-key="${esc(k)}" title="${esc(t.desc)}"><canvas data-key="${esc(k)}"></canvas><span>${esc(t.name)}</span>${t.custom ? `<em class="tact"><i data-cact="rename" title="Renommer">✎</i><i data-cact="dup" title="Dupliquer">⧉</i><i data-cact="del" title="Supprimer">×</i></em>` : ''}</button>`;
+  const all = Object.entries(TEMPLATES);
+  box.innerHTML = all.filter(([, t]) => !t.custom).map(card).join('')
+    + '<div class="gal-head">Modèles personnalisés</div>'
+    + all.filter(([, t]) => t.custom).map(card).join('')
+    + `<div class="gal-new"><button class="mini-btn" data-cnew="blank">${icon('plus')} Nouveau modèle vierge</button><button class="mini-btn" data-cnew="current">${icon('copy')} Enregistrer l'affiche actuelle</button></div>`;
   renderThumbs();
 }
 let thumbTimer = null;
@@ -492,9 +554,29 @@ function renderThumbs() {
     try { renderDoc(cv, d, actions.env(d, true, true), 0.2); } catch (err) { console.error(err); }
   });
 }
+function newCustom(kind) {
+  const key = kind === 'blank' ? Custom.createBlank() : Custom.saveCurrent();
+  if (!key) return;
+  renderGallery();
+  if (kind === 'blank') actions.switchTemplate?.(key);
+  else change(d => { d.tpl = key; }, { immediate: true, full: true });
+  toast(kind === 'blank' ? 'Modèle vierge créé : tes modifications y sont enregistrées automatiquement' : 'Affiche enregistrée dans tes modèles personnalisés');
+}
+function customAction(act, key) {
+  if (act === 'rename') actions.askName?.('Renommer le modèle', TEMPLATES[key]?.name || '', name => { Custom.renameCustom(key, name); renderGallery(); });
+  if (act === 'dup') { if (Custom.duplicateCustom(key)) { renderGallery(); toast('Modèle dupliqué'); } }
+  if (act === 'del' && confirm(`Supprimer le modèle « ${TEMPLATES[key]?.name} » ? Les affiches déjà créées avec ce modèle sont gardées.`)) {
+    if (S.doc.tpl === key) change(d => { d.tpl = 'roster'; }, { immediate: true, full: true });
+    Custom.deleteCustom(key); renderGallery(); toast('Modèle supprimé');
+  }
+}
 export function initGallery() {
   $('#thumbs').addEventListener('click', e => {
-    const b = e.target.closest('.thumb'); if (!b) return;
+    const act = e.target.closest('[data-cact]'), b = e.target.closest('.thumb');
+    if (act && b) { customAction(act.dataset.cact, b.dataset.key); return; }
+    const nw = e.target.closest('[data-cnew]');
+    if (nw) { newCustom(nw.dataset.cnew); return; }
+    if (!b) return;
     actions.switchTemplate?.(b.dataset.key);
   });
 }

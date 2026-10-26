@@ -1,5 +1,5 @@
 // Modèle de document MyBad Creator : formats, thèmes (DA), champs, application des modèles.
-import { renderScene, scaledDoc, uid, setDocFonts } from './scene.js';
+import { renderScene, scaledDoc, uid, setDocFonts, migrateFade } from './scene.js';
 import { TEMPLATES } from './templates.js';
 import { GAMES } from './games.js';
 
@@ -41,7 +41,6 @@ export const TEXT_DEFAULTS = {
   s1: '2', s2: '0', bo: 'Best of 3', mvp: 'Pseudo', mvpAgent: 'jett', mvpStat: '24 / 12 / 6 · ACS 312',
   gdW1: 'Game', gdW2: 'DAY', gdPlain1: 'GAME', gdPlain2: 'DAY', gdSide: 'MATCHDAY', featAgent: 'jett',
   anW1: 'Bienvenue', anNames: 'Joueur 1 · Joueur 2', anSide: 'WELCOME', anAgent1: 'omen', anAgent2: 'jett',
-  nrL1: 'NOUVEAU', nrL2: 'ROSTER',
   tTitle: 'TOURNOI', tGame: 'Ta Cup · Valorant 5v5', tDay: '15', tMonth: 'Novembre', tYear: '2026', tHour: 'à 20H',
   tInfo1: 'Inscription gratuite', tInfo2: '16 équipes · BO1 puis BO3', tPrize: '100€', tPrizeLbl: 'de cashprize', tAgent: 'reyna',
   plW1: 'Planning', plW2: 'SEMAINE', plPlain: 'PLANNING', plWeek: 'Semaine du 2 novembre',
@@ -115,8 +114,10 @@ export function applyTemplate(doc, key, opts = {}) {
   };
   setDocFonts(doc.fonts);
   const built = tpl.build(ctx).map(L => ({ id: uid(), visible: true, locked: false, ...L, fromTpl: true }));
+  built.forEach(migrateFade);
   built.forEach(L => { if (L.variant) L.visible = (L.variant === 'script') === !!doc.script; });
-  const keep = opts.keepUser === false ? [] : doc.layers.filter(L => !L.fromTpl).map(L => (oldH && oldH !== doc.H ? { ...L, y: L.y * doc.H / oldH } : L));
+  if (tpl.assets) doc.assets = { ...doc.assets, ...tpl.assets }; // images embarquées dans un modèle personnalisé
+  const keep = opts.keepUser === false || tpl.custom ? [] : doc.layers.filter(L => !L.fromTpl).map(L => (oldH && oldH !== doc.H ? { ...L, y: L.y * doc.H / oldH } : L));
   doc.layers = [...built, ...keep];
   return doc;
 }

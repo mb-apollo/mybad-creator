@@ -2,6 +2,7 @@
 import { S, emit, on, change, select, toggleSelect, layerById, selected, toast } from './state.js';
 import { renderDoc } from './engine/render.js';
 import { layerBox, uid, EMBLEM_RATIO } from './engine/scene.js';
+import { maskCanvas, paintableMask, stamp, commitMask, clearMask, maskKey } from './engine/mask.js';
 
 const view = { s: 0.5, ox: 0, oy: 0, fit: true };
 let stage, poster, overlay, octx, envFactory;
@@ -21,7 +22,7 @@ export function initEditor(opts) {
   window.addEventListener('keydown', onKey);
   window.addEventListener('keyup', e => { if (e.code === 'Space') { spaceDown = false; updateCursor(); } });
   on('doc', o => { if (o && o.full) { fit(); } requestRender(); });
-  on('selection', drawOverlay);
+  on('selection', () => { if (paint && (S.sel.length !== 1 || S.sel[0] !== paint.id)) paint = null; updateCursor(); drawOverlay(); });
   sizeOverlay();
 }
 
@@ -141,6 +142,7 @@ function drawOverlay() {
     const g = { x: Math.min(...bb.map(b => b.x)), y: Math.min(...bb.map(b => b.y)), r: Math.max(...bb.map(b => b.r)), b: Math.max(...bb.map(b => b.b)) };
     poly([[g.x, g.y], [g.r, g.y], [g.r, g.b], [g.x, g.b]]); octx.setLineDash([6, 4]); octx.strokeStyle = ACCENT; octx.lineWidth = 1; octx.stroke(); octx.setLineDash([]);
   }
+  drawPaintOverlay();
   guides.forEach(gd => {
     octx.beginPath();
     if (gd.v != null) { const [x] = toScreen([gd.v, 0]); octx.moveTo(x, 0); octx.lineTo(x, overlay.height); }
@@ -187,6 +189,15 @@ function onDown(e) {
   const p = toDoc(e);
   if (e.button === 1 || S.tool === 'hand' || spaceDown) { drag = { mode: 'pan', sx: e.clientX, sy: e.clientY, ox: view.ox, oy: view.oy }; updateCursor(); return; }
   if (e.button !== 0) return;
+  if (paint) {
+    const PL = layerById(paint.id);
+    if (PL && !PL.locked) {
+      const pb = box(PL), cv = paintableMask(PL, pb, envFactory(false));
+      PL.mask = 'u:' + maskKey(PL); // le masque existe dès le premier trait ; il est enregistré au relâchement
+      drag = { mode: 'paint', id: PL.id, b: pb, cv, last: null };
+      strokeTo(p, e); return;
+    }
+  }
   if (['text', 'rect', 'ellipse', 'line', 'star'].includes(S.tool)) { drag = { mode: 'create', start: p }; return; }
   const sel = selected();
   if (sel.length === 1 && !sel[0].locked) {
@@ -214,16 +225,18 @@ function onMove(e) {
   if (!drag) {
     if (!stage.contains(e.target) && e.target !== stage) return;
     const p = toDoc(e);
+    if (paint) { brushAt = p; drawOverlay(); }
     const h = hitTest(p);
     const id = h ? h.id : null;
     if (id !== (hover && hover.id)) { hover = h; drawOverlay(); }
     const sel = selected();
     const hd = sel.length === 1 && !sel[0].locked ? handleAt(sel[0], p) : null;
-    stage.style.cursor = spaceDown || S.tool === 'hand' ? 'grab' : hd ? (hd.rotate ? 'crosshair' : cursorFor(hd, sel[0])) : S.tool !== 'select' ? 'crosshair' : 'default';
+    stage.style.cursor = paint ? 'none' : spaceDown || S.tool === 'hand' ? 'grab' : hd ? (hd.rotate ? 'crosshair' : cursorFor(hd, sel[0])) : S.tool !== 'select' ? 'crosshair' : 'default';
     emit('pointer', p);
     return;
   }
   const p = toDoc(e);
+  if (drag.mode === 'paint') { strokeTo(p, e); return; }
   if (drag.mode === 'pan') { view.ox = drag.ox + e.clientX - drag.sx; view.oy = drag.oy + e.clientY - drag.sy; view.fit = false; layout(); return; }
   if (drag.mode === 'create') {
     const x = Math.min(drag.start[0], p[0]), y = Math.min(drag.start[1], p[1]);
@@ -301,6 +314,8 @@ function onUp(e) {
     if (!r || r.w * view.s < 6) r = null;
     createAt(S.tool, d.start, r);
     setTool('select');
+  } else if (d.mode === 'paint') {
+    change(doc => { const L = doc.layers.find(x => x.id === d.id); if (L) commitMask(L, doc, d.cv); }, { immediate: true });
   } else if (d.mode === 'marquee') { marquee = null; drawOverlay(); }
   else if (d.mode === 'pan') updateCursor();
   else if (d.mode === 'move' && !d.moved) { /* simple clic */ }
@@ -323,7 +338,7 @@ function onWheel(e) {
 
 // ---------------------------------------------------------------- outils & création
 export function setTool(t) { S.tool = t; emit('tool', t); updateCursor(); }
-function updateCursor() { if (stage) stage.style.cursor = spaceDown || S.tool === 'hand' ? (drag?.mode === 'pan' ? 'grabbing' : 'grab') : S.tool === 'select' ? 'default' : 'crosshair'; }
+function updateCursor() { if (stage) stage.style.cursor = paint ? 'none' : spaceDown || S.tool === 'hand' ? (drag?.mode === 'pan' ? 'grabbing' : 'grab') : S.tool === 'select' ? 'default' : 'crosshair'; }
 const u = () => Math.min(S.doc.W, S.doc.H * 0.8) / 1080;
 
 export function addLayer(L, opts = {}) {
@@ -473,3 +488,41 @@ function onKey(e) {
   }
 }
 export { EMBLEM_RATIO };
+
+// ---------------------------------------------------------------- pinceau de masque
+let paint = null; // { id, mode: 'erase' | 'restore', size, hard, flow } tant que le pinceau est actif
+let brushAt = null;
+const tintCv = document.createElement('canvas');
+export const getPaint = () => paint;
+export function startPaint(L) { paint = { id: L.id, mode: 'erase', size: 140, hard: 0.5, flow: 0.8 }; updateCursor(); drawOverlay(); }
+export function stopPaint() { paint = null; brushAt = null; updateCursor(); drawOverlay(); }
+export function setPaintOpt(k, v) { if (paint) { paint[k] = v; drawOverlay(); } }
+export function resetMask(L) { change(d => { const T = d.layers.find(x => x.id === L.id); if (T) clearMask(T, d); }, { immediate: true }); requestRender(); }
+
+function strokeTo(p, e) {
+  const [lx, ly] = toLocal(drag.b, p), r = paint.size / 2, erase = (paint.mode === 'erase') !== !!e.altKey;
+  const last = drag.last || [lx, ly], n = Math.max(1, Math.ceil(Math.hypot(lx - last[0], ly - last[1]) / Math.max(1, r * 0.25)));
+  for (let i = 1; i <= n; i++) stamp(drag.cv, drag.b, last[0] + (lx - last[0]) * i / n, last[1] + (ly - last[1]) * i / n, r, erase, paint.hard, paint.flow * 0.5);
+  drag.last = [lx, ly]; brushAt = p;
+  requestRender(); drawOverlay();
+}
+// Zones masquées en rose sur le calque peint, et cercle du pinceau sous la souris.
+function drawPaintOverlay() {
+  if (!paint) return;
+  const L = layerById(paint.id); if (!L) return;
+  const b = box(L), mk = L.mask && maskCanvas(L, envFactory(false));
+  if (mk) {
+    tintCv.width = mk.width; tintCv.height = mk.height;
+    const tc = tintCv.getContext('2d');
+    tc.globalCompositeOperation = 'source-over'; tc.fillStyle = 'rgba(255,70,120,.45)'; tc.fillRect(0, 0, tintCv.width, tintCv.height);
+    tc.globalCompositeOperation = 'destination-out'; tc.drawImage(mk, 0, 0);
+    const [cx, cy] = toScreen([b.x + b.w / 2, b.y + b.h / 2]);
+    octx.save(); octx.translate(cx, cy); octx.rotate((b.rot || 0) * Math.PI / 180); octx.scale(view.s, view.s);
+    octx.drawImage(tintCv, -b.w / 2, -b.h / 2, b.w, b.h); octx.restore();
+  }
+  if (brushAt) {
+    const [x, y] = toScreen(brushAt), r = paint.size / 2 * view.s;
+    octx.beginPath(); octx.arc(x, y, r, 0, 7); octx.strokeStyle = '#fff'; octx.lineWidth = 1.5; octx.stroke();
+    octx.beginPath(); octx.arc(x, y, Math.max(1, r * paint.hard), 0, 7); octx.setLineDash([3, 3]); octx.strokeStyle = 'rgba(255,255,255,.6)'; octx.lineWidth = 1; octx.stroke(); octx.setLineDash([]);
+  }
+}

@@ -1,7 +1,7 @@
 // État central de l'éditeur : document, sélection, historique, bibliothèque et notifications.
 import { newDocument, applyTemplate, FORMATS, THEMES, TEXT_DEFAULTS, DEFAULT_FONTS } from './engine/render.js';
 import { TEMPLATES } from './engine/templates.js';
-import { setDocFonts, uid } from './engine/scene.js';
+import { setDocFonts, uid, migrateFade } from './engine/scene.js';
 
 export const API = window.studio || null;
 
@@ -44,7 +44,13 @@ export function normalize(d) {
   const base = newDocument(S.kit);
   const doc = { ...base, ...d, T: { ...TEXT_DEFAULTS, ...d.T }, fonts: { ...DEFAULT_FONTS, ...(d.fonts || {}) }, theme: { ...base.theme, ...(d.theme || {}) }, assets: d.assets || {} };
   if (!FORMATS[doc.fmt]) doc.fmt = '4x5';
-  doc.layers = d.layers.map(L => ({ id: L.id || uid(), ...L }));
+  if (!TEMPLATES[doc.tpl]) doc.tpl = 'roster'; // modèle retiré (ex. « Nouveau roster ») : les calques sont gardés
+  doc.layers = d.layers.map(L => migrateFade({ id: L.id || uid(), ...L }));
+  // projets d'avant l'effet « Éclaircie » : on l'ajoute juste avant le bloom pour que les réglages de Finition s'appliquent
+  const bloom = doc.layers.findIndex(L => L.effect === 'bloom');
+  if (bloom >= 0 && !doc.layers.some(L => L.effect === 'lift')) {
+    doc.layers.splice(bloom, 0, { id: uid(), type: 'effect', name: 'Éclaircie', effect: 'lift', color: '$glow', amount: 1, full: true, locked: true, rot: 0, seed: 7, visible: true, fromTpl: true, x: 0, y: 0, w: doc.W, h: doc.H });
+  }
   return doc;
 }
 

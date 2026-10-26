@@ -1,6 +1,7 @@
 // Moteur de rendu par calques : chaque élément de l'affiche est un calque transformable.
 import { rgba, mix, rnd, layer as pool, rrect } from './util.js';
 import { starPath, smear } from './fx.js';
+import { maskCanvas } from './mask.js';
 
 export const BLENDS = [
   ['source-over', 'Normal'], ['multiply', 'Produit'], ['screen', 'Écran'], ['overlay', 'Incrustation'],
@@ -8,6 +9,24 @@ export const BLENDS = [
   ['color-burn', 'Densité couleur +'], ['lighten', 'Éclaircir'], ['darken', 'Obscurcir'], ['difference', 'Différence'],
   ['color', 'Couleur'], ['luminosity', 'Luminosité'], ['hue', 'Teinte'], ['saturation', 'Saturation'],
 ];
+
+// ---------------------------------------------------------------- fondus progressifs
+// Un fondu : angle (0 = vers le haut, 90 = droite, 180 = bas), début/fin sur l'axe du calque (0–1),
+// transparence finale (strength) et courbe (puissance de l'interpolation).
+const FADE_DIR = { top: 0, right: 90, bottom: 180, left: 270 };
+export function fadeList(f) {
+  const out = [];
+  if (f.fade && f.fade.on && f.fade.amount > 0) out.push({ angle: FADE_DIR[f.fade.dir || 'bottom'] ?? 180, start: 1 - Math.min(1, f.fade.amount), end: 1, strength: 1, curve: 1 });
+  for (const g of f.fades || []) if (g && g.on !== false) out.push({ angle: 180, start: 0.7, end: 1, strength: 1, curve: 1, ...g });
+  return out;
+}
+// Ancien format (fx.fade) → liste de fondus modifiables (fx.fades).
+export function migrateFade(L) {
+  const f = L.fx; if (!f || !f.fade) return L;
+  if (f.fade.on && f.fade.amount > 0) f.fades = [...(f.fades || []), fadeList({ fade: f.fade })[0]];
+  delete f.fade;
+  return L;
+}
 
 let UID = 1;
 export const uid = () => 'l' + Date.now().toString(36) + (UID++).toString(36);
@@ -293,7 +312,9 @@ function drawModel(c, L, env, b) {
 function drawEffect(c, L, env, b) {
   const th = env.theme, u = env.u;
   const col = color(L.color, th) || '#ffffff';
-  const amt = (L.amount ?? 0.5) * (L.themed ? (th.light ?? 1) : 1);
+  const fin = env.fin || {};
+  const finK = L.effect === 'vignette' ? fin.vignette : L.effect === 'grain' ? fin.grain : L.effect === 'lift' ? fin.bright : 1;
+  const amt = (L.amount ?? 0.5) * (L.themed ? (th.light ?? 1) : 1) * (finK ?? 1);
   if (amt <= 0) return;
   const R = rnd(L.seed || 7);
   switch (L.effect) {
@@ -445,6 +466,17 @@ function drawEffect(c, L, env, b) {
       c.restore();
       break;
     }
+    case 'lift': {
+      // éclaircie : relève les noirs avec une brume de la couleur de lumière, puis éclaircit l'ensemble
+      const src = c.canvas, W = src.width, H = src.height;
+      const t = pool('lift', W, H), tc = t.getContext('2d');
+      tc.filter = `brightness(${100 + 16 * amt}%)`; tc.drawImage(src, 0, 0); tc.filter = 'none';
+      c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalAlpha = 1; c.drawImage(t, 0, 0);
+      c.globalCompositeOperation = 'screen'; c.globalAlpha = Math.min(1, 0.13 * amt); c.fillStyle = mix(col, '#0a1a50', 0.35); c.fillRect(0, 0, W, H);
+      c.restore();
+      break;
+    }
     case 'grain': {
       c.save(); c.globalAlpha = Math.min(1, amt * 0.35); c.globalCompositeOperation = 'overlay';
       const p = c.createPattern(noise(), 'repeat'); const s = Math.max(0.5, u);
@@ -485,7 +517,7 @@ function noise() {
 // ---------------------------------------------------------------- composition d'un calque
 function needsLayerCanvas(L) {
   const f = L.fx || {};
-  return (f.shadow && f.shadow.on) || (f.glow && f.glow.on) || (f.stroke && f.stroke.on) || (f.fade && f.fade.on && f.fade.amount > 0)
+  return (f.shadow && f.shadow.on) || (f.glow && f.glow.on) || (f.stroke && f.stroke.on) || fadeList(f).length > 0 || !!L.mask
     || (f.smear > 0) || (L.tint && L.tint.on) || (L.blend && L.blend !== 'source-over') || (L.opacity ?? 1) < 1;
 }
 
@@ -525,18 +557,19 @@ export function renderLayer(ctx, L, env) {
     c.clearRect(0, 0, W, H); c.drawImage(t2, 0, 0); c.restore();
   }
   // fondu progressif sur un bord (masque dégradé, dans le repère du calque)
-  if (f.fade && f.fade.on && f.fade.amount > 0) {
-    const a = Math.min(1, f.fade.amount), d = f.fade.dir || 'bottom';
-    let g;
-    if (d === 'bottom') { g = c.createLinearGradient(0, b.y + b.h * (1 - a), 0, b.y + b.h); }
-    else if (d === 'top') { g = c.createLinearGradient(0, b.y + b.h * a, 0, b.y); }
-    else if (d === 'left') { g = c.createLinearGradient(b.x + b.w * a, 0, b.x, 0); }
-    else { g = c.createLinearGradient(b.x + b.w * (1 - a), 0, b.x + b.w, 0); }
-    g.addColorStop(0, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
-    c.globalCompositeOperation = 'destination-in'; c.fillStyle = g;
+  for (const g of fadeList(f)) {
+    const a = g.angle * Math.PI / 180, vx = Math.sin(a), vy = -Math.cos(a);
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, e = Math.abs(vx) * b.w / 2 + Math.abs(vy) * b.h / 2;
+    const s0 = (2 * g.start - 1) * e, s1 = (2 * Math.max(g.end, g.start + 0.002) - 1) * e;
+    const gr = c.createLinearGradient(cx + vx * s0, cy + vy * s0, cx + vx * s1, cy + vy * s1);
+    for (let i = 0; i <= 12; i++) { const t = i / 12; gr.addColorStop(t, `rgba(0,0,0,${1 - g.strength * Math.pow(t, g.curve)})`); }
+    c.globalCompositeOperation = 'destination-in'; c.fillStyle = gr;
     c.fillRect(b.x - b.w, b.y - b.h, b.w * 3, b.h * 3);
     c.globalCompositeOperation = 'source-over';
   }
+  // masque peint au pinceau
+  const mk = L.mask && maskCanvas(L, env);
+  if (mk) { c.globalCompositeOperation = 'destination-in'; c.drawImage(mk, b.x, b.y, b.w, b.h); c.globalCompositeOperation = 'source-over'; }
   c.restore();
   // fondu pixel (traînées verticales)
   if (f.smear > 0) {
@@ -581,7 +614,7 @@ export function renderScene(canvas, doc, env0) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none';
-  const env = { ...env0, W, H, u: Math.min(W, H * 0.8) / 1080, theme: doc.theme, T: doc.T };
+  const env = { ...env0, W, H, u: Math.min(W, H * 0.8) / 1080, theme: doc.theme, T: doc.T, fin: doc.finish };
   for (const L of doc.layers) {
     try { renderLayer(ctx, L, env); } catch (e) { console.error('calque', L.name, e); }
   }

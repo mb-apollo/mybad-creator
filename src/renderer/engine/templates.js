@@ -47,9 +47,10 @@ function frame(ctx, labels = {}) {
 // Finition « photo » : étalonnage, halo des lumières, vignette et grain.
 const finish = ctx => [
   effect({ name: 'Étalonnage', effect: 'grade', color: '$glow', amount: 0.55, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Éclaircie', effect: 'lift', color: '$glow', amount: 1, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
   effect({ name: 'Bloom (halo des lumières)', effect: 'bloom', amount: 0.45, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
-  effect({ name: 'Vignette', effect: 'vignette', color: '#000000', amount: 0.55, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
-  effect({ name: 'Grain', effect: 'grain', amount: 0.22, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Vignette', effect: 'vignette', color: '#000000', amount: 0.4, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Grain', effect: 'grain', amount: 0.45, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
 ];
 // Scène : sol réfléchissant et fumée sur les côtés (derrière les personnages)
 const stage = (ctx, floorY, o = {}) => [
@@ -76,6 +77,21 @@ function emblemAt(cx, cy, h, o = {}) {
   return emblem({ x: cx - w / 2, y: cy - h / 2, w, h, fx: o.glow === false ? undefined : glowFx('$glow', 40, 0.35), ...o });
 }
 
+// Scène 3D commune : positions, sol, caméra et lumière par défaut pour n joueurs.
+export const sceneActors = n => {
+  const mid = (n - 1) / 2, sp = n === 5 ? 0.3 : 0.42;
+  return Array.from({ length: n }, (_, i) => {
+    const d = i - mid;
+    return { model: '@a' + (i + 1), x: d * sp, z: 0.32 - Math.abs(d) * 0.2, rotY: -d * 9, scale: 1 };
+  });
+};
+export const sceneDefaults = n => ({
+  actors: sceneActors(n),
+  floor: { on: true, color: '$bg2', opacity: 0.75, reflect: 0.3, glow: 0.55, shadow: 0.55, rot: 0, tilt: 0, size: 7 },
+  camPitch: 5, zoom3d: 1, target: 0.5, fov: 26, offsetX: 0, frame: 'all',
+  key: { color: '#aebcf0', intensity: 1.0, angle: -28 }, rim: { color: '$glow', intensity: 7, angle: 165 }, fill: { color: '$glow', intensity: 0.7 }, ambient: { color: '$glow', intensity: 0.85 }, envLight: 0.35, exposure: 1.0,
+});
+
 // Réglages 3D par défaut : contre-jour fort, personnages sombres et contrastés (rendu « affiche pro »).
 export const CAR_FRONT = 270; // rotation où la voiture fait face à la caméra
 function agentImage(ctx, field, box, o = {}) {
@@ -86,8 +102,8 @@ function agentImage(ctx, field, box, o = {}) {
     if (fx && fx.smear) { delete fx.smear; delete fx.smearCut; if (!car) fx.fade = { on: true, dir: 'bottom', amount: 0.25 }; }
     if (fx && fx.glow) fx.glow = { ...fx.glow, opacity: Math.min(fx.glow.opacity ?? 0.5, 0.4) };
     const light = car
-      ? { key: { color: '#9fb2ee', intensity: 0.55, angle: -35 }, rim: { color: '$glow', intensity: 6.5, angle: 160 }, fill: { color: '$glow', intensity: 0.35 }, ambient: { color: '$glow', intensity: 0.3 }, envLight: 0.45, exposure: 0.85 }
-      : { key: { color: '#93a6e6', intensity: 0.45, angle: -28 }, rim: { color: '$glow', intensity: 8, angle: 165 }, fill: { color: '$glow', intensity: 0.3 }, ambient: { color: '$glow', intensity: 0.3 }, envLight: 0.15, exposure: 0.8 };
+      ? { key: { color: '#b7c6f5', intensity: 1.0, angle: -35 }, rim: { color: '$glow', intensity: 6.5, angle: 160 }, fill: { color: '$glow', intensity: 0.7 }, ambient: { color: '$glow', intensity: 0.8 }, envLight: 0.6, exposure: 1.0 }
+      : { key: { color: '#aebcf0', intensity: 1.0, angle: -28 }, rim: { color: '$glow', intensity: 7, angle: 165 }, fill: { color: '$glow', intensity: 0.7 }, ambient: { color: '$glow', intensity: 0.85 }, envLight: 0.35, exposure: 1.0 };
     return {
       type: 'model', name: (o.name || 'Render').replace('Render', 'Modèle 3D'), model: '@' + field, ...box, rot: 0,
       rotY: o.rotY ?? (car ? CAR_FRONT + 35 : 8), camPitch: car ? 9 : -3, zoom3d: 1, target: car ? 0.5 : 0.52, fov: car ? 30 : 26, anim: 0, animTime: 0,
@@ -118,6 +134,8 @@ function playerPills(ctx, y, o = {}) {
 function playerRow(ctx, base0, o = {}) {
   let base = base0;
   const { W, H, u } = ctx, n = ctx.nPlayers;
+  // Valorant en 3D : un seul calque « Scène 3D » (sol, ombres et reflets communs)
+  if (ctx.use3d && ctx.game !== 'rl') return [{ type: 'model', name: 'Scène 3D', model: '@a1', ...sceneDefaults(n), zoom3d: 1.2, x: 0, y: H * 0.19, w: W, h: base0 - H * 0.19 + H * 0.09, rot: 0 }];
   const big = Math.min(H, W * 1.25) * (o.h || 0.44);
   const spread = (o.spread || 0.168) * (n === 3 ? 1.45 : 1);
   const order = n === 5 ? [0, 4, 1, 3, 2] : [0, 2, 1];
@@ -190,7 +208,6 @@ function resultat(ctx) {
   return [
     ...base(ctx, { glowY: 0.45, glow: 0.5 }),
     effect({ name: 'Barres lumineuses', effect: 'bars', color: '$glow', amount: 0.45, themed: true, seed: win ? 8 : 12, x: 0, y: 0, w: W, h: H * 0.8 }),
-    agentImage(ctx, 'mvpAgent', { x: W * 0.42, y: H * 0.36, w: W * 0.66, h: H * 0.6 }, { name: 'Render MVP', opacity: 0.85, fx: { fade: { on: true, dir: 'bottom', amount: 0.35 }, glow: { on: true, color: '$glow', blur: 30, opacity: 0.4 } } }),
     ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: win ? 'VICTOIRE' : 'RÉSULTAT' }),
     text({ name: 'Compétition', tpl: '{event} — {stage}', upper: true, size: 24 * u, weight: 500, spacing: 0.24, color: '$muted', x: W * 0.08, y: H * 0.115, w: W * 0.84, fontRole: 'body' }),
     ...title2(ctx, W / 2, H * 0.245, { w1: `{resW1${sfx}}`, w2: `{resW2${sfx}}`, plain: `{resPlain${sfx}}`, scale: 0.7 }),
@@ -246,22 +263,6 @@ function annonce(ctx) {
     text({ name: 'Mot d\'annonce', variant: 'plain', tpl: '{anW1}', upper: true, italic: true, weight: 300, fontRole: 'italic', font: 'Montserrat', align: 'left', size: 96 * u, x: W * 0.1 + 80 * u, y: H * 0.695, w: W * 0.75 }),
     scriptT({ name: 'Mot manuscrit', variant: 'script', tpl: '{anW1}', align: 'left', x: W * 0.09, y: H * 0.645, w: W * 0.82, size: 170 * u, fx: glowFx('$white', 18, 0.45) }),
     text({ name: 'Noms', tpl: '{anNames}', upper: true, align: 'left', size: 92 * u, weight: 700, x: W * 0.1, y: H * 0.8, w: W * 0.8, fx: glowFx('$glow', 24, 0.6) }),
-    ...finish(ctx),
-  ];
-}
-
-function nouveau(ctx) {
-  const { W, H, u } = ctx;
-  const echo = (i) => text({ name: `Écho ${i}`, tpl: '{nrL1}', upper: true, font: 'Anton', fontRole: 'impact', weight: 400, size: 200 * u, style: 'outline', strokeColor: '$text', strokeWidth: 1.3, opacity: 0.12 + 0.12 * (4 - i), x: W * 0.08, y: H * 0.23 - i * 160 * u, w: W * 0.84 });
-  return [
-    ...base(ctx, { glowY: 0.35, glow: 0.65 }),
-    ...[4, 3, 2, 1].map(echo),
-    text({ name: 'Titre ligne 1', tpl: '{nrL1}', upper: true, font: 'Anton', fontRole: 'impact', weight: 400, size: 200 * u, color: '$accent', x: W * 0.08, y: H * 0.23, w: W * 0.84, fx: glowFx('$accent', 30, 0.45) }),
-    text({ name: 'Titre ligne 2', tpl: '{nrL2}', upper: true, font: 'Anton', fontRole: 'impact', weight: 400, size: 200 * u, color: '$accent', x: W * 0.08, y: H * 0.23 + 170 * u, w: W * 0.84, fx: glowFx('$accent', 30, 0.45) }),
-    ...playerRow(ctx, H * 0.88, { h: 0.4 }),
-    shape({ name: 'Sol', shape: 'rect', x: 0, y: H * 0.8, w: W, h: H * 0.2, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
-    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bc: false }),
-    text({ name: 'Joueurs', tpl: Array.from({ length: ctx.nPlayers }, (_, i) => `{p${i + 1}}`).join('   ✦   '), upper: true, size: 24 * u, weight: 600, spacing: 0.08, x: W * 0.08, y: H * 0.905, w: W * 0.84, fontRole: 'body' }),
     ...finish(ctx),
   ];
 }
@@ -381,13 +382,15 @@ function live(ctx) {
   ];
 }
 
+// Base d'un modèle personnalisé vierge : fond, halo, étoiles et finition « photo ».
+export const blankLayers = ctx => [...base(ctx, { glowY: 0.3 }), ...finish(ctx)];
+
 export const TEMPLATES = {
   matchday: { name: 'Matchday', desc: 'Annonce de match', build: matchday, fields: ['mdTitle', 'event', 'stage', 'org', 'adv', 'date', 'hour', 'live', 'players', 'coach'] },
   roster: { name: 'Roster', desc: 'Annonce du line-up', build: roster, fields: ['rosTitle', 'org', 'event', 'stage', 'players'] },
-  resultat: { name: 'Résultat', desc: 'Victoire ou défaite', build: resultat, fields: ['resMode', 'resTitle', 's1', 's2', 'event', 'stage', 'bo', 'org', 'adv', 'mvp', 'mvpAgent', 'mvpStat'] },
+  resultat: { name: 'Résultat', desc: 'Victoire ou défaite', build: resultat, fields: ['resMode', 'resTitle', 's1', 's2', 'event', 'stage', 'bo', 'org', 'adv', 'mvp', 'mvpStat'] },
   gameday: { name: 'Game Day', desc: 'Render plein cadre', build: gameday, fields: ['gdTitle', 'featAgent', 'gdSide', 'org', 'adv', 'event', 'date', 'hour'] },
   annonce: { name: 'Bienvenue / Merci', desc: 'Arrivée ou départ', build: annonce, fields: ['anTitle', 'anNames', 'anAgent1', 'anAgent2', 'anSide', 'org', 'event'] },
-  nouveau: { name: 'Nouveau roster', desc: 'Titre en écho', build: nouveau, fields: ['nrL1', 'nrL2', 'players', 'event'] },
   tournoi: { name: 'Tournoi', desc: 'Événement et cashprize', build: tournoi, fields: ['tTitle', 'tGame', 'tDay', 'tMonth', 'tYear', 'tHour', 'tInfo1', 'tInfo2', 'tPrize', 'tPrizeLbl', 'tAgent', 'org'] },
   planning: { name: 'Planning', desc: 'Programme de la semaine', build: planning, fields: ['plTitle', 'plWeek', 'planning', 'org'] },
   recrutement: { name: 'Recrutement', desc: 'Annonce LFP / staff', build: recrutement, fields: ['recTitle', 'recSub', 'rec1', 'rec2', 'rec3', 'rec4', 'recCta', 'recNote', 'org'] },

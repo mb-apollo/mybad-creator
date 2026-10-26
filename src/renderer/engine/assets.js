@@ -45,6 +45,7 @@ export function makeEnv(doc, library, opts = {}) {
     exporting: !!opts.exporting,
     extraItems: opts.extraItems || [],
     model3d: opts.model3d || null,
+    url: asset => assetUrl(doc, asset, library),
     image: asset => {
       if (opts.override && opts.override[asset]) return opts.override[asset];
       return loadImage(assetUrl(doc, asset, library));

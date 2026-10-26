@@ -29,7 +29,8 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
 - `src/renderer/pose3d.js` : poses par membre (bras/jambes/buste/tête, flexion des doigts, cinématique inverse), poses prédéfinies,
   nettoyage des poids de peau et garde-fou anti-triangles étirés (`recordRestShape` / `cullStretched`). Les noms d'os acceptent
   le suffixe numérique des exports Sketchfab (`L_Shoulder_021`).
-- `src/renderer/weapons.js` : armes tenues en main (bibliothèque `g:weapons:<clé>`, liste dans `games.js`), main gauche par IK.
+- `src/renderer/weapons.js` : armes tenues en main (liste dans `games.js`), main gauche par IK. Les 5 armes sont livrées dans
+  `src/renderer/assets/games/weapons/*.glb` (WebP 1024 px) ; une arme importée dans la bibliothèque (`g:weapons:<clé>`) les remplace.
 - `src/renderer/custom.js` : modèles d'affiches personnalisés (localStorage, clés `custom:<id>` ajoutées à `TEMPLATES`).
 - `src/renderer/engine/mask.js` : masques au pinceau (PNG dans `doc.assets`, clé `mask-<id calque>`).
 - Calque 3D « scène » : un calque `model` avec `actors[]` (plusieurs personnages, sol, ombres, reflets) rendu par `renderStage`.

@@ -1,9 +1,2 @@
-- Poses : réglage fin des bras, jambes, buste, tête et doigts, poses prédéfinies, et poses personnalisées nommées à réutiliser sur n'importe quel agent
-- Bouger les membres directement sur le personnage : mains et pieds (le bras ou la jambe suit), coudes, genoux, tête et buste
-- Armes 3D tenues en main (Vandal, Phantom, Classic, Ghost, Sheriff) avec pose adaptée, importées depuis Bibliothèque › Armes 3D
-- Positions de base des personnages plus naturelles, sans bras qui traversent le corps
-- Nombre de lignes réglable (+ / −) pour le planning, le recrutement, la carte joueur, le tournoi et le roster, avec remise en page automatique
-- Halo autour des personnages désactivé par défaut
-- L'affiche Matchday est retirée
-- Panneau d'outils extensible avec les noms, repliable, et nouveaux outils : pipette, repères, règles, pinceau de masque, scène 3D, recadrage d'image
-- Correction : les personnages ne se déforment plus (pointes, lames) quand on bouge les bras ; compatibilité avec le nouveau Jett
+- Les armes (Vandal, Phantom, Classic, Ghost, Sheriff) sont intégrées au logiciel : plus besoin de les importer
+- Correction : l'arme restait invisible avec certains modèles de personnages (ex. le nouveau Jett)

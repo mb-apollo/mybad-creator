@@ -28,7 +28,10 @@ export function placeWeapon(inst, def, w) {
   const rig = inst.root.userData.rig, side = def.hand === 'L' ? 'L' : 'R';
   const hand = rig?.['hand' + side], F = rig?.handFrame?.[side], mid = rig?.finger?.[side]?.Middle?.[0];
   if (!hand || !F) return false;
-  const upm = (1 / inst.baseScale) / METERS_TALL, k = upm * (def.scale || 1);
+  // les os n'ont pas toujours la même unité que le modèle (exports Sketchfab) : on corrige par l'échelle de la main
+  hand.updateWorldMatrix(true, false);
+  const hs = new THREE.Vector3().setFromMatrixScale(hand.matrixWorld).x / (inst.pivot.scale.x || 1);
+  const upm = (1 / inst.baseScale) / METERS_TALL / hs, k = upm * (def.scale || 1);
   const X = F.d.clone().negate(), Y = F.a.clone().addScaledVector(F.d, -F.a.dot(F.d)).normalize();
   const q = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, new THREE.Vector3().crossVectors(X, Y)));
   q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler((def.rx || 0) * RAD, (def.ry || 0) * RAD, (def.rz || 0) * RAD, 'YXZ')));

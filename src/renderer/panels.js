@@ -311,9 +311,9 @@ function bind(box, targets) {
     if (path === 'gameItem') { change(() => targets.forEach(L => { const [, g] = L.asset.split(':'); L.asset = `g:${g}:${value}`; }), { immediate: true }); return; }
     if (path === 'font') { change(() => targets.forEach(L => { if (value) { L.font = value; L.fontOverride = true; } else { L.fontOverride = false; } }), { immediate: true }); return; }
     if (path === 'fx.glow.strength') value = value ? 2 : 1;
-    if (/(^|\.)weapon\.key$/.test(path)) { change(() => targets.forEach(L => setPath(L, path, value || null)), { immediate: true }); if (value) actions.onPropAction?.('weaponAuto', targets[0], { dataset: { prefix: path.replace(/\.key$/, '') } }); renderProps(); return; }
+    if (/(^|\.)weapon\.key$/.test(path)) { change(() => targets.forEach(L => { actions.materialize?.(L, path); setPath(L, path, value || null); }), { immediate: true }); if (value) actions.onPropAction?.('weaponAuto', targets[0], { dataset: { prefix: path.replace(/\.key$/, '') } }); renderProps(); return; }
     if (path === 'starColor' && (value === 'none' || !value)) value = 'gradient';
-    change(() => targets.forEach(L => setPath(L, path, value)), { immediate: !live, noProps: live });
+    change(() => targets.forEach(L => { actions.materialize?.(L, path); setPath(L, path, value); }), { immediate: !live, noProps: live });
   };
   box.oninput = e => {
     const el = e.target;

@@ -17,6 +17,16 @@ const PALM_GAP = 0.027;
 const PALM_FWD = 0.02;
 // Poignée = cylindre incliné vers l'arrière (axe vers le bas), rayon en unités du modèle d'arme.
 export const HANDLE = { dir: new THREE.Vector3(0.3, -1, 0).normalize(), r: 0.028 };
+// Mains de l'arme : 'R' droite seule, 'L' gauche seule, 'RL' deux mains (droite principale), 'LR' deux mains (gauche principale).
+// Sans réglage : fusil à deux mains, pistolet à une main (ancien réglage `both`).
+export function handsOf(def, kind) {
+  const h = def?.hand;
+  if (h === 'L') return { primary: 'L', both: false };
+  if (h === 'LR') return { primary: 'L', both: true };
+  if (h === 'RL') return { primary: 'R', both: true };
+  if (h === 'R') return { primary: 'R', both: false };
+  return { primary: 'R', both: def?.both ?? kind === 'rifle' };
+}
 export const weaponKind = key => WEAPONS.find(w => w.key === key)?.kind || 'rifle';
 
 export function weaponInstance(cacheKey, gltf) {
@@ -45,24 +55,25 @@ export function weaponInstance(cacheKey, gltf) {
 
 // Fusil placé par rapport au corps : la main droite rejoint le point voulu et prend la direction de l'arme.
 // aim : x avant, y haut (depuis l'épaule droite), z vers la droite, en hauteurs de personnage ; pitch (canon vers le bas) et yaw (vers la gauche), en degrés.
-export function aimHand(inst, a, wrist = {}) {
-  const rig = inst.root.userData.rig, f = facingOf(inst.root);
-  if (!rig?.upperR || !rig.upperL || !rig.handR || !f) return;
+export function aimHand(inst, a, wrist = {}, side = 'R') {
+  const rig = inst.root.userData.rig, f = facingOf(inst.root), hand = rig?.['hand' + side], upper = rig?.['upper' + side];
+  if (!rig?.upperR || !rig.upperL || !hand || !upper || !f) return;
   inst.root.updateMatrixWorld(true);
+  const m = side === 'R' ? 1 : -1;                                   // la main gauche tient l'arme en miroir
   const lat = lateral(rig.upperL, rig.upperR), UPV = new THREE.Vector3(0, 1, 0), H = inst.pivot.scale.x / inst.baseScale;
-  const target = worldPos(rig.upperR).addScaledVector(f, (a.x || 0) * H).addScaledVector(UPV, (a.y || 0) * H).addScaledVector(lat, -(a.z || 0) * H);
-  const yaw = (a.yaw || 0) * RAD, pitch = (a.pitch || 0) * RAD;
+  const target = worldPos(upper).addScaledVector(f, (a.x || 0) * H).addScaledVector(UPV, (a.y || 0) * H).addScaledVector(lat, -(a.z || 0) * m * H);
+  const yaw = (a.yaw || 0) * m * RAD, pitch = (a.pitch || 0) * RAD;
   const dir = f.clone().multiplyScalar(Math.cos(yaw)).addScaledVector(lat, Math.sin(yaw)).multiplyScalar(Math.cos(pitch)).addScaledVector(UPV, -Math.sin(pitch));
-  reachArm(rig, 'R', target, new THREE.Vector3(0, -1, 0).addScaledVector(lat, 0.5));
-  orientHand(rig, 'R', dir, lat);
-  applyWrist(rig, 'R', wrist);
-  rig.handR.updateWorldMatrix(true, true);
+  reachArm(rig, side, target, new THREE.Vector3(0, -1, 0).addScaledVector(lat, 0.5 * m));
+  orientHand(rig, side, dir, lat.clone().multiplyScalar(m));
+  applyWrist(rig, side, wrist);
+  hand.updateWorldMatrix(true, true);
 }
 
 // Place l'arme dans la main : son avant (−X) suit les doigts, son haut (+Y) le côté de l'index.
 // def : { key, scale, x, y, z (décalage en mètres), rx, ry, rz (degrés) }. Renvoie l'échelle utile pour les doigts.
-export function placeWeapon(inst, def, w) {
-  const rig = inst.root.userData.rig, side = def.hand === 'L' ? 'L' : 'R';
+export function placeWeapon(inst, def, w, side = 'R') {
+  const rig = inst.root.userData.rig;
   const hand = rig?.['hand' + side], F = rig?.handFrame?.[side], mid = rig?.finger?.[side]?.Middle?.[0];
   if (!hand || !F) return null;
   // les os n'ont pas toujours la même unité que le modèle (exports Sketchfab) : on corrige par l'échelle de la main
@@ -77,7 +88,7 @@ export function placeWeapon(inst, def, w) {
   q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler((def.rx || 0) * RAD, (def.ry || 0) * RAD, (def.rz || 0) * RAD, 'YXZ')));
   const palm = mid ? mid.position.clone().multiplyScalar(0.55) : new THREE.Vector3();
   const anchor = w.grip.clone().add(new THREE.Vector3(HOLD.x, HOLD.y, 0));
-  const off = new THREE.Vector3((def.x || 0) - PALM_FWD, def.y || 0, (def.z || 0) + PALM_GAP).multiplyScalar(upm);
+  const off = new THREE.Vector3((def.x || 0) - PALM_FWD, def.y || 0, ((def.z || 0) + PALM_GAP) * (side === 'L' ? -1 : 1)).multiplyScalar(upm);
   w.holder.quaternion.copy(q);
   w.holder.scale.setScalar(k);
   w.holder.position.copy(palm).sub(anchor.multiplyScalar(k).applyQuaternion(q)).add(off.applyQuaternion(q));
@@ -86,29 +97,31 @@ export function placeWeapon(inst, def, w) {
   return { k, upm, kind };
 }
 
-// Main gauche sur la prise de l'arme : fusil = paume sous le garde-main, doigts qui l'enveloppent par le côté ; pistolet = paume contre le côté de la crosse.
-// La cible est le point d'appui de la PAUME : le poignet se place en retrait de la longueur de la paume.
-// def : lx/ly/lz (m, avant / haut / gauche) déplacent la main, lroll (°) la fait tourner autour de ses doigts ; wrist : poignet de la pose.
-export function gripWithLeftHand(inst, w, kind, def = {}, wrist = {}) {
-  const rig = inst.root.userData.rig;
-  const mid = rig?.finger?.L?.Middle?.[0];
-  if (!rig || !w.leftBone || !rig.upperL || !rig.handL || !mid) return;
+// Main secondaire sur la prise de l'arme : fusil = paume sous le garde-main, doigts qui l'enveloppent par le côté ; pistolet = paume contre le côté de la crosse.
+// La cible est le centre de la PAUME : le poignet se place en retrait de la longueur de la paume.
+// def : lx/ly/lz (m, avant / haut / côté) déplacent la main, lroll (°) la fait tourner autour de ses doigts ; wrist : poignet de la pose.
+export function gripSecondary(inst, w, kind, def = {}, wrist = {}, side = 'L') {
+  const rig = inst.root.userData.rig, hand = rig?.['hand' + side], upper = rig?.['upper' + side];
+  const mid = rig?.finger?.[side]?.Middle?.[0];
+  if (!rig || !w.leftBone || !upper || !hand || !mid) return;
+  const m = side === 'L' ? 1 : -1;                                   // la main droite est le miroir de la gauche
   const qw = worldQuat(w.holder);
   const fwd = new THREE.Vector3(-1, 0, 0).applyQuaternion(qw), up = new THREE.Vector3(0, 1, 0).applyQuaternion(qw);
   const right = new THREE.Vector3().crossVectors(fwd, up);
   const mW = (inst.pivot.scale.x / (inst.baseScale || 1)) / METERS_TALL;      // mètres → unités du monde
-  const target = worldPos(w.leftBone).add(new THREE.Vector3(-(def.lx || 0), def.ly || 0, def.lz || 0).multiplyScalar(mW).applyQuaternion(qw));
-  const dWant = kind === 'rifle' ? right.clone().addScaledVector(fwd, 0.25) : fwd.clone().addScaledVector(up, -0.35);
-  let nWant = kind === 'rifle' ? up : right;
-  if (def.lroll) nWant = nWant.clone().applyAxisAngle(dWant.clone().normalize(), def.lroll * RAD);
-  const pole = new THREE.Vector3(0, -0.8, 0).addScaledVector(right, -0.6).addScaledVector(fwd, -0.15); // coude vers le bas et l'extérieur
-  orientHand(rig, 'L', dWant, nWant);
-  const palm = worldPos(mid).sub(worldPos(rig.handL)).multiplyScalar(0.55);   // du poignet au centre de la paume
-  reachArm(rig, 'L', target.clone().sub(palm), pole);
-  orientHand(rig, 'L', dWant, nWant);
-  applyWrist(rig, 'L', wrist);
-  rig.handL.updateWorldMatrix(true, true);
+  const target = worldPos(w.leftBone).add(new THREE.Vector3(-(def.lx || 0), def.ly || 0, (def.lz || 0) * m).multiplyScalar(mW).applyQuaternion(qw));
+  const dWant = kind === 'rifle' ? right.clone().multiplyScalar(m).addScaledVector(fwd, 0.25) : fwd.clone().addScaledVector(up, -0.35);
+  let nWant = kind === 'rifle' ? up : right.clone().multiplyScalar(m);
+  if (def.lroll) nWant = nWant.clone().applyAxisAngle(dWant.clone().normalize(), def.lroll * m * RAD);
+  const pole = new THREE.Vector3(0, -0.8, 0).addScaledVector(right, -0.6 * m).addScaledVector(fwd, -0.15); // coude vers le bas et l'extérieur
+  orientHand(rig, side, dWant, nWant);
+  const palm = worldPos(mid).sub(worldPos(hand)).multiplyScalar(0.55);   // du poignet au centre de la paume
+  reachArm(rig, side, target.clone().sub(palm), pole);
+  orientHand(rig, side, dWant, nWant);
+  applyWrist(rig, side, wrist);
+  hand.updateWorldMatrix(true, true);
 }
+export const gripWithLeftHand = (inst, w, kind, def, wrist) => gripSecondary(inst, w, kind, def, wrist, 'L');
 
 // Chaque doigt se plie jusqu'à toucher la surface de l'arme (sans la traverser) ; sinon il garde sa flexion de départ.
 export function wrapFingers(inst, w, side, geo, fallback, minCurl = 0, center = null, radius = 0.12, handle = null) {

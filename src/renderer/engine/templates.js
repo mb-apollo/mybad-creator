@@ -18,10 +18,10 @@ function base(ctx, o = {}) {
   const { W, H, u } = ctx;
   const L = [
     { type: 'bg', name: 'Fond', locked: true, mode: 'linear', c1: '$bg2', c2: '$bg', x: 0, y: 0, w: W, h: H },
-    effect({ name: 'Halo', effect: 'glow', color: '$glow', amount: o.glow ?? 0.55, themed: true, x: W * 0.5 - W * 0.55, y: H * (o.glowY ?? 0.3) - W * 0.45, w: W * 1.1, h: W * 0.9 }),
-    effect({ name: 'Poussière d\'étoiles', effect: 'stars', color: '$white', amount: o.stars ?? 0.4, seed: 21, full: true, x: 0, y: 0, w: W, h: H }),
+    effect({ name: 'Halo', effect: 'glow', color: '$glow', amount: (o.glow ?? 0.55) * 0.55, themed: true, x: W * 0.5 - W * 0.55, y: H * (o.glowY ?? 0.3) - W * 0.45, w: W * 1.1, h: W * 0.9 }),
+    effect({ name: 'Poussière d\'étoiles', effect: 'stars', color: '$white', amount: o.stars ?? 0.1, seed: 21, full: true, x: 0, y: 0, w: W, h: H }),
   ];
-  if (o.bottomGlow !== false) L.push(effect({ name: 'Halo bas', effect: 'glow', color: '$glow', amount: 0.22, themed: true, x: -W * 0.2, y: H * 0.78, w: W * 1.4, h: H * 0.4 }));
+  if (o.bottomGlow !== false) L.push(effect({ name: 'Halo bas', effect: 'glow', color: '$glow', amount: 0.12, themed: true, x: -W * 0.2, y: H * 0.78, w: W * 1.4, h: H * 0.4 }));
   return L;
 }
 function frame(ctx, labels = {}) {
@@ -46,18 +46,18 @@ function frame(ctx, labels = {}) {
 }
 // Finition « photo » : étalonnage, halo des lumières, vignette et grain.
 const finish = ctx => [
-  effect({ name: 'Étalonnage', effect: 'grade', color: '$glow', amount: 0.55, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
-  effect({ name: 'Éclaircie', effect: 'lift', color: '$glow', amount: 1, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
-  effect({ name: 'Bloom (halo des lumières)', effect: 'bloom', amount: 0.45, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
-  effect({ name: 'Vignette', effect: 'vignette', color: '#000000', amount: 0.4, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
-  effect({ name: 'Grain', effect: 'grain', amount: 0.45, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Étalonnage', effect: 'grade', color: '$glow', amount: 0.4, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Éclaircie', effect: 'lift', color: '$glow', amount: 0, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Bloom (halo des lumières)', effect: 'bloom', amount: 0.3, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Vignette', effect: 'vignette', color: '#000000', amount: 0.6, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
+  effect({ name: 'Grain', effect: 'grain', amount: 0.22, full: true, x: 0, y: 0, w: ctx.W, h: ctx.H }),
 ];
 // Scène : sol réfléchissant et fumée sur les côtés (derrière les personnages)
 const stage = (ctx, floorY, o = {}) => [
   effect({ name: 'Sol', effect: 'floor', color: '$glow', amount: o.floor ?? 0.8, themed: true, x: 0, y: floorY, w: ctx.W, h: ctx.H - floorY }),
-  effect({ name: 'Fumée', effect: 'smoke', color: '$glow', amount: o.smoke ?? 0.55, themed: true, sides: 0.75, seed: 5, x: -ctx.W * 0.05, y: floorY - ctx.H * 0.32, w: ctx.W * 1.1, h: ctx.H * 0.42 }),
+  effect({ name: 'Fumée', effect: 'smoke', color: '$glow', amount: o.smoke ?? 0.4, themed: true, sides: 0.75, seed: 5, x: -ctx.W * 0.05, y: floorY - ctx.H * 0.32, w: ctx.W * 1.1, h: ctx.H * 0.42 }),
 ];
-const frontSmoke = (ctx, y, a = 0.3) => effect({ name: 'Fumée (premier plan)', effect: 'smoke', color: '$glow', amount: a, themed: true, sides: 0.3, seed: 9, x: -ctx.W * 0.05, y, w: ctx.W * 1.1, h: ctx.H - y });
+const frontSmoke = (ctx, y, a = 0.2) => effect({ name: 'Fumée (premier plan)', effect: 'smoke', color: '$glow', amount: a, themed: true, sides: 0.3, seed: 9, x: -ctx.W * 0.05, y, w: ctx.W * 1.1, h: ctx.H - y });
 const gameName = ctx => (ctx.game === 'rl' ? 'ROCKET LEAGUE' : 'VALORANT');
 
 // Titre à deux mots : variante manuscrite + gras, et variante classique (bascule globale).
@@ -79,10 +79,10 @@ function emblemAt(cx, cy, h, o = {}) {
 
 // Pose de base naturelle : bras légèrement écartés du corps, coudes à peine pliés, mains détendues (rien ne traverse le corps).
 const BASE_POSE = side => ({ on: true, armL: { out: 17, fwd: 7, elbow: 24, roll: 14 }, armR: { out: 17, fwd: 7, elbow: 24, roll: 14 }, handL: { curl: 22, thumb: 12 }, handR: { curl: 22, thumb: 12 }, torso: { twist: side * 3 }, head: { tilt: side * 1.5 } });
-// Le Studio de poses (posereg.js) peut remplacer cette pose : POSE_HOOK.fn(côté, pose d'origine).
-export const POSE_HOOK = { fn: null };
 export const baseDefaultPose = BASE_POSE;
-export const DEFAULT_POSE = side => (POSE_HOOK.fn ? POSE_HOOK.fn(side, BASE_POSE(side)) : BASE_POSE(side));
+// Pose « automatique » : au rendu, c'est la pose de l'agent (ou la pose par défaut) réglée dans le Studio de poses (posereg.js › resolvePose).
+// Dès que l'utilisateur règle la pose à la main, elle est figée (auto disparaît).
+export const DEFAULT_POSE = side => ({ on: true, auto: true, side });
 
 // Scène 3D commune : positions, sol, caméra et lumière par défaut pour n joueurs.
 export const sceneActors = n => {
@@ -94,11 +94,13 @@ export const sceneActors = n => {
 };
 // Demi-largeur occupée par n personnages : sert à garder la même taille de personnages quel que soit leur nombre.
 export const sceneHalfWidth = n => ((n - 1) / 2) * (0.3 + (5 - Math.min(5, n)) * 0.06) + 0.32;
+// Éclairage « nuit noire » : lumière principale blanche et dure venant de côté, contre-jour bleu intense, très peu d'ambiance.
+const NIGHT_LIGHT = { key: { color: '#eef2ff', intensity: 1.9, angle: -55 }, rim: { color: '$glow', intensity: 7, angle: 165 }, fill: { color: '#c9d4ff', intensity: 0.15 }, ambient: { color: '#8ea3e8', intensity: 0.28 }, envLight: 0.25, exposure: 1.05 };
 export const sceneDefaults = n => ({
   actors: sceneActors(n),
-  floor: { on: true, color: '$bg2', opacity: 0.75, reflect: 0.3, glow: 0.55, shadow: 0.55, rot: 0, tilt: 0, size: 7 },
+  floor: { on: true, color: '$bg2', opacity: 0.75, reflect: 0.3, glow: 0.35, shadow: 0.55, rot: 0, tilt: 0, size: 7 },
   camPitch: 5, zoom3d: 1, target: 0.5, fov: 26, offsetX: 0, frame: 'all',
-  key: { color: '#aebcf0', intensity: 1.0, angle: -28 }, rim: { color: '$glow', intensity: 7, angle: 165 }, fill: { color: '$glow', intensity: 0.7 }, ambient: { color: '$glow', intensity: 0.85 }, envLight: 0.35, exposure: 1.0,
+  ...NIGHT_LIGHT,
 });
 
 // Réglages 3D par défaut : contre-jour fort, personnages sombres et contrastés (rendu « affiche pro »).
@@ -112,8 +114,8 @@ function agentImage(ctx, field, box, o = {}) {
     if (fx && fx.smear) { delete fx.smear; delete fx.smearCut; if (!car) fx.fade = { on: true, dir: 'bottom', amount: 0.25 }; }
     if (fx && fx.glow) fx.glow = { ...fx.glow, opacity: Math.min(fx.glow.opacity ?? 0.5, 0.4) };
     const light = car
-      ? { key: { color: '#b7c6f5', intensity: 1.0, angle: -35 }, rim: { color: '$glow', intensity: 6.5, angle: 160 }, fill: { color: '$glow', intensity: 0.7 }, ambient: { color: '$glow', intensity: 0.8 }, envLight: 0.6, exposure: 1.0 }
-      : { key: { color: '#aebcf0', intensity: 1.0, angle: -28 }, rim: { color: '$glow', intensity: 7, angle: 165 }, fill: { color: '$glow', intensity: 0.7 }, ambient: { color: '$glow', intensity: 0.85 }, envLight: 0.35, exposure: 1.0 };
+      ? { key: { color: '#eef2ff', intensity: 1.7, angle: -45 }, rim: { color: '$glow', intensity: 6.5, angle: 160 }, fill: { color: '#c9d4ff', intensity: 0.2 }, ambient: { color: '#8ea3e8', intensity: 0.35 }, envLight: 0.5, exposure: 1.05 }
+      : JSON.parse(JSON.stringify(NIGHT_LIGHT));
     return {
       type: 'model', name: (o.name || 'Render').replace('Render', 'Modèle 3D'), model: '@' + field, ...box, rot: 0,
       rotY: o.rotY ?? (car ? CAR_FRONT + 35 : 8), camPitch: car ? 9 : -3, zoom3d: 1, target: car ? 0.5 : 0.52, fov: car ? 30 : 26, anim: 0, animTime: 0,
@@ -168,8 +170,8 @@ function roster(ctx) {
   return [
     ...base(ctx, { glowY: 0.42, glow: 0.4 }),
     effect({ name: 'Faisceau', effect: 'beam', color: '$glow', amount: 0.7, themed: true, x: W * 0.05, y: 0, w: W * 0.9, h: H * 0.8 }),
-    effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: ctx.use3d ? 0.45 : 0.75, themed: true, x: W * 0.2, y: H * 0.17, w: W * 0.6, h: H * 0.52 }),
-    effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.3, themed: true, seed: 11, x: 0, y: H * 0.52, w: W, h: H * 0.32 }),
+    effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: ctx.use3d ? 0.3 : 0.5, themed: true, x: W * 0.2, y: H * 0.17, w: W * 0.6, h: H * 0.52 }),
+    effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.2, themed: true, seed: 11, x: 0, y: H * 0.52, w: W, h: H * 0.32 }),
     ...stage(ctx, H * 0.8),
     ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: 'ROSTER' }),
     text({ name: 'Structure', tpl: '{org}', upper: true, align: 'left', size: 40 * u, weight: 700, spacing: 0.04, x: W * 0.12, y: H * 0.105, w: W * 0.6 }),
@@ -200,7 +202,7 @@ function resultat(ctx) {
   const sfx = win ? 'W' : 'L';
   return [
     ...base(ctx, { glowY: 0.45, glow: 0.5 }),
-    effect({ name: 'Barres lumineuses', effect: 'bars', color: '$glow', amount: 0.45, themed: true, seed: win ? 8 : 12, x: 0, y: 0, w: W, h: H * 0.8 }),
+    effect({ name: 'Barres lumineuses', effect: 'bars', color: '$glow', amount: 0.35, themed: true, seed: win ? 8 : 12, x: 0, y: 0, w: W, h: H * 0.8 }),
     ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: win ? 'VICTOIRE' : 'RÉSULTAT' }),
     text({ name: 'Compétition', tpl: '{event} — {stage}', upper: true, size: 24 * u, weight: 500, spacing: 0.24, color: '$muted', x: W * 0.08, y: H * 0.115, w: W * 0.84, fontRole: 'body' }),
     ...title2(ctx, W / 2, H * 0.245, { w1: `{resW1${sfx}}`, w2: `{resW2${sfx}}`, plain: `{resPlain${sfx}}`, scale: 0.7 }),
@@ -222,7 +224,7 @@ function gameday(ctx) {
   const { W, H, u } = ctx;
   return [
     ...base(ctx, { glowY: 0.35, glow: 0.7, bottomGlow: false }),
-    effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: 0.6, themed: true, x: W * 0.38, y: H * 0.06, w: W * 0.56, h: H * 0.46 }),
+    effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: 0.4, themed: true, x: W * 0.38, y: H * 0.06, w: W * 0.56, h: H * 0.46 }),
     agentImage(ctx, 'featAgent', { x: -W * 0.05, y: H * 0.04, w: W * 1.0, h: H * 0.8 }, { name: 'Render principal', fx: { smear: 0.55, smearCut: 0.78, glow: { on: true, color: '$glow', blur: 40, opacity: 0.5 } } }),
     shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.48, w: W, h: H * 0.52, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     shape({ name: 'Chevrons', shape: 'chevrons', stroke: '$text', strokeWidth: 2.5, count: 3, x: W * 0.62, y: H * 0.33, w: 170 * u, h: 86 * u, opacity: 0.4 }),
@@ -250,7 +252,7 @@ function annonce(ctx) {
     emblemAt(W / 2, H * 0.08, 46 * u, { glow: false }),
     agentImage(ctx, 'anAgent1', { x: W * 0.06, y: H * 0.12, w: W * 0.5, h: H * 0.6 }, { name: 'Render 1', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
     agentImage(ctx, 'anAgent2', { x: W * 0.44, y: H * 0.12, w: W * 0.5, h: H * 0.6 }, { name: 'Render 2', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
-    effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.3, themed: true, seed: 14, x: 0, y: H * 0.25, w: W, h: H * 0.4 }),
+    effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.2, themed: true, seed: 14, x: 0, y: H * 0.25, w: W, h: H * 0.4 }),
     ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: 'ANNONCE' }),
     shape({ name: 'Flèches', shape: 'arrows', fill: '$accent', count: 3, x: W * 0.1, y: H * 0.728, w: 60 * u, h: 20 * u, variant: 'plain' }),
     text({ name: 'Mot d\'annonce', variant: 'plain', tpl: '{anW1}', upper: true, italic: true, weight: 300, fontRole: 'italic', font: 'Montserrat', align: 'left', size: 96 * u, x: W * 0.1 + 80 * u, y: H * 0.695, w: W * 0.75 }),
@@ -343,7 +345,7 @@ function carte(ctx) {
   const { W, H, u } = ctx;
   return [
     ...base(ctx, { glowY: 0.38, glow: 0.8 }),
-    effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: 0.55, themed: true, x: W * 0.3, y: H * 0.08, w: W * 0.62, h: H * 0.56 }),
+    effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: 0.38, themed: true, x: W * 0.3, y: H * 0.08, w: W * 0.62, h: H * 0.56 }),
     agentImage(ctx, 'cardAgent', { x: W * 0.18, y: H * 0.08, w: W * 0.8, h: H * 0.66 }, { name: 'Render joueur', fx: { glow: { on: true, color: '$glow', blur: 40, opacity: 0.55 }, fade: { on: true, dir: 'bottom', amount: 0.3 } } }),
     ...frame(ctx, { tl: gameName(ctx), tr: '{org}', bc: false }),
     emblemAt(W * 0.135, H * 0.15, 54 * u, { glow: false }),

@@ -41,12 +41,18 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   `WEAPON_POSES[type][position]` (pose3d.js) : prêt, visée, détendu, présentation, bras libres. Les 5 armes sont livrées dans
   `src/renderer/assets/games/weapons/*.glb` (WebP 1024 px) ; une arme importée dans la bibliothèque (`g:weapons:<clé>`) les remplace.
 - `src/renderer/poselab.js` + `posereg.js` : **Studio de poses** (bouton en haut, ou onglet 3D › Pose). `posereg.js` mémorise (localStorage `mbc.poselab`) les
-  réglages de l'utilisateur par élément (`default`, `preset:<clé>`, `stance:<fusil|pistolet>:<position>`, `weapon:<arme>`) et les fournit à `model3d.js` /
-  `templates.js` (`POSE_HOOK`). Export / import JSON (`kind: 'poselab'`). **Pour figer une config exportée comme valeurs par défaut** : `data.default` →
-  `BASE_POSE` (templates.js), `data.presets[k]` → `POSES` (pose3d.js), `data.stances[kind][pos]` → `WEAPON_POSES` (pose3d.js), `data.weapons[arme]` →
-  `WEAPON_DEFAULTS` (posereg.js). Pose étendue : `shL/shR` {up,fwd}, `footL/footR` {pitch,yaw}, `handL/handR` {…, spread, flex, side, twist, index1…pinky3}.
-  Arme : `aim` {x,y,z,pitch,yaw} (corps), `lx/ly/lz/lroll` (main gauche), `x/y/z/rx/ry/rz/scale` (main droite).
+  réglages de l'utilisateur par élément : `default`, `agent:<clé>`, `custom:<id>` (poses génériques créées dans le Studio, boutons du panneau 3D),
+  `preset:<clé>`, `stance:<fusil|pistolet>:<position>`, `weapon:<arme>`. Valeurs d'origine = code + `src/renderer/poses-default.json` (importé par esbuild).
+  **Poses automatiques** : un personnage neuf a `pose: { on, auto: true, side }` ; au rendu `resolvePose(pz, agent)` donne la pose de son agent (sinon la pose par
+  défaut). Dès qu'on la règle à la main (`materialize` dans `panels.js`, poignées), elle est figée. Une pose peut porter `weapon: { key, hand, aim }` ;
+  `weaponOf(owner, pose)` : le réglage du calque (même « aucune ») prime sur celui de la pose. `hand` : `R`, `L`, `RL` (droite principale), `LR` (gauche principale).
+  Export / import JSON (`kind: 'poselab'`) : l'import fusionne ; un fichier `<agent>.json` qui ne contient que `default` devient la pose de cet agent.
+  **Pour figer une configuration exportée pour tout le monde** : copier son contenu (`data`) dans `poses-default.json` (clés `default`, `agents`, `custom`, `presets`,
+  `stances`, `weapons`). Pose étendue : `shL/shR` {up,fwd}, `footL/footR` {pitch,yaw}, `handL/handR` {…, spread, flex, side, twist, index1…pinky3}.
+  Arme : `aim` {x,y,z,pitch,yaw} (corps), `lx/ly/lz/lroll` (main secondaire), `x/y/z/rx/ry/rz/scale` (main principale).
 - `src/renderer/custom.js` : modèles d'affiches personnalisés (localStorage, clés `custom:<id>` ajoutées à `TEMPLATES`).
+- Ambiance « nuit noire » (gabarits) : `finish()` (étalonnage 0,4, pas d'éclaircie, bloom 0,3, vignette 0,6, grain 0,22), `NIGHT_LIGHT` (lumière principale blanche et dure,
+  contre-jour bleu, très peu d'ambiance), halos et étoiles réduits. Mesures de référence : noirs ≈ 1, centre ≈ 50, grain ≈ 0,9 (outil : mesurer sur un canvas).
 - `src/renderer/engine/mask.js` : masques au pinceau (PNG dans `doc.assets`, clé `mask-<id calque>`).
 - Calque 3D « scène » : un calque `model` avec `actors[]` (plusieurs personnages, sol, ombres, reflets) rendu par `renderStage`.
 - Nombre de lignes des listes (planning, recrutement, stats, infos tournoi, joueurs) : `doc.counts`, lu dans `ctx.counts` des gabarits.

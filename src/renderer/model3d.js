@@ -7,10 +7,10 @@ import { S, change } from './state.js';
 import { section, range, toggle, select as sel, seg, colorCtl, pct, deg, icon, esc, getPath, setPath } from './ui.js';
 import { color } from './engine/scene.js';
 import { GAMES, gameItems, WEAPONS } from './engine/games.js';
-import { weaponInstance, placeWeapon, aimHand, gripWithLeftHand, wrapFingers, HOLD } from './weapons.js';
+import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
 import { sceneDefaults } from './engine/templates.js';
 import { addLayer } from './editor.js';
-import { presetsList, stancePose, weaponDefaults } from './posereg.js';
+import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf } from './posereg.js';
 import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, WEAPON_STANCES, FACES, applyFace, applyWrist, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams } from './pose3d.js';
 
 let deps = {};
@@ -48,6 +48,20 @@ export function modelUrl(doc, ref) {
   if (ref.startsWith('g:')) return S.libraryModels.get(ref) || null;
   return null;
 }
+// Clé de l'agent d'une référence de modèle (« @a1 » → agent du joueur 1, « g:valorant:jett » → jett).
+export function agentKeyOf(doc, ref) {
+  if (!ref) return null;
+  if (ref[0] === '@') return doc.T[ref.slice(1)] || null;
+  return ref.startsWith('g:') ? ref.split(':')[2] : null;
+}
+// Fige une pose / une arme « automatique » avant de la modifier (appelé dans change() par le panneau de propriétés).
+export function materialize(L, path) {
+  const m = /^(actors\.(\d+)\.)?(pose|weapon)\./.exec(path); if (!m) return;
+  const owner = m[1] ? L.actors?.[+m[2]] : L; if (!owner) return;
+  const doc = S.doc_override || S.doc, pzr = resolvePose(owner.pose, agentKeyOf(doc, owner.model));
+  if (owner.pose?.auto) { const { auto, side, weapon, ...rest } = JSON.parse(JSON.stringify(pzr)); owner.pose = { ...rest, on: true }; if (owner.weapon === undefined && weapon) owner.weapon = weapon; }
+  if (m[3] === 'weapon' && owner.weapon === undefined && pzr.weapon) owner.weapon = JSON.parse(JSON.stringify(pzr.weapon));
+}
 function load(url) {
   let m = MODELS.get(url);
   if (m) return m;
@@ -83,8 +97,16 @@ export function poseHandles(L) {
   return rec ? rec.list.map(h => { const v = h.world.clone().project(rec.cam); return { key: h.key, actor: h.actor, x: v.x, y: v.y, ref: h }; }) : [];
 }
 const posePrefix = h => (h.actor == null ? 'pose' : `actors.${h.actor}.pose`);
+// Pose réglable d'un calque ou d'un personnage : la pose automatique est remplacée par sa version résolue.
+const editablePose = (L, prefix) => {
+  const P = getPath(L, prefix) || {};
+  if (!P.auto) return P;
+  const owner = prefix === 'pose' ? L : L.actors?.[+prefix.split('.')[1]];
+  const { auto, side, weapon, ...rest } = JSON.parse(JSON.stringify(resolvePose(P, agentKeyOf(S.doc_override || S.doc, owner?.model))));
+  return rest;
+};
 export function startPoseDrag(L, h) {
-  const P = getPath(L, posePrefix(h.ref)) || {};
+  const P = editablePose(L, posePrefix(h.ref));
   return { values: JSON.parse(JSON.stringify(poseValues(P))), x: h.x, y: h.y };
 }
 // Déplace une poignée vers le point d'écran ndc (x, y) : cinématique inverse sur un plan face caméra.
@@ -95,7 +117,7 @@ export function dragPoseHandle(L, h, start, ndc) {
   const root = new THREE.Vector3(ndc.x, ndc.y, 0.5).unproject(cam), camPos = new THREE.Vector3().setFromMatrixPosition(cam.matrixWorld);
   const dir = root.sub(camPos).normalize(), nrm = new THREE.Vector3(0, 0, -1).transformDirection(cam.matrixWorld);
   const T = new THREE.Vector3(); new THREE.Ray(camPos, dir).intersectPlane(new THREE.Plane().setFromNormalAndCoplanarPoint(nrm, ref.world), T);
-  const P = getPath(L, prefix) || {};
+  const P = editablePose(L, prefix);
   const out = { ...JSON.parse(JSON.stringify(P)), on: true }, V = start.values;
   const set = (k, v) => { out[k] = { ...V[k], ...(out[k] || {}), ...v }; };
   const dx = ndc.x - start.x, dy = ndc.y - start.y;
@@ -121,16 +143,15 @@ function holdWeapon(doc, inst, def0, cacheKey, pz) {
   const m = load(url);
   if (m.status !== 'ready') return null;
   const w = weaponInstance(cacheKey + ':' + def.key, m.gltf);
+  const kind = weaponKind(def.key), { primary, both } = handsOf(def, kind), second = primary === 'R' ? 'L' : 'R';
   const V = poseValues(pz || {});
-  if (def.aim) aimHand(inst, def.aim, V.handR);
-  const geo = placeWeapon(inst, def, w);
+  if (def.aim) aimHand(inst, def.aim, V['hand' + primary], primary);
+  const geo = placeWeapon(inst, def, w, primary);
   if (!geo) return null;
-  const both = def.both ?? weaponKind(def.key) === 'rifle';
-  if (both) gripWithLeftHand(inst, w, weaponKind(def.key), def, V.handL);
+  if (both) gripSecondary(inst, w, kind, def, V['hand' + second], second);
   const fb = H => Object.fromEntries(['thumb', 'index', 'middle', 'ring', 'pinky'].map(f => [f.charAt(0).toUpperCase() + f.slice(1), H[f] ?? H.curl ?? 0]));
-  const kind = weaponKind(def.key), minCurl = kind === 'pistol' ? 40 : 25;
-  wrapFingers(inst, w, 'R', geo, fb(V.handR), minCurl, { x: w.grip.x + HOLD.x, y: w.grip.y + HOLD.y, z: 0 }, 0.11, true);
-  if (both) wrapFingers(inst, w, 'L', geo, fb(V.handL), 25, w.left, 0.14);
+  wrapFingers(inst, w, primary, geo, fb(V['hand' + primary]), kind === 'pistol' ? 40 : 25, { x: w.grip.x + HOLD.x, y: w.grip.y + HOLD.y, z: 0 }, 0.11, true);
+  if (both) wrapFingers(inst, w, second, geo, fb(V['hand' + second]), 25, w.left, 0.14);
   return w;
 }
 const dropWeapons = list => list.forEach(w => w && w.holder.parent && w.holder.parent.remove(w.holder));
@@ -180,9 +201,9 @@ function renderModel(L, w, h, theme, exporting) {
   const maxPx = exporting ? 4096 : 1400;
   const k = Math.min(1, maxPx / Math.max(w, h));
   const pw = Math.max(16, Math.round(w * k)), ph = Math.max(16, Math.round(h * k));
-  const wdoc = S.doc_override || S.doc, wurl = weaponUrl(wdoc, L.weapon);
+  const wdoc = S.doc_override || S.doc, pzr = resolvePose(L.pose, agentKeyOf(wdoc, L.model)), wdef = weaponOf(L, pzr), wurl = weaponUrl(wdoc, wdef);
   if (wurl) load(wurl);
-  const params = JSON.stringify([url, pw, ph, L.weapon, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, L.pose, L.face, L.rotY, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, theme.glow, theme.accent, theme.text]);
+  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, theme.glow, theme.accent, theme.text]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
@@ -204,11 +225,11 @@ function renderModel(L, w, h, theme, exporting) {
     const act = inst.mixer.clipAction(clip); act.play();
     inst.mixer.setTime((L.animTime || 0) * clip.duration);
   }
-  const pz = L.pose || {};
+  const pz = pzr;
   if (pz.on) applyPose(inst.root, { ...pz, forward: inst.face || undefined });
   else if (!inst.mixer) applyPose(inst.root, { mode: 'file' });
   applyFace(inst.root, L.face);
-  const held = holdWeapon(wdoc, inst, L.weapon, 'L' + L.id, pz);
+  const held = holdWeapon(wdoc, inst, wdef, 'L' + L.id, pz);
   cullStretched(inst.root);
   inst.pivot.rotation.set(0, -inst.baseYaw + (L.rotY || 0) * Math.PI / 180, 0);
   inst.pivot.updateMatrixWorld(true);
@@ -292,8 +313,8 @@ export function modelProps(L) {
     ${range('target', 'Hauteur visée', L.target ?? 0.5, 0, 1, 0.01, pct)}
     ${range('offsetX', 'Décalage caméra', L.offsetX || 0, -0.6, 0.6, 0.01, v => Math.round(v * 100))}
     ${range('fov', 'Focale (perspective)', L.fov || 28, 10, 70, 1, v => v + '°')}`);
-  const pz = L.pose || {};
-  h += section('Arme', weaponControls('weapon', L.weapon), !!L.weapon?.key);
+  const pz = resolvePose(L.pose, agentKeyOf(doc, L.model)), wsel = weaponOf(L, pz);
+  h += section('Arme', weaponControls('weapon', wsel), !!wsel?.key);
   h += section('Pose', (clips.length ? `${sel('anim', 'Animation', L.anim ?? 0, [[-1, 'Pose du fichier'], ...clips.map((c, i) => [i, c.name || `Animation ${i + 1}`])])}${(L.anim ?? 0) >= 0 ? range('animTime', 'Moment de l\'animation', L.animTime || 0, 0, 1, 0.001, pct) : ''}` : '<p class="hint">Ce modèle n\'a pas d\'animation : il garde la pose de son fichier.</p>')
     + poseControls('pose', pz), clips.length > 0 || !!pz.on);
   h += section('Visage', faceControls('face', L.face), !!(L.face && Object.keys(L.face).length));
@@ -316,8 +337,8 @@ export function modelPropAction(act, L, btn) {
     const prefix = btn.dataset.prefix, def = getPath(L, prefix);
     if (def?.key) {
       const kind = weaponKind(def.key), posePrefix = prefix.replace(/weapon$/, 'pose');
-      const { both, aim, ...pose } = stancePose(kind, btn.dataset.stance || 'pret');
-      change(() => { def.both = both; def.aim = aim || null; setPath(L, posePrefix, { on: true, ...JSON.parse(JSON.stringify(pose)) }); }, { immediate: true });
+      const { both, aim, hand, weapon: _w, ...pose } = stancePose(kind, btn.dataset.stance || 'pret');
+      change(() => { def.hand = hand || (both ? 'RL' : 'R'); def.both = def.hand === 'RL' || def.hand === 'LR'; def.aim = aim || null; setPath(L, posePrefix, { on: true, ...JSON.parse(JSON.stringify(pose)) }); }, { immediate: true });
     }
     deps.actions?.renderProps?.();
   }
@@ -388,15 +409,15 @@ function fadeMaterials(group, k, on) {
 
 function renderStage(L, w, h, theme, exporting) {
   const doc = S.doc_override || S.doc;
-  const list = (L.actors || []).map(a => ({ a, url: modelUrl(doc, a.model) })).filter(x => x.url);
+  const list = (L.actors || []).map(a => { const pr = resolvePose(a.pose, agentKeyOf(doc, a.model)); return { a, pr, wd: weaponOf(a, pr), url: modelUrl(doc, a.model) }; }).filter(x => x.url);
   list.forEach(x => load(x.url));
   const ready = list.filter(x => MODELS.get(x.url)?.status === 'ready');
   if (!ready.length) return null;
   const maxPx = exporting ? 4096 : 1400, k = Math.min(1, maxPx / Math.max(w, h));
   const pw = Math.max(16, Math.round(w * k)), ph = Math.max(16, Math.round(h * k));
   const fl = L.floor || {};
-  ready.forEach(x => { const u = weaponUrl(doc, x.a.weapon); if (u) load(u); });
-  const params = JSON.stringify([pw, ph, ready.map(x => [x.url, x.a, MODELS.get(weaponUrl(doc, x.a.weapon))?.status]), fl, L.exposure, L.envLight, L.camPitch, L.zoom3d, L.target, L.fov, L.offsetX, L.key, L.rim, L.fill, L.ambient, theme.glow, theme.accent, theme.text, theme.bg, theme.bg2]);
+  ready.forEach(x => { const u = weaponUrl(doc, x.wd); if (u) load(u); });
+  const params = JSON.stringify([pw, ph, ready.map(x => [x.url, { ...x.a, pose: x.pr, weapon: x.wd }, MODELS.get(weaponUrl(doc, x.wd))?.status]), fl, L.exposure, L.envLight, L.camPitch, L.zoom3d, L.target, L.fov, L.offsetX, L.key, L.rim, L.fill, L.ambient, theme.glow, theme.accent, theme.text, theme.bg, theme.bg2]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
@@ -410,16 +431,16 @@ function renderStage(L, w, h, theme, exporting) {
 
   let maxX = 0.4, maxH = 1;
   const used = [], heldAll = [], handleEntries = [];
-  ready.forEach(({ a, url }, ai) => {
+  ready.forEach(({ a, url, pr, wd }, ai) => {
     const inst = instance(url, L, MODELS.get(url).gltf);
     if (used.includes(inst)) return; // un même fichier ne peut apparaître qu'une fois dans la scène
     used.push(inst);
-    const pz = a.pose || {};
+    const pz = pr;
     if (inst.mixer && inst.clips.length) { inst.mixer.stopAllAction(); inst.mixer.clipAction(inst.clips[0]).play(); inst.mixer.setTime(0); }
     if (pz.on) applyPose(inst.root, { ...pz, forward: inst.face || undefined });
     else if (!inst.mixer) applyPose(inst.root, { mode: 'file' });
     applyFace(inst.root, a.face);
-    heldAll.push(holdWeapon(doc, inst, a.weapon, 'S' + L.id + ':' + ai, pz));
+    heldAll.push(holdWeapon(doc, inst, wd, 'S' + L.id + ':' + ai, pz));
     handleEntries.push({ inst, actor: (L.actors || []).indexOf(a) });
     cullStretched(inst.root);
     inst.pivot.scale.setScalar(inst.baseScale * (a.scale || 1));
@@ -530,14 +551,15 @@ function poseControls(prefix, P) {
     + `<div class="btnrow"><button class="mini-btn" data-act="poseMirror" data-prefix="${prefix}">Copier gauche → droite</button><button class="mini-btn" data-act="poseReset" data-prefix="${prefix}">Réinitialiser la pose</button></div><p class="hint">Selon le squelette du modèle, certains réglages extrêmes peuvent déformer les mains : Ctrl+Z pour revenir.</p>`;
 }
 
+export const HANDS = [['R', 'Main droite'], ['L', 'Main gauche'], ['RL', 'Deux mains (droite principale)'], ['LR', 'Deux mains (gauche principale)']];
 // Arme tenue : choix, taille, ajustements et pose adaptée.
 function weaponControls(prefix, w) {
   const have = k => S.libraryModels.has('g:weapons:' + k);
   let h = sel(`${prefix}.key`, 'Arme tenue', w?.key || '', [['', 'Aucune arme'], ...WEAPONS.map(x => [x.key, x.name + (have(x.key) ? '' : ' (à importer)')])], { raw: true });
   if (!w?.key) return h + '<p class="hint">Choisis une arme : la pose du personnage s\'adapte automatiquement.</p>';
   if (!have(w.key)) return h + '<p class="hint warn">Importe ce modèle dans Bibliothèque › Armes 3D.</p>';
-  const both = w.both ?? weaponKind(w.key) === 'rifle';
-  return h + toggle(`${prefix}.both`, 'Deux mains (main gauche sur l\'arme)', both)
+  const hand = w.hand || ((w.both ?? weaponKind(w.key) === 'rifle') ? 'RL' : 'R');
+  return h + sel(`${prefix}.hand`, 'Mains', hand, HANDS, { raw: true })
     + range(`${prefix}.scale`, 'Taille de l\'arme', w.scale || 1, 0.5, 1.6, 0.01, pct)
     + range(`${prefix}.x`, 'Décalage avant / arrière', w.x || 0, -0.3, 0.3, 0.005, v => Math.round(v * 100))
     + range(`${prefix}.y`, 'Décalage haut / bas', w.y || 0, -0.3, 0.3, 0.005, v => Math.round(v * 100))
@@ -589,9 +611,10 @@ function sceneProps(L) {
     + `<div class="btnrow"><button class="mini-btn" data-act="actorAdd">${icon('plus')} Ajouter un personnage</button></div>`);
   if (L.actors?.length) {
     const pi = Math.min(Math.max(0, L.poseActor ?? 0), L.actors.length - 1);
-    h += section('Pose des personnages', `${sel('poseActor', 'Personnage à poser', pi, L.actors.map((a, i) => [i, `${i + 1} · ${(opts.find(o => o[0] === a.model) || [])[1] || a.model}`]))}${poseControls(`actors.${pi}.pose`, L.actors[pi].pose)}`, false);
+    const ap = resolvePose(L.actors[pi].pose, agentKeyOf(doc, L.actors[pi].model)), aw = weaponOf(L.actors[pi], ap);
+    h += section('Pose des personnages', `${sel('poseActor', 'Personnage à poser', pi, L.actors.map((a, i) => [i, `${i + 1} · ${(opts.find(o => o[0] === a.model) || [])[1] || a.model}`]))}${poseControls(`actors.${pi}.pose`, ap)}`, false);
     h += section('Visage du personnage', faceControls(`actors.${pi}.face`, L.actors[pi].face), false);
-    h += section('Arme du personnage', weaponControls(`actors.${pi}.weapon`, L.actors[pi].weapon), !!L.actors[pi].weapon?.key);
+    h += section('Arme du personnage', weaponControls(`actors.${pi}.weapon`, aw), !!aw?.key);
   }
   h += section('Sol', `${toggle('floor.on', 'Afficher le sol (ombres et reflets)', fl.on)}${fl.on ? `
     ${colorCtl('floor.color', 'Couleur du sol', fl.color || '$bg2', th)}

@@ -382,3 +382,10 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 #poselab .pl-ctl { overflow-y: auto; border-left: 1px solid var(--line); padding: 10px 12px 30px; }
 #poselab .pl-ctl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; }
 #poselab .pl-ctl-head small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+#poselab .pl-new { display: flex; gap: 6px; padding: 4px 4px 6px; }
+#poselab .pl-new .input { flex: 1; min-width: 0; }
+#poselab .pl-list button small { color: var(--muted); font-size: 10.5px; }
+#poselab .pl-ren { display: flex; gap: 6px; flex: 1; }
+#poselab .pl-ren .input { flex: 1; min-width: 0; }
+#poselab .pl-ctl-head { flex-wrap: wrap; }
+#poselab .pl-ctl-head .btnrow { display: flex; gap: 6px; flex-wrap: wrap; }

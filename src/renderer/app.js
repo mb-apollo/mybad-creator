@@ -9,9 +9,8 @@ import { initEditor, requestRender, fit, zoomTo, getZoom, setTool, addLayer, pas
 import * as P from './panels.js';
 import { initCustom, isCustom, scheduleSave as saveCustomModel } from './custom.js';
 initCustom();
-import { initModels, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels, poseHandles, startPoseDrag, dragPoseHandle } from './model3d.js';
+import { initModels, materialize, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels, poseHandles, startPoseDrag, dragPoseHandle } from './model3d.js';
 import { openPoseLab } from './poselab.js';
-import { installDefaultPose } from './posereg.js';
 
 // ---------------------------------------------------------------- environnement de rendu
 function env(doc = S.doc, exporting = false, thumb = false) {
@@ -460,9 +459,9 @@ P.actions.applyKitPlayers = () => {
   change(d => Object.assign(d.T, r), { immediate: true }); P.renderContent();
 };
 $('#btnKit').onclick = openKit;
-installDefaultPose();
 $('#btnPoseLab').onclick = openPoseLab;
 P.actions.openPoseLab = openPoseLab;
+P.actions.materialize = materialize;
 
 // ---------------------------------------------------------------- modales, toasts
 function openModal(title, body, foot = '', wide = false) {

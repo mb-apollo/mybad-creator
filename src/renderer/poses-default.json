@@ -1,0 +1,84 @@
+{
+  "app": "MyBad Creator",
+  "kind": "poselab",
+  "version": 2,
+  "data": {
+    "agents": {
+      "jett": {
+        "armL": {
+          "out": 11,
+          "fwd": 3,
+          "elbow": 18,
+          "roll": 11
+        },
+        "armR": {
+          "out": 13,
+          "fwd": -19,
+          "elbow": 75,
+          "roll": 12
+        },
+        "handL": {
+          "curl": 15,
+          "thumb": 0,
+          "pinky": 0,
+          "ring": 0,
+          "middle": 0,
+          "index": 11,
+          "spread": -100,
+          "flex": -5,
+          "twist": 2,
+          "thumb1": -16
+        },
+        "handR": {
+          "curl": 22,
+          "thumb": 24,
+          "pinky": 10,
+          "ring": 28,
+          "spread": -73,
+          "middle": 29,
+          "index": 31,
+          "thumb1": -24,
+          "thumb2": -7,
+          "index1": 22,
+          "index2": -59,
+          "index3": 20,
+          "middle1": -13,
+          "middle2": -12,
+          "ring1": -48,
+          "ring2": -32,
+          "pinky1": -65,
+          "pinky2": -12,
+          "pinky3": -42
+        },
+        "torso": {
+          "twist": 0,
+          "bend": -5,
+          "lean": 0
+        },
+        "head": {
+          "tilt": -1,
+          "turn": -46,
+          "nod": 10
+        },
+        "shL": {
+          "up": -12,
+          "fwd": -6
+        },
+        "shR": {
+          "up": 12,
+          "fwd": 7
+        },
+        "legR": {
+          "out": 6,
+          "fwd": 27,
+          "knee": 29
+        },
+        "legL": {
+          "out": 0,
+          "fwd": 0,
+          "knee": 0
+        }
+      }
+    }
+  }
+}

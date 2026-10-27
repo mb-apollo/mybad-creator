@@ -1,13 +1,13 @@
 // Registre des poses par défaut modifiables depuis le Studio de poses.
-// Chaque élément (pose par défaut des affiches, poses prédéfinies, positions d'arme, placement d'une arme) a une valeur d'origine
-// dans le code ; ce que l'utilisateur règle est mémorisé ici (localStorage) et prime. La configuration s'exporte en JSON pour
-// être reprise comme nouvelles valeurs d'origine.
+// Chaque élément (pose par défaut, pose d'un agent, poses prédéfinies, poses génériques, positions d'arme, placement d'une arme) a une
+// valeur d'origine ; ce que l'utilisateur règle est mémorisé ici (localStorage) et prime. Les valeurs d'origine proviennent du code et
+// de poses-default.json (fichier fourni avec le logiciel, issu d'une configuration exportée du Studio).
 import { POSES, WEAPON_POSES } from './pose3d.js';
-import { POSE_HOOK, baseDefaultPose } from './engine/templates.js';
+import { baseDefaultPose } from './engine/templates.js';
+import BUNDLED_FILE from './poses-default.json';
 
 const KEY = 'mbc.poselab';
-// Placement d'origine de chaque arme (x/y/z m, rx/ry/rz °, scale, lx/ly/lz m, lroll °) : à remplir avec une configuration exportée du Studio.
-const WEAPON_DEFAULTS = {};
+const BUNDLED = BUNDLED_FILE?.data || {};
 const clone = o => JSON.parse(JSON.stringify(o));
 let REG = read();
 
@@ -16,32 +16,37 @@ function read() {
 }
 function write() { try { localStorage.setItem(KEY, JSON.stringify(REG)); } catch { /* stockage plein : le réglage reste valable jusqu'à la fermeture */ } }
 
-// id : 'default' | 'preset:<clé>' | 'stance:<fusil|pistolet>:<position>' | 'weapon:<arme>'
-function parse(id) {
-  const [type, a, b] = id.split(':');
-  return { type, a, b };
-}
+// id : 'default' | 'agent:<clé>' | 'custom:<id>' | 'preset:<clé>' | 'stance:<fusil|pistolet>:<position>' | 'weapon:<arme>'
+const parse = id => { const [type, a, b] = id.split(':'); return { type, a, b }; };
 function stored(id) {
   const { type, a, b } = parse(id);
   if (type === 'default') return REG.default;
+  if (type === 'agent') return REG.agents?.[a];
+  if (type === 'custom') return (REG.custom || []).find(c => c.id === a)?.data;
   if (type === 'preset') return REG.presets?.[a];
   if (type === 'stance') return REG.stances?.[a]?.[b];
   if (type === 'weapon') return REG.weapons?.[a];
 }
+// Valeur d'origine : fichier fourni avec le logiciel, sinon valeur du code.
 export function builtin(id) {
   const { type, a, b } = parse(id);
-  if (type === 'default') { const { on, ...p } = baseDefaultPose(0); return clone(p); }
-  if (type === 'preset') { const p = POSES.find(x => x[0] === a); return clone(p ? p[2] : {}); }
-  if (type === 'stance') return clone(WEAPON_POSES[a]?.[b] || {});
-  if (type === 'weapon') return clone(WEAPON_DEFAULTS[a] || {});
+  if (type === 'default') { if (BUNDLED.default) return clone(BUNDLED.default); const { on, ...p } = baseDefaultPose(0); return clone(p); }
+  if (type === 'agent') return clone(BUNDLED.agents?.[a] || builtin('default'));
+  if (type === 'custom') return clone((BUNDLED.custom || []).find(c => c.id === a)?.data || {});
+  if (type === 'preset') { if (BUNDLED.presets?.[a]) return clone(BUNDLED.presets[a]); const p = POSES.find(x => x[0] === a); return clone(p ? p[2] : {}); }
+  if (type === 'stance') return clone(BUNDLED.stances?.[a]?.[b] || WEAPON_POSES[a]?.[b] || {});
+  if (type === 'weapon') return clone(BUNDLED.weapons?.[a] || {});
   return {};
 }
-export const hasOverride = id => !!stored(id);
+// Un élément « modifié » : réglé par l'utilisateur, ou propre à l'agent (fichier fourni).
+export const hasOverride = id => !!stored(id) || (parse(id).type === 'agent' && !!BUNDLED.agents?.[parse(id).a]);
 export const getItem = id => clone(stored(id) || builtin(id));
 export function setItem(id, data) {
   const { type, a, b } = parse(id);
   const v = clone(data);
   if (type === 'default') REG.default = v;
+  else if (type === 'agent') (REG.agents ||= {})[a] = v;
+  else if (type === 'custom') { const c = (REG.custom || []).find(x => x.id === a); if (c) c.data = v; }
   else if (type === 'preset') (REG.presets ||= {})[a] = v;
   else if (type === 'stance') ((REG.stances ||= {})[a] ||= {})[b] = v;
   else if (type === 'weapon') (REG.weapons ||= {})[a] = v;
@@ -50,34 +55,59 @@ export function setItem(id, data) {
 export function resetItem(id) {
   const { type, a, b } = parse(id);
   if (type === 'default') delete REG.default;
+  else if (type === 'agent') delete REG.agents?.[a];
   else if (type === 'preset') delete REG.presets?.[a];
   else if (type === 'stance') delete REG.stances?.[a]?.[b];
   else if (type === 'weapon') delete REG.weapons?.[a];
   write();
 }
 export function resetAll() { REG = {}; write(); }
-export const overrideCount = () => (REG.default ? 1 : 0) + Object.keys(REG.presets || {}).length + Object.values(REG.stances || {}).reduce((n, o) => n + Object.keys(o).length, 0) + Object.keys(REG.weapons || {}).length;
+export const overrideCount = () => (REG.default ? 1 : 0) + Object.keys(REG.agents || {}).length + (REG.custom || []).length + Object.keys(REG.presets || {}).length
+  + Object.values(REG.stances || {}).reduce((n, o) => n + Object.keys(o).length, 0) + Object.keys(REG.weapons || {}).length;
 
-// Export / import de toute la configuration.
-export function exportConfig() { return JSON.stringify({ app: 'MyBad Creator', kind: 'poselab', version: 1, data: REG }, null, 2); }
-export function importConfig(text) {
+// Poses génériques créées par l'utilisateur (disponibles pour tous les agents, boutons du panneau 3D).
+export const customList = () => [...(BUNDLED.custom || []).filter(b => !(REG.custom || []).some(c => c.id === b.id)), ...(REG.custom || [])].map(c => ({ id: c.id, name: c.name }));
+export function addCustom(name, data) {
+  const id = 'c' + Date.now().toString(36) + Math.floor(Math.random() * 99).toString(36);
+  (REG.custom ||= []).push({ id, name: name || 'Ma pose', data: clone(data || {}) }); write();
+  return id;
+}
+export function renameCustom(id, name) { const c = (REG.custom || []).find(x => x.id === id); if (c && name) { c.name = name; write(); } }
+export function deleteCustom(id) { REG.custom = (REG.custom || []).filter(c => c.id !== id); write(); }
+
+// Export / import : l'import fusionne (un fichier par agent est possible). Un fichier qui ne contient que « default » et dont le nom est
+// celui d'un agent (ex. Jett.json) devient la pose de cet agent.
+export function exportConfig() { return JSON.stringify({ app: 'MyBad Creator', kind: 'poselab', version: 2, data: REG }, null, 2); }
+export function importConfig(text, fileName = '', agentKeys = []) {
   const j = JSON.parse(text);
   if (j?.kind !== 'poselab' || typeof j.data !== 'object') throw new Error('Ce fichier n\'est pas une configuration de poses MyBad Creator.');
-  REG = j.data; write();
+  const d = clone(j.data), base = fileName.replace(/^.*[\\/]/, '').replace(/\.[^.]*$/, '').toLowerCase();
+  if (d.default && !d.agents && agentKeys.includes(base)) { d.agents = { [base]: d.default }; delete d.default; }
+  if (d.default) REG.default = d.default;
+  for (const k of ['agents', 'presets', 'weapons']) if (d[k]) REG[k] = { ...(REG[k] || {}), ...d[k] };
+  if (d.stances) for (const kind of Object.keys(d.stances)) REG.stances = { ...(REG.stances || {}), [kind]: { ...(REG.stances?.[kind] || {}), ...d.stances[kind] } };
+  if (d.custom) { const ids = new Set(d.custom.map(c => c.id)); REG.custom = [...(REG.custom || []).filter(c => !ids.has(c.id)), ...d.custom]; }
+  write();
+  return Object.keys(d).filter(k => d[k] && (typeof d[k] !== 'object' || Object.keys(d[k]).length)).map(k => (k === 'agents' ? Object.keys(d.agents).join(', ') : k));
 }
 
-// Accès pour le reste du logiciel.
-export const presetsList = () => POSES.map(([k, label]) => [k, label, getItem('preset:' + k)]);
+// ------------------------------------------------------------------ accès pour le reste du logiciel
+export const presetsList = () => [
+  ...POSES.map(([k]) => [k, POSES.find(x => x[0] === k)[1], getItem('preset:' + k)]),
+  ...customList().map(c => ['custom:' + c.id, c.name, getItem('custom:' + c.id)]),
+];
 export const stancePose = (kind, stance) => getItem(`stance:${kind}:${stance}`);
-export const weaponDefaults = key => clone(REG.weapons?.[key] || WEAPON_DEFAULTS[key] || {});
+export const weaponDefaults = key => clone(REG.weapons?.[key] || BUNDLED.weapons?.[key] || {});
 
-// La pose par défaut des personnages d'une affiche : celle du Studio si elle existe, avec le léger décalage propre à chaque côté.
-export function installDefaultPose() {
-  POSE_HOOK.fn = (side, base) => {
-    const o = REG.default; if (!o) return base;
-    const p = clone(o); p.on = true;
-    p.torso = { ...p.torso, twist: (p.torso?.twist || 0) + side * 3 };
-    p.head = { ...p.head, tilt: (p.head?.tilt || 0) + side * 1.5 };
-    return p;
-  };
+// Pose « automatique » d'un personnage (calque neuf) : la pose de son agent si elle existe, sinon la pose par défaut, avec le léger décalage de son côté.
+export function resolvePose(pz, agent) {
+  if (!pz || !pz.auto) return pz || {};
+  const src = REG.agents?.[agent] || BUNDLED.agents?.[agent] || REG.default || getItem('default');
+  const p = clone(src), side = pz.side || 0;
+  p.on = true;
+  p.torso = { ...p.torso, twist: (p.torso?.twist || 0) + side * 3 };
+  p.head = { ...p.head, tilt: (p.head?.tilt || 0) + side * 1.5 };
+  return p;
 }
+// Arme du personnage : celle réglée sur le calque (même « aucune »), sinon celle de sa pose.
+export const weaponOf = (owner, pzr) => (owner.weapon !== undefined ? owner.weapon : (pzr?.weapon || null));

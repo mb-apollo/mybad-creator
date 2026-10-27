@@ -29,10 +29,14 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
 - `src/renderer/pose3d.js` : poses par membre (bras/jambes/buste/tête, flexion des doigts, cinématique inverse), poses prédéfinies,
   nettoyage des poids de peau et garde-fou anti-triangles étirés (`recordRestShape` / `cullStretched`). Les noms d'os acceptent
   le suffixe numérique des exports Sketchfab (`L_Shoulder_021`).
+  Doigts : `fingerAxis` = `dir × n` : une courbure positive va vers la paume (+n). L'ancien `n × dir` pliait les doigts vers le DOS de la main
+  (cause des doigts « écartés » et des mains cassées avec une arme) ; `handFrame.n` = normale de paume = `a × d` (main droite) / `d × a` (gauche).
   Visage : `applyFace` (os de la mâchoire, paupières, sourcils, coins des lèvres ; pas de morph targets), réglages `face` {mouth, smile, eyeL, eyeR,
   brows, anger} d'un calque ou d'un acteur de scène, préréglages `FACES`. `face` doit rester dans la clé de cache du rendu (`params`).
 - `src/renderer/weapons.js` : armes tenues en main (liste dans `games.js`, `frac` = longueur de l'arme en part de la taille du personnage),
-  main gauche par IK, doigts enroulés sur la surface (`wrapFingers`, courbure minimale 40 pistolet / 25 fusil). Fusil : `aimHand` place la
+  main gauche par IK (cible = centre de la PAUME sur `Left_Hand_Target`), doigts enroulés sur la poignée de tir modélisée en cylindre
+  (`HANDLE`, centre = `Root` + `HOLD`) ou sur la surface de l'arme près de la main gauche (`wrapFingers`, courbure minimale 40 pistolet / 25 fusil).
+  Le repère `Root` de l'arme est à hauteur de culasse : la paume se pose sur `Root + HOLD`, décalée de `PALM_GAP`/`PALM_FWD` (épaisseur de paume). Fusil : `aimHand` place la
   main droite par rapport au corps (`def.aim` = x avant, y haut, z droite, pitch, yaw) ; pistolet : bras réglés par `WEAPON_POSES`.
   `WEAPON_POSES[type][position]` (pose3d.js) : prêt, visée, détendu, présentation, bras libres. Les 5 armes sont livrées dans
   `src/renderer/assets/games/weapons/*.glb` (WebP 1024 px) ; une arme importée dans la bibliothèque (`g:weapons:<clé>`) les remplace.

@@ -7,7 +7,7 @@ import { S, change } from './state.js';
 import { section, range, toggle, select as sel, seg, colorCtl, pct, deg, icon, esc, getPath, setPath } from './ui.js';
 import { color } from './engine/scene.js';
 import { GAMES, gameItems, WEAPONS } from './engine/games.js';
-import { weaponInstance, placeWeapon, aimHand, gripWithLeftHand, wrapFingers } from './weapons.js';
+import { weaponInstance, placeWeapon, aimHand, gripWithLeftHand, wrapFingers, HOLD } from './weapons.js';
 import { sceneDefaults } from './engine/templates.js';
 import { addLayer } from './editor.js';
 import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, POSES, WEAPON_POSES, WEAPON_STANCES, FACES, applyFace, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams } from './pose3d.js';
@@ -126,8 +126,8 @@ function holdWeapon(doc, inst, def, cacheKey, pz) {
   if (both) gripWithLeftHand(inst, w, weaponKind(def.key));
   const fb = H => Object.fromEntries(['thumb', 'index', 'middle', 'ring', 'pinky'].map(f => [f.charAt(0).toUpperCase() + f.slice(1), H[f] ?? H.curl ?? 0]));
   const kind = weaponKind(def.key), minCurl = kind === 'pistol' ? 40 : 25;
-  wrapFingers(inst, w, 'R', geo, fb(V.handR), minCurl);
-  if (both) wrapFingers(inst, w, 'L', geo, fb(V.handL), 25);
+  wrapFingers(inst, w, 'R', geo, fb(V.handR), minCurl, { x: w.grip.x + HOLD.x, y: w.grip.y + HOLD.y, z: 0 }, 0.11, true);
+  if (both) wrapFingers(inst, w, 'L', geo, fb(V.handL), 25, w.left, 0.14);
   return w;
 }
 const dropWeapons = list => list.forEach(w => w && w.holder.parent && w.holder.parent.remove(w.holder));

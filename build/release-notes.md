@@ -1,4 +1,3 @@
-- Visage : ouvrir / fermer la bouche et chaque œil, sourire, sourcils, et expressions prêtes à l'emploi (content, triste / fatigué, colère / concentré, surprise, clin d'œil)
-- Armes : taille cohérente avec celle de l'agent, prise en main refaite (doigts refermés sur l'arme, main gauche sur le garde-main) et quatre positions : prêt, visée, détendu, présentation
-- Affiche Game Day : le texte vertical « MATCHDAY » n'est plus coupé
-- Installateur : thème sombre complet (boutons compris), textes nets sur les écrans à haute densité, visuels haute définition
+- Mains : les doigts se refermaient vers le dos de la main au lieu de la paume ; corrigé pour tous les agents (poings, mains détendues, poses prédéfinies avec des mains adaptées)
+- Armes : la poignée se place dans la paume et les doigts s'enroulent autour ; la main gauche se pose sur le garde-main
+- Armes : fusil épaulé plus proche du corps pour que la main gauche atteigne le garde-main

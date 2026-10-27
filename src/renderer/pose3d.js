@@ -60,7 +60,7 @@ export function rigOf(root) {
         const nxt = rig.finger[s][f][j + 1], prv = rig.finger[s][f][j - 1];
         const dir = nxt ? worldPos(nxt).sub(worldPos(b)) : prv ? worldPos(b).sub(worldPos(prv)) : null;
         if (!dir || dir.lengthSq() < 1e-12) return null;
-        return new THREE.Vector3().crossVectors(n, dir.normalize()).normalize().applyQuaternion(worldQuat(b).invert());
+        return new THREE.Vector3().crossVectors(dir.normalize(), n).normalize().applyQuaternion(worldQuat(b).invert()); // une courbure positive rapproche le doigt de la paume (+n)
       });
     }
   }
@@ -432,10 +432,10 @@ export const WEAPON_STANCES = [['pret', 'Prêt'], ['vise', 'Visée'], ['detendu'
 export const WEAPON_POSES = {
   rifle: {
     pret: { both: true, aim: { x: 0.09, y: -0.16, z: 0.02, pitch: 26, yaw: 0 }, armR: { out: 14, fwd: 30, elbow: 75, roll: 60 }, armL: { out: 20, fwd: 42, elbow: 62, roll: 40 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 70 }, torso: { twist: -6 } },
-    vise: { both: true, aim: { x: 0.15, y: -0.07, z: 0, pitch: 0, yaw: -4 }, armR: { out: 12, fwd: 62, elbow: 105, roll: 70 }, armL: { out: 24, fwd: 80, elbow: 30, roll: 40 }, handR: { curl: 85, index: 40, thumb: 55 }, handL: { curl: 70 }, torso: { twist: -10, bend: 2 }, head: { tilt: 5, turn: -4 } },
+    vise: { both: true, aim: { x: 0.1, y: -0.08, z: 0, pitch: 0, yaw: -4 }, armR: { out: 12, fwd: 62, elbow: 105, roll: 70 }, armL: { out: 24, fwd: 80, elbow: 30, roll: 40 }, handR: { curl: 85, index: 40, thumb: 55 }, handL: { curl: 70 }, torso: { twist: -10, bend: 2 }, head: { tilt: 5, turn: -4 } },
     detendu: { both: false, aim: { x: 0.06, y: -0.3, z: 0.05, pitch: 80, yaw: 0 }, armR: { out: 12, fwd: 14, elbow: 40, roll: 55 }, armL: { out: 16, fwd: 4, elbow: 14, roll: 8 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 12 }, torso: { twist: -2 } },
     presentation: { both: true, aim: { x: 0.16, y: -0.1, z: 0.03, pitch: 12, yaw: 38 }, armR: { out: 18, fwd: 52, elbow: 62, roll: 60 }, armL: { out: 28, fwd: 62, elbow: 40, roll: 40 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 70 }, torso: { twist: 10 }, head: { turn: 6 } },
-    libre: { both: true, armR: { out: 14, fwd: 30, elbow: 75, roll: 60 }, armL: { out: 20, fwd: 42, elbow: 62, roll: 40 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 70 }, torso: { twist: -6 } },
+    libre: { both: true, armR: { out: 12, fwd: 18, elbow: 85, roll: 25 }, armL: { out: 20, fwd: 42, elbow: 62, roll: 40 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 70 }, torso: { twist: -6 } },
   },
   pistol: {
     pret: { both: false, armR: { out: 12, fwd: 18, elbow: 85, roll: 25 }, armL: { out: 14, fwd: 8, elbow: 20, roll: 10 }, handR: { curl: 85, index: 45, thumb: 55 }, handL: { curl: 10 }, torso: { twist: -4 } },
@@ -446,13 +446,13 @@ export const WEAPON_POSES = {
   },
 };
 export const POSES = [
-  ['neutre', 'Neutre', { armL: { out: 18, fwd: 0, elbow: 0, roll: 0 }, armR: { out: 18, fwd: 0, elbow: 0, roll: 0 } }],
-  ['detendu', 'Décontracté', { ...SAME({ out: 12, fwd: 8, elbow: 22, roll: 20 }), torso: { twist: 4 }, head: { tilt: 3 } }],
-  ['hanches', 'Mains sur les hanches', { ...SAME({ out: 36, fwd: -10, elbow: 108, roll: 118 }), legL: { out: 5 }, legR: { out: 5 } }],
-  ['hanche', 'Une main sur la hanche', { armL: { out: 36, fwd: -10, elbow: 108, roll: 118 }, armR: { out: 14, fwd: 6, elbow: 18, roll: 10 }, torso: { lean: 4, twist: -6 }, head: { tilt: -4 } }],
-  ['croises', 'Bras croisés', { ...SAME({ out: 10, fwd: 52, elbow: 128, roll: 88 }), legL: { out: 4 }, legR: { out: 4 } }],
-  ['garde', 'Garde (poings)', { ...SAME({ out: 22, fwd: 38, elbow: 108, roll: 36 }), torso: { bend: 6 } }],
-  ['pointer', 'Pointer vers la caméra', { armL: { out: 14, fwd: 4, elbow: 18, roll: 10 }, armR: { out: 24, fwd: 88, elbow: 6, roll: 0 }, torso: { twist: -8 }, head: { turn: 6 } }],
-  ['dos', 'Mains dans le dos', { ...SAME({ out: 8, fwd: -28, elbow: 52, roll: 150 }), torso: { bend: -4 } }],
-  ['pas', 'Pas en avant', { ...SAME({ out: 14, fwd: 10, elbow: 24, roll: 10 }), legL: { fwd: 16, knee: 10 }, legR: { fwd: -6, out: 4 }, torso: { twist: 6 } }],
+  ['neutre', 'Neutre', { armL: { out: 18, fwd: 0, elbow: 0, roll: 0 }, armR: { out: 18, fwd: 0, elbow: 0, roll: 0 }, handL: { curl: 18, thumb: 10 }, handR: { curl: 18, thumb: 10 } }],
+  ['detendu', 'Décontracté', { ...SAME({ out: 12, fwd: 8, elbow: 22, roll: 20 }), torso: { twist: 4 }, head: { tilt: 3 }, handL: { curl: 24, thumb: 12 }, handR: { curl: 24, thumb: 12 } }],
+  ['hanches', 'Mains sur les hanches', { ...SAME({ out: 36, fwd: -10, elbow: 108, roll: 118 }), legL: { out: 5 }, legR: { out: 5 }, handL: { curl: 30, thumb: 20 }, handR: { curl: 30, thumb: 20 } }],
+  ['hanche', 'Une main sur la hanche', { armL: { out: 36, fwd: -10, elbow: 108, roll: 118 }, armR: { out: 14, fwd: 6, elbow: 18, roll: 10 }, torso: { lean: 4, twist: -6 }, head: { tilt: -4 }, handL: { curl: 30, thumb: 20 }, handR: { curl: 18, thumb: 10 } }],
+  ['croises', 'Bras croisés', { ...SAME({ out: 10, fwd: 52, elbow: 128, roll: 88 }), legL: { out: 4 }, legR: { out: 4 }, handL: { curl: 55, thumb: 30 }, handR: { curl: 55, thumb: 30 } }],
+  ['garde', 'Garde (poings)', { ...SAME({ out: 22, fwd: 38, elbow: 108, roll: 36 }), torso: { bend: 6 }, handL: { curl: 100, thumb: 70 }, handR: { curl: 100, thumb: 70 } }],
+  ['pointer', 'Pointer vers la caméra', { armL: { out: 14, fwd: 4, elbow: 18, roll: 10 }, armR: { out: 24, fwd: 88, elbow: 6, roll: 0 }, torso: { twist: -8 }, head: { turn: 6 }, handL: { curl: 18, thumb: 10 }, handR: { curl: 90, index: 0, thumb: 40 } }],
+  ['dos', 'Mains dans le dos', { ...SAME({ out: 8, fwd: -28, elbow: 52, roll: 150 }), torso: { bend: -4 }, handL: { curl: 35, thumb: 20 }, handR: { curl: 35, thumb: 20 } }],
+  ['pas', 'Pas en avant', { ...SAME({ out: 14, fwd: 10, elbow: 24, roll: 10 }), legL: { fwd: 16, knee: 10 }, legR: { fwd: -6, out: 4 }, torso: { twist: 6 }, handL: { curl: 24, thumb: 12 }, handR: { curl: 24, thumb: 12 } }],
 ];

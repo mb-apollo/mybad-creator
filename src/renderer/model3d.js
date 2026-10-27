@@ -62,13 +62,31 @@ export function materialize(L, path) {
   if (owner.pose?.auto) { const { auto, weapon, ...rest } = JSON.parse(JSON.stringify(pzr)); owner.pose = { ...rest, on: true }; if (owner.weapon === undefined && weapon) owner.weapon = weapon; }
   if (m[3] === 'weapon' && owner.weapon === undefined && pzr.weapon) owner.weapon = JSON.parse(JSON.stringify(pzr.weapon));
 }
+// Correctifs propres à certains modèles. Astra : ses cheveux (deux modèles fusionnés) traversent la capuche, on les masque,
+// ainsi que les petites perles qui y étaient accrochées (morceaux isolés au-dessus de la tête).
+function fixModel(url, gltf) {
+  if (!/astra/i.test(url)) return;
+  gltf.scene.traverse(o => {
+    const g = o.geometry; if (!o.isMesh || !g?.index) return;
+    if (/hair/i.test(o.material?.name || '')) { o.visible = false; return; }
+    if (/eye/i.test(o.material?.name || '')) return;
+    const pos = g.attributes.position, idx = g.index.array, n = pos.count, par = new Int32Array(n).map((_, k) => k);
+    const find = a => { while (par[a] !== a) a = par[a] = par[par[a]]; return a; };
+    for (let k = 0; k < idx.length; k += 3) { par[find(idx[k + 1])] = find(idx[k]); par[find(idx[k + 2])] = find(idx[k]); }
+    const cnt = new Map(), minY = new Map();
+    for (let v = 0; v < n; v++) { const r = find(v); cnt.set(r, (cnt.get(r) || 0) + 1); minY.set(r, Math.min(minY.get(r) ?? 1e9, pos.getY(v))); }
+    const keep = [];
+    for (let k = 0; k < idx.length; k += 3) { const r = find(idx[k]); if (!(cnt.get(r) < 600 && minY.get(r) > 2.02)) keep.push(idx[k], idx[k + 1], idx[k + 2]); }
+    if (keep.length < idx.length) g.setIndex(keep);
+  });
+}
 function load(url) {
   let m = MODELS.get(url);
   if (m) return m;
   m = { status: 'loading' };
   MODELS.set(url, m);
   m.promise = new Promise(res => {
-    getLoader().load(url, gltf => { m.status = 'ready'; m.gltf = gltf; res(); deps.requestRender?.(); deps.actions?.scheduleThumbs?.(); },
+    getLoader().load(url, gltf => { m.status = 'ready'; m.gltf = gltf; fixModel(url, gltf); res(); deps.requestRender?.(); deps.actions?.scheduleThumbs?.(); },
       undefined, err => { m.status = 'error'; m.error = err; console.error('3D', url, err); deps.toast?.('Impossible de charger ce modèle 3D (format .glb ou .gltf attendu).', true); res(); });
   });
   return m;

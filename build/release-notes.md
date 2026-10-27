@@ -1,4 +1,1 @@
-- Nouvel onglet « Réglages » à côté de Propriétés : grain, vignette, luminosité, halos, saturation, contraste, exposition et lumières des personnages, réglables pour toutes les affiches ou pour l'affiche ouverte seulement
-- Les dégradés des affiches ne font plus de coupure nette (Game Day et les autres modèles concernés)
-- Nouveau thème clair « Azur » (bleu très clair)
-- Le rendu qualité de la 2.8.0 est retiré
+- Astra : ses cheveux et les perles qui traversaient la capuche sont retirés

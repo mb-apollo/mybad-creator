@@ -1,4 +1,1 @@
-- Toutes les affiches passent en ambiance « nuit noire » : vrais noirs, lumière plus dure sur les personnages, moins de voile bleu et de halo, grain réduit mais conservé
-- Studio de poses : une catégorie « Poses par agent » (chaque agent a sa pose par défaut, celle de Jett est fournie) et tes propres poses génériques, à créer, renommer et supprimer
-- Chaque pose peut tenir une arme dans la main droite, la main gauche ou les deux (main principale au choix) ; réglage aussi dans l'onglet 3D › Arme
-- Les poses automatiques suivent le Studio : changer la pose d'un agent la met à jour sur toutes les affiches qui n'ont pas été réglées à la main
+- Correction : changer Victoire / Défaite, le nombre de lignes ou activer la 3D ne remet plus à zéro les poses, armes et visages réglés sur les personnages 3D

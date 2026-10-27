@@ -116,6 +116,16 @@ export function applyTemplate(doc, key, opts = {}) {
   setDocFonts(doc.fonts);
   const built = tpl.build(ctx).map(L => ({ id: uid(), visible: true, locked: false, ...L, fromTpl: true }));
   built.forEach(migrateFade);
+  // Les réglages des personnages 3D (pose réglée à la main, arme, visage) survivent à une ré-application du modèle (thème Victoire / Défaite, nombre de lignes…).
+  const prev3d = doc.layers.filter(L => L.fromTpl && L.type === 'model');
+  built.forEach(L => {
+    if (L.type !== 'model') return;
+    const old = L.actors ? prev3d.find(o => o.actors) : prev3d.find(o => !o.actors && o.name === L.name);
+    if (!old) return;
+    const take = (dst, src) => { for (const k of ['pose', 'weapon', 'face']) if (src[k] !== undefined && !(k === 'pose' && src.pose?.auto)) dst[k] = JSON.parse(JSON.stringify(src[k])); };
+    if (L.actors && old.actors) L.actors.forEach((x, i) => { if (old.actors[i]) take(x, old.actors[i]); });
+    else if (!L.actors && !old.actors) take(L, old);
+  });
   built.forEach(L => { if (L.variant) L.visible = (L.variant === 'script') === !!doc.script; });
   if (tpl.assets) doc.assets = { ...doc.assets, ...tpl.assets }; // images embarquées dans un modèle personnalisé
   const keep = opts.keepUser === false || tpl.custom ? [] : doc.layers.filter(L => !L.fromTpl).map(L => (oldH && oldH !== doc.H ? { ...L, y: L.y * doc.H / oldH } : L));

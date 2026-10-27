@@ -16,7 +16,7 @@ export const THEMES = [
   { id: 'polaris', name: 'Polaris (victoire)', c: { ...BASE, bg: '#06050F', bg2: '#120E2C', accent: '#A99DFF', accent2: '#54D8FF', glow: '#7A6BFF', light: 1.1 } },
   { id: 'defaite', name: 'Défaite', c: { ...BASE, bg: '#07050A', bg2: '#170A12', accent: '#FF6B7A', accent2: '#FF9AA4', glow: '#D52C3D', light: 0.8 } },
   { id: 'glace', name: 'Glace', c: { ...BASE, bg: '#040A10', bg2: '#0A1B26', accent: '#8FE6FF', accent2: '#54D8FF', glow: '#2AB8F0', light: 1 } },
-  { id: 'azur', name: 'Azur (clair)', c: { ...BASE, bg: '#06184A', bg2: '#0D44C4', accent: '#7FDBFF', accent2: '#A99DFF', glow: '#3E8CFF', light: 1.35, fin: { vignette: 0.45, bright: 1.5, bloom: 1.15 } } },
+  { id: 'azur', name: 'Azur (clair)', c: { ...BASE, muted: '#C4DAFF', line: '#9CC8FF', panel: '#0B2C86', bg: '#06184A', bg2: '#0D44C4', accent: '#7FDBFF', accent2: '#A99DFF', glow: '#3E8CFF', light: 1.35, fin: { vignette: 0.45, bright: 1.5, bloom: 1.15 } } },
   { id: 'or', name: 'Finale (or)', c: { ...BASE, bg: '#070604', bg2: '#17120A', accent: '#FFD873', accent2: '#E9A92B', glow: '#E9A92B', light: 0.9 } },
 ];
 export const THEME_TOKENS = [

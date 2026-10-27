@@ -488,8 +488,10 @@ function renderStage(L, w, h, theme, exporting) {
   const rl = new THREE.DirectionalLight(col(rim.color || '$glow'), rim.intensity ?? 4);
   const ra = (rim.angle ?? 150) * Math.PI / 180; rl.position.set(Math.sin(ra) * 3, 2.6, Math.cos(ra) * 3); scene.add(rl);
   if (fl.on) {
-    rl.castShadow = true; rl.shadow.mapSize.set(2048, 2048); rl.shadow.bias = -0.0006; rl.shadow.radius = 6;
-    const sc = rl.shadow.camera; sc.left = -4.5; sc.right = 4.5; sc.top = 4.5; sc.bottom = -4.5; sc.near = 0.5; sc.far = 14;
+    // ombres : lumière dédiée placée pile derrière les personnages (contre-jour), pour que les ombres viennent droit vers nous, quel que soit l'angle de la lumière de bord
+    const sl = new THREE.DirectionalLight(0xffffff, 0.0005); sl.position.set(0, 2.6, -2.6); sl.target.position.set(0, 0, 0); scene.add(sl, sl.target);
+    sl.castShadow = true; sl.shadow.mapSize.set(2048, 2048); sl.shadow.bias = -0.0006; sl.shadow.radius = 6;
+    const sc = sl.shadow.camera; sc.left = -4.5; sc.right = 4.5; sc.top = 4.5; sc.bottom = -4.5; sc.near = 0.5; sc.far = 14;
   }
   const rl2 = new THREE.DirectionalLight(col(rim.color || '$glow'), (rim.intensity ?? 4) * 0.6);
   rl2.position.set(-Math.sin(ra) * 3, 1.8, Math.cos(ra) * 3); scene.add(rl2);

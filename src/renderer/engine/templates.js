@@ -147,7 +147,7 @@ function playerRow(ctx, base0, o = {}) {
   let base = base0;
   const { W, H, u } = ctx, n = ctx.nPlayers;
   // Valorant en 3D : un seul calque « Scène 3D » (sol, ombres et reflets communs)
-  if (ctx.use3d && ctx.game !== 'rl') return [{ type: 'model', name: 'Scène 3D', model: '@a1', ...sceneDefaults(n), zoom3d: 1.2 * sceneHalfWidth(n) / sceneHalfWidth(5), x: 0, y: H * 0.19, w: W, h: base0 - H * 0.19 + H * 0.09, rot: 0 }];
+  if (ctx.use3d && ctx.game !== 'rl') return [{ type: 'model', name: 'Scène 3D', model: '@a1', ...sceneDefaults(n), zoom3d: 1.2 * sceneHalfWidth(n) / sceneHalfWidth(5), x: 0, y: H * 0.19, w: W, h: base0 - H * 0.19 + H * 0.09, rot: 0, fx: { fade: { on: true, dir: 'bottom', amount: 0.14 } } }]; // fondu en bas : le sol 3D ne s'arrête pas net
   const big = Math.min(H, W * 1.25) * (o.h || 0.44);
   const spread = (o.spread || 0.168) * (n === 3 ? 1.45 : 1);
   const order = [...Array(n).keys()].sort((a, b) => Math.abs(b - (n - 1) / 2) - Math.abs(a - (n - 1) / 2) || a - b);
@@ -173,7 +173,6 @@ function roster(ctx) {
     effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: ctx.use3d ? 0.3 : 0.5, themed: true, x: W * 0.2, y: H * 0.17, w: W * 0.6, h: H * 0.52 }),
     effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.2, themed: true, seed: 11, x: 0, y: H * 0.52, w: W, h: H * 0.32 }),
     ...stage(ctx, H * 0.8),
-    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: 'ROSTER' }),
     text({ name: 'Structure', tpl: '{org}', upper: true, align: 'left', size: 40 * u, weight: 700, spacing: 0.04, x: W * 0.12, y: H * 0.105, w: W * 0.6 }),
     shape({ name: 'Flèches', shape: 'arrows', fill: '$accent', count: 2, x: W * 0.12, y: H * 0.152, w: 40 * u, h: 18 * u }),
     shape({ name: 'Trait', shape: 'line', stroke: '$text', strokeWidth: 1.6, x: W * 0.12 + 56 * u, y: H * 0.152 + 7 * u, w: W * 0.12, h: 4 * u }),
@@ -192,6 +191,7 @@ function roster(ctx) {
         text({ name: `Rôle ${i + 1}`, tpl: `{r${i + 1}}`, upper: true, size: 17 * u, weight: 500, spacing: 0.16, color: '$accent', x: cx - cell / 2 + 6 * u, y: H * 0.866, w: cell - 12 * u, fontRole: 'body' }),
       ];
     }).flat(),
+    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: 'ROSTER' }),
     ...finish(ctx),
   ];
 }
@@ -203,7 +203,6 @@ function resultat(ctx) {
   return [
     ...base(ctx, { glowY: 0.45, glow: 0.5 }),
     effect({ name: 'Barres lumineuses', effect: 'bars', color: '$glow', amount: 0.35, themed: true, seed: win ? 8 : 12, x: 0, y: 0, w: W, h: H * 0.8 }),
-    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: win ? 'VICTOIRE' : 'RÉSULTAT' }),
     text({ name: 'Compétition', tpl: '{event} — {stage}', upper: true, size: 24 * u, weight: 500, spacing: 0.24, color: '$muted', x: W * 0.08, y: H * 0.115, w: W * 0.84, fontRole: 'body' }),
     ...title2(ctx, W / 2, H * 0.245, { w1: `{resW1${sfx}}`, w2: `{resW2${sfx}}`, plain: `{resPlain${sfx}}`, scale: 0.7 }),
     text({ name: 'Format', tpl: '{bo}', upper: true, size: 22 * u, weight: 500, spacing: 0.2, color: '$muted', x: W * 0.2, y: H * 0.345, w: W * 0.6, fontRole: 'body' }),
@@ -216,6 +215,7 @@ function resultat(ctx) {
     text({ name: 'Libellé MVP', text: 'MVP', size: 24 * u, weight: 700, spacing: 0.18, color: '$bg', x: W / 2 - 60 * u, y: H * 0.7 + 10 * u, w: 120 * u, fontRole: 'body' }),
     text({ name: 'MVP', tpl: '{mvp}', upper: true, size: 76 * u, weight: 700, x: W * 0.1, y: H * 0.745, w: W * 0.8, fx: glowFx('$glow', 24, 0.5) }),
     text({ name: 'Stats MVP', tpl: '{mvpStat}', upper: true, size: 24 * u, weight: 500, spacing: 0.14, color: '$muted', x: W * 0.1, y: H * 0.81, w: W * 0.8, fontRole: 'body' }),
+    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: win ? 'VICTOIRE' : 'RÉSULTAT' }),
     ...finish(ctx),
   ];
 }
@@ -229,7 +229,6 @@ function gameday(ctx) {
     shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.48, w: W, h: H * 0.52, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     shape({ name: 'Chevrons', shape: 'chevrons', stroke: '$text', strokeWidth: 2.5, count: 3, x: W * 0.62, y: H * 0.33, w: 170 * u, h: 86 * u, opacity: 0.4 }),
     text({ name: 'Texte vertical', tpl: '{gdSide}', upper: true, style: 'outline', strokeColor: '$text', strokeWidth: 1.4, opacity: 0.3, size: 150 * u, x: W * 0.91 - H * 0.36, y: H * 0.42 - 75 * u, w: H * 0.72, rot: 90 }), // centré à 91 % de la largeur : la hauteur des lettres (tournées) reste dans l'affiche
-    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bc: false }),
     text({ name: 'Infos', tpl: '{date} · {hour}', upper: true, align: 'left', size: 20 * u, weight: 500, spacing: 0.14, color: '$muted', x: W * 0.07, y: H * 0.565, w: W * 0.5, fontRole: 'body' }),
     text({ name: 'Affiche', tpl: '{org} vs {adv}', upper: true, align: 'left', size: 20 * u, weight: 600, spacing: 0.14, color: '$accent', x: W * 0.07, y: H * 0.59, w: W * 0.6, fontRole: 'body' }),
     scriptT({ name: 'Titre manuscrit', variant: 'script', tpl: '{gdW1}', align: 'left', x: W * 0.06, y: H * 0.635, w: W * 0.66, size: 190 * u, fx: glowFx('$white', 18, 0.45) }),
@@ -239,6 +238,7 @@ function gameday(ctx) {
     emblemAt(W * 0.83, H * 0.755, 60 * u, { glow: false }),
     text({ name: 'VS', text: 'VS', size: 20 * u, weight: 500, spacing: 0.3, color: '$muted', x: W * 0.83 - 50 * u, y: H * 0.81, w: 100 * u, fontRole: 'body' }),
     image({ name: 'Logo adverse', asset: 'u:logoAdv', ph: 'logo', fit: 'contain', anchor: 'center', x: W * 0.83 - 34 * u, y: H * 0.845, w: 68 * u, h: 68 * u }),
+    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bc: false }),
     ...finish(ctx),
   ];
 }
@@ -253,11 +253,11 @@ function annonce(ctx) {
     agentImage(ctx, 'anAgent1', { x: W * 0.06, y: H * 0.12, w: W * 0.5, h: H * 0.6 }, { name: 'Render 1', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
     agentImage(ctx, 'anAgent2', { x: W * 0.44, y: H * 0.12, w: W * 0.5, h: H * 0.6 }, { name: 'Render 2', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
     effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.2, themed: true, seed: 14, x: 0, y: H * 0.25, w: W, h: H * 0.4 }),
-    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: 'ANNONCE' }),
     shape({ name: 'Flèches', shape: 'arrows', fill: '$accent', count: 3, x: W * 0.1, y: H * 0.728, w: 60 * u, h: 20 * u, variant: 'plain' }),
     text({ name: 'Mot d\'annonce', variant: 'plain', tpl: '{anW1}', upper: true, italic: true, weight: 300, fontRole: 'italic', font: 'Montserrat', align: 'left', size: 96 * u, x: W * 0.1 + 80 * u, y: H * 0.695, w: W * 0.75 }),
     scriptT({ name: 'Mot manuscrit', variant: 'script', tpl: '{anW1}', align: 'left', x: W * 0.09, y: H * 0.645, w: W * 0.82, size: 170 * u, fx: glowFx('$white', 18, 0.45) }),
     text({ name: 'Noms', tpl: '{anNames}', upper: true, align: 'left', size: 92 * u, weight: 700, x: W * 0.1, y: H * 0.8, w: W * 0.8, fx: glowFx('$glow', 24, 0.6) }),
+    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: 'ANNONCE' }),
     ...finish(ctx),
   ];
 }
@@ -270,7 +270,6 @@ function tournoi(ctx) {
     ...base(ctx, { glowY: 0.5, glow: 0.6 }),
     effect({ name: 'Grille', effect: 'grid', color: '$glow', amount: 0.7, themed: true, horizon: 0.0, x: 0, y: H * 0.6, w: W, h: H * 0.4 }),
     agentImage(ctx, 'tAgent', { x: W * 0.4, y: H * 0.24, w: W * 0.62, h: H * 0.64 }, { name: 'Render', fx: { glow: { on: true, color: '$glow', blur: 40, opacity: 0.6 }, fade: { on: true, dir: 'bottom', amount: 0.25 } } }),
-    ...frame(ctx, { tl: gameName(ctx), tr: '{org}', bl: '{org}', br: 'TOURNOI' }),
     text({ name: 'Titre', tpl: '{tTitle}', upper: true, italic: true, font: 'Barlow Condensed', fontRole: 'condensed', weight: 900, align: 'left', size: 160 * u, color: '$accent', x: x0, y: H * 0.1, w: W * 0.82, fx: glowFx('$accent', 30, 0.5) }),
     text({ name: 'Sous-titre', tpl: '{tGame}', upper: true, font: 'Barlow Condensed', fontRole: 'condensed', weight: 700, align: 'left', size: 50 * u, x: x0, y: H * 0.225, w: W * 0.82 }),
     text({ name: 'Jour', tpl: '{tDay}', font: 'Barlow Condensed', fontRole: 'condensed', weight: 900, align: 'left', size: 250 * u, x: x0, y: H * 0.3, w: W * 0.4 }),
@@ -287,6 +286,7 @@ function tournoi(ctx) {
     shape({ name: 'Bloc cashprize', shape: 'rect', radius: 14, fill: '$accent', x: x0, y: H * prizeY, w: W * 0.36, h: 130 * u, fx: glowFx('$accent', 30, 0.35) }),
     text({ name: 'Cashprize', tpl: '{tPrize}', font: 'Barlow Condensed', fontRole: 'condensed', weight: 900, size: 84 * u, color: '$bg', x: x0 + 10 * u, y: H * prizeY + 12 * u, w: W * 0.36 - 20 * u }),
     text({ name: 'Libellé cashprize', tpl: '{tPrizeLbl}', upper: true, size: 20 * u, weight: 700, spacing: 0.1, color: '$bg', x: x0 + 10 * u, y: H * prizeY + 92 * u, w: W * 0.36 - 20 * u, fontRole: 'body' }),
+    ...frame(ctx, { tl: gameName(ctx), tr: '{org}', bl: '{org}', br: 'TOURNOI' }),
     ...finish(ctx),
   ];
 }
@@ -298,7 +298,6 @@ function planning(ctx) {
   const top = H * 0.395 + Math.max(0, H * 0.5 - (rows.length * rh + gap * (rows.length - 1))) / 2; // moins de lignes : elles grandissent et le bloc se recentre
   return [
     ...base(ctx, { glowY: 0.18, glow: 0.5 }),
-    ...frame(ctx, { tl: gameName(ctx), tr: '{plWeek}', bl: '{org}', br: 'PLANNING' }),
     emblemAt(W / 2, H * 0.12, 90 * u),
     ...title2(ctx, W / 2, H * 0.25, { w1: '{plW1}', w2: '{plW2}', plain: '{plPlain}', scale: 0.7 }),
     text({ name: 'Semaine', tpl: '{plWeek}', upper: true, size: 24 * u, weight: 500, spacing: 0.24, color: '$muted', x: W * 0.1, y: H * 0.352, w: W * 0.8, fontRole: 'body' }),
@@ -313,6 +312,7 @@ function planning(ctx) {
         text({ name: `Type ${i}`, tpl: `{pl${i}g}`, upper: true, size: 18 * u, weight: 700, spacing: 0.16, color: '$accent', x: x + w - 160 * u, y: y + rh / 2 - 10 * u, w: 132 * u, fontRole: 'body' }),
       ];
     }).flat(),
+    ...frame(ctx, { tl: gameName(ctx), tr: '{plWeek}', bl: '{org}', br: 'PLANNING' }),
     ...finish(ctx),
   ];
 }
@@ -322,7 +322,6 @@ function recrutement(ctx) {
   const nRec = Math.max(1, Math.min(6, ctx.counts.rec)), recStep = Math.min(0.07, 0.26 / nRec), ctaY = Math.min(0.81, 0.535 + nRec * recStep + 0.035);
   return [
     ...base(ctx, { glowY: 0.2, glow: 0.6 }),
-    ...frame(ctx, { tl: gameName(ctx), tr: 'RECRUTEMENT', bl: '{org}', br: 'LFP' }),
     emblemAt(W / 2, H * 0.16, H * 0.15),
     ...title2(ctx, W / 2, H * 0.36, { w1: '{recW1}', w2: '{recW2}', plain: '{recPlain}', scale: 0.85 }),
     text({ name: 'Sous-titre', tpl: '{recSub}', upper: true, size: 25 * u, weight: 500, spacing: 0.18, color: '$muted', x: W * 0.08, y: H * 0.475, w: W * 0.84, fontRole: 'body' }),
@@ -337,6 +336,7 @@ function recrutement(ctx) {
     shape({ name: 'Bouton candidature', shape: 'rect', radius: 40, fill: '$accent', x: W * 0.2, y: H * ctaY, w: W * 0.6, h: 80 * u, fx: glowFx('$accent', 30, 0.35) }),
     text({ name: 'Candidature', tpl: '{recCta}', upper: true, size: 26 * u, weight: 700, spacing: 0.06, color: '$bg', x: W * 0.22, y: H * ctaY + 24 * u, w: W * 0.56, fontRole: 'body' }),
     text({ name: 'Note', tpl: '{recNote}', size: 20 * u, weight: 500, color: '$muted', x: W * 0.1, y: H * ctaY + 100 * u, w: W * 0.8, fontRole: 'body' }),
+    ...frame(ctx, { tl: gameName(ctx), tr: 'RECRUTEMENT', bl: '{org}', br: 'LFP' }),
     ...finish(ctx),
   ];
 }
@@ -347,7 +347,6 @@ function carte(ctx) {
     ...base(ctx, { glowY: 0.38, glow: 0.8 }),
     effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: 0.38, themed: true, x: W * 0.3, y: H * 0.08, w: W * 0.62, h: H * 0.56 }),
     agentImage(ctx, 'cardAgent', { x: W * 0.18, y: H * 0.08, w: W * 0.8, h: H * 0.66 }, { name: 'Render joueur', fx: { glow: { on: true, color: '$glow', blur: 40, opacity: 0.55 }, fade: { on: true, dir: 'bottom', amount: 0.3 } } }),
-    ...frame(ctx, { tl: gameName(ctx), tr: '{org}', bc: false }),
     emblemAt(W * 0.135, H * 0.15, 54 * u, { glow: false }),
     text({ name: 'Étiquette', tpl: '{cardTag}', upper: true, align: 'left', size: 22 * u, weight: 600, spacing: 0.3, color: '$accent', x: W * 0.09, y: H * 0.52, w: W * 0.5, fontRole: 'body' }),
     text({ name: 'Pseudo', tpl: '{cardName}', upper: true, align: 'left', size: 170 * u, weight: 700, x: W * 0.08, y: H * 0.545, w: W * 0.84, fx: glowFx('$glow', 30, 0.55) }),
@@ -360,6 +359,7 @@ function carte(ctx) {
         text({ name: `Valeur stat ${i}`, tpl: `{st${i}v}`, size: 50 * u, weight: 700, x: x + 10 * u, y: y + 64 * u, w: cw - 20 * u }),
       ];
     }).flat(),
+    ...frame(ctx, { tl: gameName(ctx), tr: '{org}', bc: false }),
     ...finish(ctx),
   ];
 }
@@ -369,13 +369,13 @@ function live(ctx) {
   return [
     ...base(ctx, { glowY: 0.45, glow: 0.7 }),
     agentImage(ctx, 'liveAgent', { x: W * 0.36, y: H * 0.2, w: W * 0.7, h: H * 0.62 }, { name: 'Render', opacity: 0.9, fx: { smear: 0.4, smearCut: 0.82, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
-    ...frame(ctx, { tl: gameName(ctx), tr: '{org}', bl: '{org}', br: 'LIVE' }),
     shape({ name: 'Point live', shape: 'ellipse', fill: '#FF3B4E', x: W * 0.09, y: H * 0.16, w: 30 * u, h: 30 * u, fx: glowFx('#FF3B4E', 24, 0.9) }),
     text({ name: 'Statut', text: 'EN DIRECT', align: 'left', size: 26 * u, weight: 700, spacing: 0.28, x: W * 0.09 + 48 * u, y: H * 0.157, w: W * 0.5, fontRole: 'body' }),
     ...title2(ctx, W * 0.08, H * 0.36, { w1: '{liveW1}', w2: '{liveW2}', plain: '{livePlain}', align: 'left', w: W * 0.84 }),
     text({ name: 'Titre du stream', tpl: '{liveTitle}', align: 'left', size: 40 * u, weight: 600, x: W * 0.09, y: H * 0.56, w: W * 0.6, lineHeight: 1.15, fontRole: 'body' }),
     shape({ name: 'Bouton Twitch', shape: 'rect', radius: 40, fill: '$panel', stroke: '$accent', strokeWidth: 2.5, x: W * 0.09, y: H * 0.8, w: W * 0.62, h: 84 * u, fx: glowFx('$accent', 24, 0.4) }),
     text({ name: 'Lien', tpl: '{liveUrl}', upper: true, size: 28 * u, weight: 700, spacing: 0.08, color: '$accent', x: W * 0.09 + 20 * u, y: H * 0.8 + 26 * u, w: W * 0.62 - 40 * u, fontRole: 'body' }),
+    ...frame(ctx, { tl: gameName(ctx), tr: '{org}', bl: '{org}', br: 'LIVE' }),
     ...finish(ctx),
   ];
 }

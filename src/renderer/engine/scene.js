@@ -435,7 +435,9 @@ function drawEffect(c, L, env, b) {
       fc.globalCompositeOperation = 'source-in'; fc.fillStyle = col; fc.fillRect(0, 0, b.w, b.h);
       fc.globalCompositeOperation = 'destination-in';
       const gv = fc.createLinearGradient(0, 0, 0, b.h);
-      gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(0.45, 'rgba(0,0,0,0.6)'); gv.addColorStop(1, '#000');
+      // plus dense en bas ; si la fumée s'arrête avant le bas de l'affiche, elle s'estompe au lieu de finir net
+      const inside = b.y + b.h < env.H - 2;
+      gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(inside ? 0.4 : 0.45, 'rgba(0,0,0,0.6)'); gv.addColorStop(inside ? 0.72 : 1, '#000'); if (inside) gv.addColorStop(1, 'rgba(0,0,0,0)');
       fc.fillStyle = gv; fc.fillRect(0, 0, b.w, b.h);
       if ((L.sides ?? 0.7) > 0) {
         const gh = fc.createLinearGradient(0, 0, b.w, 0), k = L.sides ?? 0.7;

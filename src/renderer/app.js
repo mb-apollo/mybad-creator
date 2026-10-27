@@ -1,5 +1,6 @@
 // MyBad Creator — démarrage, barre d'outils, fichiers, export, kit de marque, bibliothèque et mises à jour.
 import { S, API, on, emit, change, setDoc, normalize, select, selected, layerById, undo, redo, canUndo, canRedo, flushHistory, setDirty, resetHistory, toast } from './state.js';
+import * as posereg from './posereg.js';
 import { newDocument, applyTemplate, renderDoc, FORMATS, THEMES, setGameDefaults, MYBAD_KIT } from './engine/render.js';
 import { TEMPLATES } from './engine/templates.js';
 import { makeEnv, docImageUrls, whenLoaded, onImageLoaded } from './engine/assets.js';
@@ -51,10 +52,12 @@ function updateStatus() {
 // ---------------------------------------------------------------- changements de modèle / format / jeu
 function switchTemplate(key) {
   if (key === S.doc.tpl) return;
-  change(d => applyTemplate(d, key), { immediate: true, full: true });
+  // les réglages propres à une affiche ne suivent pas quand on change d'affiche (seuls les réglages globaux restent)
+  change(d => { d.finish = {}; applyTemplate(d, key); }, { immediate: true, full: true });
   select([]);
   P.markGallery(); updateStatus();
   if (tab === 'content') P.renderContent();
+  if (tab === 'look') P.renderLook();
 }
 P.actions.switchTemplate = switchTemplate;
 $('#fmtSeg').addEventListener('click', e => {
@@ -715,7 +718,7 @@ async function boot() {
 boot();
 
 // Accès pour les tests automatisés
-window.__creator = { exportCanvas, modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles };
+window.__creator = { posereg, exportCanvas, modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles };
 P.actions.togglePoseEdit = togglePoseEdit;
 P.actions.poseEditOn = () => !!getPoseEdit();
 void copySelected; void selected; void resetHistory; void emit; void icon;

@@ -1,1 +1,4 @@
-- Astra : ses cheveux et les perles qui traversaient la capuche sont retirés
+- Roster et autres affiches : plus de coupure nette en bas, le cadre et le texte du pied ne sont plus recouverts par les dégradés
+- Les ombres des agents viennent maintenant droit vers nous, dans l'axe de la lumière de contre-jour
+- Thème Azur : coins du cadre, textes secondaires et panneaux plus clairs
+- Les réglages propres à une affiche ne suivent plus quand on change d'affiche (seuls les réglages globaux restent)

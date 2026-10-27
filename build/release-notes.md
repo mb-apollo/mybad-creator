@@ -1,4 +1,3 @@
-- Studio de poses : boutons Enregistrer, Annuler et Rétablir (les changements restent un brouillon jusqu'à l'enregistrement), orientation par défaut de chaque agent, et arme déplaçable pour chaque pose (curseurs, ou Maj + glisser dans l'aperçu)
-- Réglages d'ambiance à deux niveaux dans l'onglet Thème : globaux pour toutes les affiches (grain, luminosité, exposition, vignette, saturation, contraste, lumières des personnages…), puis propres à chaque affiche
-- Onglet 3D : bouton « Pose par défaut de l'agent » pour revenir à la pose de l'agent après une pose générique
-- Correction : changer Victoire / Défaite, le nombre de lignes ou activer la 3D ne remet plus à zéro les poses, armes et visages réglés sur les personnages 3D
+- Rendu qualité : un bouton « Rendu qualité » calcule l'affiche avec des ombres douces, de l'occlusion ambiante, une légère profondeur de champ, un lissage des bords et une atmosphère (faisceaux, brume) ; trois niveaux Rapide, Élevé et Maximal
+- Export : choix de la qualité du rendu 3D (Normal, Rapide, Élevé, Maximal) dans le menu d'export
+- Le rendu normal reste instantané ; le rendu qualité s'efface dès que l'affiche est modifiée

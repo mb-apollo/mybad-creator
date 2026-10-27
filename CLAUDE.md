@@ -56,6 +56,11 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   Bouton « Pose par défaut de l'agent » (onglet 3D) : remet `pose: { on, auto: true, side }` et retire l'arme du personnage.
 - Réglages d'ambiance à 2 niveaux (`scene.js` : `LOOK_OPTS`, `finOf(doc)`) : globaux (localStorage `mbc.look`, panneau Thème) puis `doc.finish` par affiche ; ce sont des
   multiplicateurs (effets, exposition et lumières des personnages 3D, saturation, contraste). Les réglages 3D (pose, arme, visage) survivent à `applyTemplate` (render.js).
+- **Rendu qualité** (model3d.js, `runHQ` / `hqLayer`, `HQ_CFG`) : le rendu normal reste instantané ; le bouton « Rendu qualité » (barre du haut) et le choix « Qualité du rendu 3D »
+  de l'export calculent, calque 3D par calque, une accumulation d'échantillons (jitter de caméra = lissage, lumières déplacées = ombres douces, ouverture = profondeur de champ,
+  lumière du ciel ombrée = occlusion) à 1,5–2× la résolution, puis réduisent. Niveaux : rapide 32, élevé 160, maximal 1200 échantillons. `renderModel/renderStage(..., hq)` renvoient une
+  « session » (`hq.setup`) au lieu de rendre ; le résultat est dans `HQ` (clé = params + niveau), `QUALITY.level` (scene.js) l'active. Toute modification de l'affiche
+  repasse en normal. `atmosphere()` (scene.js) ajoute faisceaux et brume juste après le dernier calque 3D (textes intacts).
 - `src/renderer/custom.js` : modèles d'affiches personnalisés (localStorage, clés `custom:<id>` ajoutées à `TEMPLATES`).
 - Ambiance « nuit noire » (gabarits) : `finish()` (étalonnage 0,4, pas d'éclaircie, bloom 0,3, vignette 0,6, grain 0,22), `NIGHT_LIGHT` (lumière principale blanche et dure,
   contre-jour bleu, très peu d'ambiance), halos et étoiles réduits. Mesures de référence : noirs ≈ 1, centre ≈ 50, grain ≈ 0,9 (outil : mesurer sur un canvas).

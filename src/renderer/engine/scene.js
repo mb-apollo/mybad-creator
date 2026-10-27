@@ -318,6 +318,8 @@ export const LOOK_OPTS = [
   ['glow', 'Halos de fond', 0, 2], ['beam', 'Faisceau, traînées et barres', 0, 2], ['stars', 'Étoiles et constellations', 0, 3], ['smoke', 'Fumée', 0, 2], ['floor', 'Sol lumineux', 0, 2],
   ['exposure', 'Exposition des personnages', 0.4, 1.8], ['key', 'Lumière principale des personnages', 0, 2.5], ['rim', 'Contre-jour des personnages', 0, 2.5], ['ambient', 'Ambiance des personnages', 0, 3],
 ];
+// Niveau de qualité de rendu courant : 'normal' | 'rapide' | 'eleve' | 'max'.
+export const QUALITY = { level: 'normal' };
 let GLOBAL_LOOK = {};
 export const setGlobalLook = o => { GLOBAL_LOOK = o && typeof o === 'object' ? o : {}; };
 export const getGlobalLook = () => GLOBAL_LOOK;
@@ -625,6 +627,19 @@ export function renderLayer(ctx, L, env) {
   ctx.restore();
 }
 
+// Atmosphère du rendu qualité : faisceaux de lumière (flou radial des hautes lumières), brume basse et léger contraste.
+function atmosphere(c, W, H, level, th) {
+  const k = { rapide: 0.75, eleve: 1, max: 1.2 }[level] || 0.8, col = color('$glow', th) || '#3a8dff';
+  const src = pool('atmo', W, H), sc = src.getContext('2d');
+  sc.setTransform(1, 0, 0, 1, 0, 0); sc.clearRect(0, 0, W, H); sc.filter = 'brightness(0.8) contrast(3.4)'; sc.drawImage(c.canvas, 0, 0); sc.filter = 'none';
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'screen';
+  const ox = W * 0.5, oy = H * 0.04, n = 14;
+  for (let i = 1; i <= n; i++) { const z = 1 + i * 0.04; c.globalAlpha = 0.035 * k * (1 - i / (n + 2)); c.drawImage(src, ox - ox * z, oy - oy * z, W * z, H * z); }
+  const g = c.createLinearGradient(0, H * 0.55, 0, H); g.addColorStop(0, rgba(col, 0)); g.addColorStop(1, rgba(col, 0.11 * k));
+  c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, H * 0.55, W, H * 0.45);
+  c.globalCompositeOperation = 'source-over'; c.restore();
+}
+
 export function renderScene(canvas, doc, env0) {
   const W = Math.round(doc.W), H = Math.round(doc.H);
   if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
@@ -632,9 +647,11 @@ export function renderScene(canvas, doc, env0) {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none';
   const env = { ...env0, W, H, u: Math.min(W, H * 0.8) / 1080, theme: doc.theme, T: doc.T, fin: finOf(doc) };
-  for (const L of doc.layers) {
+  let lastModel = -1; doc.layers.forEach((L, i) => { if (L.type === 'model' && L.visible !== false) lastModel = i; });
+  doc.layers.forEach((L, i) => {
     try { renderLayer(ctx, L, env); } catch (e) { console.error('calque', L.name, e); }
-  }
+    if (i === lastModel && QUALITY.level !== 'normal' && env0.model3d) atmosphere(ctx, W, H, QUALITY.level, doc.theme);
+  });
   return canvas;
 }
 

@@ -9,8 +9,7 @@ import { initEditor, requestRender, fit, zoomTo, getZoom, setTool, addLayer, pas
 import * as P from './panels.js';
 import { initCustom, isCustom, scheduleSave as saveCustomModel } from './custom.js';
 initCustom();
-import { QUALITY, scaledDoc } from './engine/scene.js';
-import { initModels, materialize, runHQ, HQ_LEVELS, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels, poseHandles, startPoseDrag, dragPoseHandle } from './model3d.js';
+import { initModels, materialize, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels, poseHandles, startPoseDrag, dragPoseHandle } from './model3d.js';
 import { openPoseLab } from './poselab.js';
 
 // ---------------------------------------------------------------- environnement de rendu
@@ -302,56 +301,11 @@ function afterDocLoad() {
 }
 
 // ---------------------------------------------------------------- export
-let exportOpt = { type: 'png', scale: 1, quality: 'normal' };
-
-// ---------------------------------------------------------------- rendu qualité
-let hqCancel = false, hqRunning = false;
-function hqShow(title, text, frac) {
-  $('#hqOverlay').hidden = false; $('#hqTitle').textContent = title; $('#hqText').textContent = text; $('#hqBar').style.width = Math.round((frac || 0) * 100) + '%';
-}
-// Calcule le rendu qualité d'un document avec la fenêtre de progression ; false si annulé.
-async function hqCompute(doc, level, exporting, title) {
-  hqCancel = false; hqRunning = true;
-  const name = HQ_LEVELS.find(x => x[0] === level)?.[1] || level;
-  hqShow(title, 'Préparation…', 0);
-  const t0 = Date.now();
-  try {
-    return await runHQ(doc, level, exporting, ({ layer, layers, frac }) => {
-      const tot = (layer + frac) / layers, el = (Date.now() - t0) / 1000, left = tot > 0.03 ? Math.max(0, el / tot - el) : null;
-      hqShow(title, `Niveau ${name} · calque 3D ${layer + 1} / ${layers} · ${Math.round(tot * 100)} %${left != null ? ' · reste ~' + (left > 90 ? Math.round(left / 60) + ' min' : Math.round(left) + ' s') : ''}`, tot);
-    }, () => hqCancel);
-  } finally { hqRunning = false; $('#hqOverlay').hidden = true; }
-}
-$('#hqCancel').onclick = () => { hqCancel = true; };
-function updateHqBtn() {
-  const l = QUALITY.level, n = HQ_LEVELS.find(x => x[0] === l)?.[1];
-  $('#hqLabel').textContent = l === 'normal' ? 'Rendu qualité' : 'Rendu : ' + n;
-  $('#btnHQ').classList.toggle('on', l !== 'normal');
-  $('#hqMenu').innerHTML = HQ_LEVELS.map(([k, label, hint]) => `<button class="menu-item ${k === l ? 'on' : ''}" data-q="${k}">${label}<small>${hint}</small></button>`).join('')
-    + '<div class="menu-label">Le rendu qualité s\'efface dès que tu modifies l\'affiche : relance-le pour un nouveau calcul.</div>';
-}
-$('#btnHQ').onclick = e => { e.stopPropagation(); closeMenus(); updateHqBtn(); $('#hqMenu').hidden = !$('#hqMenu').hidden; };
-$('#hqMenu').onclick = async e => {
-  e.stopPropagation();
-  const b = e.target.closest('[data-q]'); if (!b) return;
-  closeMenus(); const level = b.dataset.q;
-  if (level === 'normal') { QUALITY.level = 'normal'; updateHqBtn(); requestRender(); return; }
-  await prepare(S.doc);
-  const ok = await hqCompute(S.doc, level, false, 'Rendu qualité');
-  if (ok) { QUALITY.level = level; toast('Rendu qualité « ' + HQ_LEVELS.find(x => x[0] === level)[1] + ' » prêt'); }
-  updateHqBtn(); requestRender();
-};
-async function exportCanvas(doc = S.doc, scale = exportOpt.scale, quality = exportOpt.quality || 'normal') {
+let exportOpt = { type: 'png', scale: 1 };
+async function exportCanvas(doc = S.doc, scale = exportOpt.scale) {
   await prepare(doc);
-  const cv = document.createElement('canvas'), prev = QUALITY.level;
-  try {
-    if (quality !== 'normal') {
-      const ok = await hqCompute(scaledDoc(doc, scale), quality, true, 'Export en rendu qualité');
-      if (!ok) return null;
-      QUALITY.level = quality;
-    } else QUALITY.level = 'normal';
-    renderDoc(cv, doc, env(doc, true), scale);
-  } finally { QUALITY.level = prev; updateHqBtn(); }
+  const cv = document.createElement('canvas');
+  renderDoc(cv, doc, env(doc, true), scale);
   return cv;
 }
 const toB64 = (cv, type) => cv.toDataURL(type === 'jpg' ? 'image/jpeg' : 'image/png', 0.95).split(',')[1];
@@ -361,7 +315,6 @@ async function exportPoster() {
   const t = progressToast('Préparation de l\'export…');
   const cv = await exportCanvas();
   t.close();
-  if (!cv) { toast('Export annulé'); return; }
   const p = await API.exportImage({ base64: toB64(cv, exportOpt.type), name: exportName(), ext: exportOpt.type });
   if (p) toast(`Affiche exportée (${cv.width} × ${cv.height})`, false, { label: 'Afficher', fn: () => API.showInFolder(p) });
 }
@@ -374,7 +327,6 @@ async function exportAll() {
     const d = JSON.parse(JSON.stringify({ ...S.doc, assets: {} })); d.assets = S.doc.assets;
     d.fmt = fmt; applyTemplate(d, d.tpl);
     const cv = await exportCanvas(d);
-    if (!cv) { t.close(); toast('Export annulé'); return; }
     last = await API.writeInFolder({ folder, name: `${exportName(fmt)}.${exportOpt.type}`, base64: toB64(cv, exportOpt.type) });
   }
   t.close();
@@ -382,7 +334,7 @@ async function exportAll() {
 }
 async function copyImage() {
   if (!API) return;
-  const cv = await exportCanvas(S.doc, 1, 'normal');
+  const cv = await exportCanvas(S.doc, 1);
   await API.copyImage(cv.toDataURL('image/png'));
   toast('Affiche copiée : colle-la directement dans Discord ou X');
 }
@@ -393,9 +345,9 @@ $('#exportMenu').onclick = e => {
   e.stopPropagation();
   const b = e.target.closest('button'); if (!b) return;
   const s = b.parentElement;
-  if (s.id === 'expType' || s.id === 'expScale' || s.id === 'expQual') {
+  if (s.id === 'expType' || s.id === 'expScale') {
     $$('button', s).forEach(x => x.classList.toggle('on', x === b));
-    if (s.id === 'expType') exportOpt.type = b.dataset.v; else if (s.id === 'expQual') exportOpt.quality = b.dataset.v; else exportOpt.scale = +b.dataset.v;
+    if (s.id === 'expType') exportOpt.type = b.dataset.v; else exportOpt.scale = +b.dataset.v;
     API?.storeSet('exportOpt', exportOpt);
   }
 };
@@ -698,7 +650,6 @@ on('pointer', p => { $('#stPos').textContent = `${Math.round(p[0])}, ${Math.roun
 // ---------------------------------------------------------------- réactions aux changements
 let layersRaf = 0;
 on('doc', o => {
-  if (QUALITY.level !== 'normal' && !hqRunning) { QUALITY.level = 'normal'; updateHqBtn(); }
   updateUndo(); saveSession();
   if (!layersRaf) layersRaf = requestAnimationFrame(() => { layersRaf = 0; P.renderLayers(); });
   if (o && o.live) return; // pendant un glisser, on ne reconstruit pas les panneaux
@@ -749,7 +700,6 @@ async function boot() {
   if (!doc) doc = newDocument(S.kit);
   $$('#expType button').forEach(b => b.classList.toggle('on', b.dataset.v === exportOpt.type));
   $$('#expScale button').forEach(b => b.classList.toggle('on', +b.dataset.v === exportOpt.scale));
-  $$('#expQual button').forEach(b => b.classList.toggle('on', b.dataset.v === (exportOpt.quality || 'normal')));
   await prepare(doc);
   $('#boot').hidden = true; $('#app').hidden = false;
   setDoc(doc);
@@ -764,7 +714,7 @@ async function boot() {
 boot();
 
 // Accès pour les tests automatisés
-window.__creator = { exportCanvas, modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles };
+window.__creator = { modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles };
 P.actions.togglePoseEdit = togglePoseEdit;
 P.actions.poseEditOn = () => !!getPoseEdit();
 void copySelected; void selected; void resetHistory; void emit; void icon;

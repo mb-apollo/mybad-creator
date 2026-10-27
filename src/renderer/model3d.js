@@ -5,7 +5,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { S, change } from './state.js';
 import { section, range, toggle, select as sel, seg, colorCtl, pct, deg, icon, esc, getPath, setPath } from './ui.js';
-import { color, finOf, QUALITY } from './engine/scene.js';
+import { color, finOf } from './engine/scene.js';
 import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
 import { sceneDefaults } from './engine/templates.js';
@@ -192,8 +192,8 @@ function instance(url, L, gltf) {
   return inst;
 }
 
-function renderModel(L, w, h, theme, exporting, hq) {
-  if (L.actors) return renderStage(L, w, h, theme, exporting, hq);
+function renderModel(L, w, h, theme, exporting) {
+  if (L.actors) return renderStage(L, w, h, theme, exporting);
   const url = modelUrl(S.doc_override || S.doc, L.model);
   if (!url) return null;
   const m = load(url);
@@ -206,13 +206,11 @@ function renderModel(L, w, h, theme, exporting, hq) {
   const fin = finOf(wdoc), arot = agentRotY(agentKeyOf(wdoc, L.model));
   const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, theme.glow, theme.accent, theme.text]);
   const cached = RENDERS.get(L.id);
-  if (!hq) { const early = hqEarly(L, params, cached); if (early !== undefined) return early; }
-  const sw = hq ? Math.round(pw * hq.ss) : pw, sh = hq ? Math.round(ph * hq.ss) : ph;
-  if (!hq && cached && cached.key === params) return cached.canvas;
+  if (cached && cached.key === params) return cached.canvas;
 
   const inst = instance(url, L, m.gltf);
   const r = getRenderer();
-  r.setSize(sw, sh, false);
+  r.setSize(pw, ph, false);
   r.toneMappingExposure = (L.exposure ?? 1.05) * (fin.exposure ?? 1);
   const scene = new THREE.Scene();
   scene.environment = envTex;
@@ -239,7 +237,7 @@ function renderModel(L, w, h, theme, exporting, hq) {
   const col = c => new THREE.Color(color(c, theme) || '#ffffff');
   const lit = (o, def, k) => ({ ...(o || {}), intensity: (o?.intensity ?? def) * (k ?? 1) });
   const amb = lit(L.ambient, 0.7, fin.ambient), key = lit(L.key, 1.6, fin.key), rim = lit(L.rim, 4, fin.rim), fill = lit(L.fill, 0.4, fin.ambient);
-  const hemi = new THREE.HemisphereLight(col(amb.color || '$glow'), new THREE.Color('#05060c'), amb.intensity ?? 0.7); scene.add(hemi);
+  scene.add(new THREE.HemisphereLight(col(amb.color || '$glow'), new THREE.Color('#05060c'), amb.intensity ?? 0.7));
   const kl = new THREE.DirectionalLight(col(key.color || '#ffffff'), key.intensity ?? 1.6);
   const ka = (key.angle ?? -35) * Math.PI / 180; kl.position.set(Math.sin(ka) * 3, 2.4, Math.cos(ka) * 3); scene.add(kl);
   const rl = new THREE.DirectionalLight(col(rim.color || '$glow'), rim.intensity ?? 4);
@@ -259,12 +257,10 @@ function renderModel(L, w, h, theme, exporting, hq) {
   const cam = new THREE.PerspectiveCamera(fov, pw / ph, 0.01, 100);
   cam.position.set((L.offsetX || 0) * sz.y, targetY + Math.sin(pitch) * dist, Math.cos(pitch) * dist);
   cam.lookAt((L.offsetX || 0) * sz.y, targetY, 0);
-  const frame = () => r.render(scene, cam);
-  const cleanup = () => { dropWeapons([held]); scene.remove(inst.pivot); };
-  if (hq) { hq.setup = { r, scene, cam, frame, cleanup, sw, sh, pw, ph, key: params, lights: { hemi, kl, rl, rl2 }, target: new THREE.Vector3((L.offsetX || 0) * sz.y, targetY, 0), half: 2.4, dist }; return null; }
-  frame();
+  r.render(scene, cam);
   recordHandles(L, cam, [{ inst, actor: null }]);
-  cleanup();
+  dropWeapons([held]);
+  scene.remove(inst.pivot);
 
   const out = cached?.canvas || document.createElement('canvas');
   out.width = pw; out.height = ph;
@@ -419,7 +415,7 @@ function fadeMaterials(group, k, on) {
   });
 }
 
-function renderStage(L, w, h, theme, exporting, hq) {
+function renderStage(L, w, h, theme, exporting) {
   const doc = S.doc_override || S.doc;
   const list = (L.actors || []).map(a => { const pr = resolvePose(a.pose, agentKeyOf(doc, a.model)); return { a, pr, wd: weaponOf(a, pr), url: modelUrl(doc, a.model) }; }).filter(x => x.url);
   list.forEach(x => load(x.url));
@@ -431,12 +427,10 @@ function renderStage(L, w, h, theme, exporting, hq) {
   ready.forEach(x => { x.arot = agentRotY(agentKeyOf(doc, x.a.model)); const u = weaponUrl(doc, x.wd); if (u) load(u); });
   const params = JSON.stringify([pw, ph, fin.exposure, fin.key, fin.rim, fin.ambient, ready.map(x => [x.url, { ...x.a, pose: x.pr, weapon: x.wd, arot: x.arot }, MODELS.get(weaponUrl(doc, x.wd))?.status]), fl, L.exposure, L.envLight, L.camPitch, L.zoom3d, L.target, L.fov, L.offsetX, L.key, L.rim, L.fill, L.ambient, theme.glow, theme.accent, theme.text, theme.bg, theme.bg2]);
   const cached = RENDERS.get(L.id);
-  if (!hq) { const early = hqEarly(L, params, cached); if (early !== undefined) return early; }
-  const sw = hq ? Math.round(pw * hq.ss) : pw, sh = hq ? Math.round(ph * hq.ss) : ph;
-  if (!hq && cached && cached.key === params) return cached.canvas;
+  if (cached && cached.key === params) return cached.canvas;
 
   const r = getRenderer();
-  r.setSize(sw, sh, false);
+  r.setSize(pw, ph, false);
   r.toneMappingExposure = (L.exposure ?? 1.05) * (fin.exposure ?? 1);
   const scene = new THREE.Scene();
   scene.environment = envTex;
@@ -470,7 +464,7 @@ function renderStage(L, w, h, theme, exporting, hq) {
   const col = c => new THREE.Color(color(c, theme) || '#ffffff');
   const lit = (o, def, k) => ({ ...(o || {}), intensity: (o?.intensity ?? def) * (k ?? 1) });
   const amb = lit(L.ambient, 0.7, fin.ambient), key = lit(L.key, 1.6, fin.key), rim = lit(L.rim, 4, fin.rim), fill = lit(L.fill, 0.4, fin.ambient);
-  const hemi = new THREE.HemisphereLight(col(amb.color || '$glow'), new THREE.Color('#05060c'), amb.intensity ?? 0.7); scene.add(hemi);
+  scene.add(new THREE.HemisphereLight(col(amb.color || '$glow'), new THREE.Color('#05060c'), amb.intensity ?? 0.7));
   const kl = new THREE.DirectionalLight(col(key.color || '#ffffff'), key.intensity ?? 1.6);
   const ka = (key.angle ?? -35) * Math.PI / 180; kl.position.set(Math.sin(ka) * 3, 2.4, Math.cos(ka) * 3); scene.add(kl);
   const rl = new THREE.DirectionalLight(col(rim.color || '$glow'), rim.intensity ?? 4);
@@ -503,132 +497,27 @@ function renderStage(L, w, h, theme, exporting, hq) {
   cam.lookAt(cx, targetY, 0);
 
   const show = (f, s, a) => { dark.visible = glow.visible = f; shadow.visible = s; group.visible = a; };
-  const frame = () => {
-    r.autoClear = false; r.setClearColor(0x000000, 0); r.clear(true, true, true);
-    if (fl.on && (fl.reflect ?? 0.3) > 0) {
-      show(false, false, true);
-      group.scale.y = -1; fadeMaterials(group, fl.reflect ?? 0.3, true);
-      r.render(scene, cam);
-      fadeMaterials(group, 0, false); group.scale.y = 1; r.clearDepth();
-    }
-    if (fl.on) { show(true, false, false); r.render(scene, cam); r.clearDepth(); }
-    show(false, !!fl.on, true); r.render(scene, cam);
-    r.autoClear = true;
-  };
-  const cleanup = () => {
-    dropWeapons(heldAll);
-    used.forEach(inst => { group.remove(inst.pivot); inst.pivot.scale.setScalar(inst.baseScale); inst.pivot.position.set(0, 0, 0); });
-    geo.dispose(); dark.material.dispose(); glow.material.dispose(); shadow.material.dispose();
-  };
-  if (hq) { hq.setup = { r, scene, cam, frame, cleanup, sw, sh, pw, ph, key: params, lights: { hemi, kl, rl, rl2 }, target: new THREE.Vector3(cx, targetY, 0), half: 4.5, dist }; return null; }
-  frame();
+  r.autoClear = false; r.setClearColor(0x000000, 0); r.clear(true, true, true);
+  if (fl.on && (fl.reflect ?? 0.3) > 0) {
+    show(false, false, true);
+    group.scale.y = -1; fadeMaterials(group, fl.reflect ?? 0.3, true);
+    r.render(scene, cam);
+    fadeMaterials(group, 0, false); group.scale.y = 1; r.clearDepth();
+  }
+  if (fl.on) { show(true, false, false); r.render(scene, cam); r.clearDepth(); }
+  show(false, !!fl.on, true); r.render(scene, cam);
+  r.autoClear = true;
   recordHandles(L, cam, handleEntries);
-  cleanup();
+  dropWeapons(heldAll);
+
+  used.forEach(inst => { group.remove(inst.pivot); inst.pivot.scale.setScalar(inst.baseScale); inst.pivot.position.set(0, 0, 0); });
+  geo.dispose(); dark.material.dispose(); glow.material.dispose(); shadow.material.dispose();
 
   const out = cached?.canvas || document.createElement('canvas');
   out.width = pw; out.height = ph;
   const c = out.getContext('2d'); c.clearRect(0, 0, pw, ph); c.drawImage(r.domElement, 0, 0);
   RENDERS.set(L.id, { key: params, canvas: out });
   return out;
-}
-
-// ---------------------------------------------------------------- rendu qualité
-// Accumulation d'échantillons : chaque image est rendue avec un décalage de caméra (lissage), une lumière légèrement déplacée (ombres douces),
-// un point de vue décalé sur l'ouverture (profondeur de champ) et une lumière du ciel tirée au hasard avec ombres (occlusion ambiante).
-export const HQ_LEVELS = [['normal', 'Normal', 'aperçu rapide'], ['rapide', 'Rapide', 'quelques secondes'], ['eleve', 'Élevé', 'quelques secondes à 1 minute'], ['max', 'Maximal', '1 à plusieurs minutes']];
-const HQ_CFG = {
-  rapide: { samples: 32, ss: 1.5, aperture: 0.004, soft: 2.5 },
-  eleve: { samples: 160, ss: 2, aperture: 0.006, soft: 4 },
-  max: { samples: 1200, ss: 2, aperture: 0.008, soft: 5 },
-};
-const HQ = new Map();        // id de calque -> { key, canvas } : rendu qualité calculé
-let HQBUSY = false;          // un calcul est en cours : les rendus normaux n'y touchent pas
-function hqEarly(L, params, cached) {
-  if (HQBUSY) return cached ? cached.canvas : null;   // calcul en cours : on ne touche à rien
-  if (QUALITY.level !== 'normal') { const e = HQ.get(L.id); if (e && e.key === params + '|' + QUALITY.level) return e.canvas; }
-  return undefined;
-}
-const halton = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
-const nap = () => new Promise(r => setTimeout(r, 0));
-
-// Calcule le rendu qualité de tous les calques 3D visibles d'un document. Renvoie false si annulé.
-export async function runHQ(doc, level, exporting, onProgress, cancelled) {
-  const cfg = HQ_CFG[level]; if (!cfg) return true;
-  const layers = doc.layers.filter(L => L.type === 'model' && L.visible !== false);
-  HQBUSY = true;
-  try {
-    for (let li = 0; li < layers.length; li++) {
-      const L = layers[li], k0 = Math.min(1, (exporting ? 4096 : 1400) / Math.max(L.w, L.h));
-      const pw0 = Math.max(16, Math.round(L.w * k0)), ph0 = Math.max(16, Math.round(L.h * k0));
-      const sess = { ss: Math.max(1, Math.min(cfg.ss, Math.sqrt(9e6 / (pw0 * ph0)))), setup: null };
-      for (let t = 0; t < 60 && !sess.setup; t++) {            // les modèles peuvent encore se charger
-        S.doc_override = doc;
-        try { renderModel(L, L.w, L.h, doc.theme, exporting, sess); } finally { S.doc_override = null; }
-        if (!sess.setup) await new Promise(r => setTimeout(r, 250));
-      }
-      const st = sess.setup; if (!st) continue;
-      const ok = await hqLayer(L, st, cfg, level, (f) => onProgress?.({ layer: li, layers: layers.length, frac: f }), cancelled);
-      if (!ok) return false;
-    }
-    return true;
-  } finally { HQBUSY = false; }
-}
-
-async function hqLayer(L, st, cfg, level, onFrac, cancelled) {
-  const { r, scene, cam, frame, sw, sh, pw, ph, lights, target, half, dist } = st;
-  const V = THREE.Vector3, K = cfg.samples;
-  // les personnages projettent et reçoivent des ombres (occlusion, ombres portées sur eux-mêmes)
-  const flags = [];
-  scene.traverse(o => {
-    if (!o.isMesh || o.material?.isMeshBasicMaterial || o.material?.isShadowMaterial) return;
-    flags.push([o, o.castShadow, o.receiveShadow]); o.castShadow = true; o.receiveShadow = true;
-  });
-  const shadowOf = l => { l.castShadow = true; l.shadow.mapSize.set(2048, 2048); l.shadow.bias = -0.0005; l.shadow.normalBias = 0.02; l.shadow.radius = 4;
-    const c = l.shadow.camera; c.left = -half; c.right = half; c.top = half; c.bottom = -half; c.near = 0.5; c.far = 14; c.updateProjectionMatrix(); };
-  const hemiI = lights.hemi.intensity; lights.hemi.intensity = hemiI * 0.5;
-  const sky = new THREE.DirectionalLight(lights.hemi.color.clone(), hemiI * 2.4); shadowOf(sky); scene.add(sky);
-  const prev = { kl: lights.kl.castShadow, rl: lights.rl.castShadow };
-  shadowOf(lights.kl); if (!prev.rl) shadowOf(lights.rl);
-  const base = { kl: lights.kl.position.clone(), rl: lights.rl.position.clone(), rl2: lights.rl2.position.clone() }, camBase = cam.position.clone();
-  const ax = new V(1, 0, 0), ay = new V(0, 1, 0), soft = cfg.soft * Math.PI / 180;
-  const jit = (v, i, b) => v.clone().applyAxisAngle(ax, (halton(i, b) - 0.5) * 2 * soft).applyAxisAngle(ay, (halton(i, b + 2) - 0.5) * 2 * soft);
-  const acc = new Float32Array(sw * sh * 4), scratch = document.createElement('canvas');
-  scratch.width = sw; scratch.height = sh;
-  const sctx = scratch.getContext('2d', { willReadFrequently: true });
-  let done = 0;
-  try {
-    for (let i = 1; i <= K; i++) {
-      if (cancelled?.()) return false;
-      cam.position.copy(camBase); cam.lookAt(target); cam.updateMatrixWorld();
-      const right = new V().setFromMatrixColumn(cam.matrixWorld, 0), up = new V().setFromMatrixColumn(cam.matrixWorld, 1);
-      const ang = 2 * Math.PI * halton(i, 5), rad = Math.sqrt(halton(i, 7)) * dist * cfg.aperture;
-      cam.position.addScaledVector(right, Math.cos(ang) * rad).addScaledVector(up, Math.sin(ang) * rad); cam.lookAt(target);
-      cam.setViewOffset(sw, sh, halton(i, 2) - 0.5, halton(i, 3) - 0.5, sw, sh);
-      lights.kl.position.copy(jit(base.kl, i, 11)); lights.rl.position.copy(jit(base.rl, i, 13)); lights.rl2.position.copy(jit(base.rl2, i, 17));
-      const u = halton(i, 19), v = halton(i, 23), sr = Math.sqrt(v);
-      sky.position.set(Math.cos(2 * Math.PI * u) * sr, Math.sqrt(1 - v) * 0.92 + 0.08, Math.sin(2 * Math.PI * u) * sr).multiplyScalar(6);
-      r.setSize(sw, sh, false); frame();
-      sctx.clearRect(0, 0, sw, sh); sctx.drawImage(r.domElement, 0, 0);
-      const d = sctx.getImageData(0, 0, sw, sh).data;
-      for (let p = 0, n = sw * sh * 4; p < n; p += 4) { const a = d[p + 3]; if (!a) continue; const w = a / 255; acc[p] += d[p] * w; acc[p + 1] += d[p + 1] * w; acc[p + 2] += d[p + 2] * w; acc[p + 3] += w; }
-      done = i; onFrac(i / K);
-      await nap();
-    }
-  } finally {
-    scene.remove(sky); lights.hemi.intensity = hemiI;
-    lights.kl.position.copy(base.kl); lights.rl.position.copy(base.rl); lights.rl2.position.copy(base.rl2); lights.kl.castShadow = prev.kl; lights.rl.castShadow = prev.rl;
-    flags.forEach(([o, c, rc]) => { o.castShadow = c; o.receiveShadow = rc; });
-    cam.clearViewOffset(); st.cleanup();
-  }
-  if (!done) return false;
-  const big = document.createElement('canvas'); big.width = sw; big.height = sh;
-  const bctx = big.getContext('2d'), img = bctx.createImageData(sw, sh), o = img.data;
-  for (let p = 0, n = sw * sh * 4; p < n; p += 4) { const A = acc[p + 3]; if (A <= 0) continue; o[p] = acc[p] / A; o[p + 1] = acc[p + 1] / A; o[p + 2] = acc[p + 2] / A; o[p + 3] = Math.min(255, (A / done) * 255); }
-  bctx.putImageData(img, 0, 0);
-  const fin = document.createElement('canvas'); fin.width = pw; fin.height = ph;
-  const fctx = fin.getContext('2d'); fctx.imageSmoothingEnabled = true; fctx.imageSmoothingQuality = 'high'; fctx.drawImage(big, 0, 0, pw, ph);
-  HQ.set(L.id, { key: st.key + '|' + level, canvas: fin });
-  return true;
 }
 
 export function newSceneLayer() {

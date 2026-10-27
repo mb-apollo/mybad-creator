@@ -391,14 +391,3 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 #poselab .pl-ctl-head .btnrow { display: flex; gap: 6px; flex-wrap: wrap; }
 #poselab .pl-status.warn { color: #ffb84d; }
 #poselab .pl-top button:disabled { opacity: .4; cursor: default; }
-/* ---- Rendu qualité ---- */
-.hq-group { position: relative; }
-.hq-group .menu { right: auto; left: 0; min-width: 250px; }
-.hq-group .menu .menu-item small { display: block; color: var(--muted); font-size: 11px; }
-.hq-group .menu .menu-item.on { color: var(--cyan); }
-.hq-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(4, 6, 14, .72); display: flex; align-items: center; justify-content: center; }
-.hq-overlay[hidden] { display: none; }
-.hq-card { background: var(--panel, #10142a); border: 1px solid var(--line-2, #2a3157); border-radius: 12px; padding: 22px 26px; width: 360px; display: flex; flex-direction: column; gap: 12px; }
-.hq-card span { font-size: 12.5px; color: var(--muted); }
-.hq-bar { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .08); overflow: hidden; }
-.hq-bar i { display: block; height: 100%; width: 0; background: var(--cyan, #54d8ff); transition: width .15s; }

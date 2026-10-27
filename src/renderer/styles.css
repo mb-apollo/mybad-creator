@@ -389,3 +389,5 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 #poselab .pl-ren .input { flex: 1; min-width: 0; }
 #poselab .pl-ctl-head { flex-wrap: wrap; }
 #poselab .pl-ctl-head .btnrow { display: flex; gap: 6px; flex-wrap: wrap; }
+#poselab .pl-status.warn { color: #ffb84d; }
+#poselab .pl-top button:disabled { opacity: .4; cursor: default; }

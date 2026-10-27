@@ -5,12 +5,12 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { S, change } from './state.js';
 import { section, range, toggle, select as sel, seg, colorCtl, pct, deg, icon, esc, getPath, setPath } from './ui.js';
-import { color } from './engine/scene.js';
+import { color, finOf } from './engine/scene.js';
 import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
 import { sceneDefaults } from './engine/templates.js';
 import { addLayer } from './editor.js';
-import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf } from './posereg.js';
+import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf, agentRotY } from './posereg.js';
 import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, WEAPON_STANCES, FACES, applyFace, applyWrist, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams } from './pose3d.js';
 
 let deps = {};
@@ -59,7 +59,7 @@ export function materialize(L, path) {
   const m = /^(actors\.(\d+)\.)?(pose|weapon)\./.exec(path); if (!m) return;
   const owner = m[1] ? L.actors?.[+m[2]] : L; if (!owner) return;
   const doc = S.doc_override || S.doc, pzr = resolvePose(owner.pose, agentKeyOf(doc, owner.model));
-  if (owner.pose?.auto) { const { auto, side, weapon, ...rest } = JSON.parse(JSON.stringify(pzr)); owner.pose = { ...rest, on: true }; if (owner.weapon === undefined && weapon) owner.weapon = weapon; }
+  if (owner.pose?.auto) { const { auto, weapon, ...rest } = JSON.parse(JSON.stringify(pzr)); owner.pose = { ...rest, on: true }; if (owner.weapon === undefined && weapon) owner.weapon = weapon; }
   if (m[3] === 'weapon' && owner.weapon === undefined && pzr.weapon) owner.weapon = JSON.parse(JSON.stringify(pzr.weapon));
 }
 function load(url) {
@@ -102,7 +102,7 @@ const editablePose = (L, prefix) => {
   const P = getPath(L, prefix) || {};
   if (!P.auto) return P;
   const owner = prefix === 'pose' ? L : L.actors?.[+prefix.split('.')[1]];
-  const { auto, side, weapon, ...rest } = JSON.parse(JSON.stringify(resolvePose(P, agentKeyOf(S.doc_override || S.doc, owner?.model))));
+  const { auto, weapon, ...rest } = JSON.parse(JSON.stringify(resolvePose(P, agentKeyOf(S.doc_override || S.doc, owner?.model))));
   return rest;
 };
 export function startPoseDrag(L, h) {
@@ -203,14 +203,15 @@ function renderModel(L, w, h, theme, exporting) {
   const pw = Math.max(16, Math.round(w * k)), ph = Math.max(16, Math.round(h * k));
   const wdoc = S.doc_override || S.doc, pzr = resolvePose(L.pose, agentKeyOf(wdoc, L.model)), wdef = weaponOf(L, pzr), wurl = weaponUrl(wdoc, wdef);
   if (wurl) load(wurl);
-  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, theme.glow, theme.accent, theme.text]);
+  const fin = finOf(wdoc), arot = agentRotY(agentKeyOf(wdoc, L.model));
+  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, theme.glow, theme.accent, theme.text]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
   const inst = instance(url, L, m.gltf);
   const r = getRenderer();
   r.setSize(pw, ph, false);
-  r.toneMappingExposure = L.exposure ?? 1.05;
+  r.toneMappingExposure = (L.exposure ?? 1.05) * (fin.exposure ?? 1);
   const scene = new THREE.Scene();
   scene.environment = envTex;
   scene.environmentIntensity = L.envLight ?? 0.45;
@@ -231,10 +232,11 @@ function renderModel(L, w, h, theme, exporting) {
   applyFace(inst.root, L.face);
   const held = holdWeapon(wdoc, inst, wdef, 'L' + L.id, pz);
   cullStretched(inst.root);
-  inst.pivot.rotation.set(0, -inst.baseYaw + (L.rotY || 0) * Math.PI / 180, 0);
+  inst.pivot.rotation.set(0, -inst.baseYaw + ((L.rotY || 0) + arot) * Math.PI / 180, 0);
   inst.pivot.updateMatrixWorld(true);
   const col = c => new THREE.Color(color(c, theme) || '#ffffff');
-  const amb = L.ambient || {}, key = L.key || {}, rim = L.rim || {}, fill = L.fill || {};
+  const lit = (o, def, k) => ({ ...(o || {}), intensity: (o?.intensity ?? def) * (k ?? 1) });
+  const amb = lit(L.ambient, 0.7, fin.ambient), key = lit(L.key, 1.6, fin.key), rim = lit(L.rim, 4, fin.rim), fill = lit(L.fill, 0.4, fin.ambient);
   scene.add(new THREE.HemisphereLight(col(amb.color || '$glow'), new THREE.Color('#05060c'), amb.intensity ?? 0.7));
   const kl = new THREE.DirectionalLight(col(key.color || '#ffffff'), key.intensity ?? 1.6);
   const ka = (key.angle ?? -35) * Math.PI / 180; kl.position.set(Math.sin(ka) * 3, 2.4, Math.cos(ka) * 3); scene.add(kl);
@@ -337,8 +339,9 @@ export function modelPropAction(act, L, btn) {
     const prefix = btn.dataset.prefix, def = getPath(L, prefix);
     if (def?.key) {
       const kind = weaponKind(def.key), posePrefix = prefix.replace(/weapon$/, 'pose');
-      const { both, aim, hand, weapon: _w, ...pose } = stancePose(kind, btn.dataset.stance || 'pret');
-      change(() => { def.hand = hand || (both ? 'RL' : 'R'); def.both = def.hand === 'RL' || def.hand === 'LR'; def.aim = aim || null; setPath(L, posePrefix, { on: true, ...JSON.parse(JSON.stringify(pose)) }); }, { immediate: true });
+      const { both, aim, hand, weapon: _w, scale, x, y, z, rx, ry, rz, lx, ly, lz, lroll, ...pose } = stancePose(kind, btn.dataset.stance || 'pret');
+      const place = { scale, x, y, z, rx, ry, rz, lx, ly, lz, lroll };
+      change(() => { def.hand = hand || (both ? 'RL' : 'R'); def.both = def.hand === 'RL' || def.hand === 'LR'; def.aim = aim || null; for (const k in place) { if (place[k] != null) def[k] = place[k]; else delete def[k]; } setPath(L, posePrefix, { on: true, ...JSON.parse(JSON.stringify(pose)) }); }, { immediate: true });
     }
     deps.actions?.renderProps?.();
   }
@@ -366,6 +369,11 @@ export function modelPropAction(act, L, btn) {
   if (act === 'facePreset' && L) {
     const p = FACES.find(f => f[0] === btn.dataset.key);
     if (p) change(() => setPath(L, btn.dataset.prefix, JSON.parse(JSON.stringify(p[2]))), { immediate: true });
+    deps.actions?.renderProps?.();
+  }
+  if (act === 'poseAgent' && L) {
+    const prefix = btn.dataset.prefix, cur = getPath(L, prefix) || {}, wp = prefix.replace(/pose$/, 'weapon');
+    change(() => { setPath(L, prefix, { on: true, auto: true, side: cur.side || 0 }); const owner = prefix === 'pose' ? L : getPath(L, prefix.replace(/\.pose$/, '')); if (owner) delete owner.weapon; void wp; }, { immediate: true });
     deps.actions?.renderProps?.();
   }
   if (act === 'poseReset' && L) { change(() => setPath(L, btn.dataset.prefix, { on: true }), { immediate: true }); deps.actions?.renderProps?.(); }
@@ -415,15 +423,15 @@ function renderStage(L, w, h, theme, exporting) {
   if (!ready.length) return null;
   const maxPx = exporting ? 4096 : 1400, k = Math.min(1, maxPx / Math.max(w, h));
   const pw = Math.max(16, Math.round(w * k)), ph = Math.max(16, Math.round(h * k));
-  const fl = L.floor || {};
-  ready.forEach(x => { const u = weaponUrl(doc, x.wd); if (u) load(u); });
-  const params = JSON.stringify([pw, ph, ready.map(x => [x.url, { ...x.a, pose: x.pr, weapon: x.wd }, MODELS.get(weaponUrl(doc, x.wd))?.status]), fl, L.exposure, L.envLight, L.camPitch, L.zoom3d, L.target, L.fov, L.offsetX, L.key, L.rim, L.fill, L.ambient, theme.glow, theme.accent, theme.text, theme.bg, theme.bg2]);
+  const fl = L.floor || {}, fin = finOf(doc);
+  ready.forEach(x => { x.arot = agentRotY(agentKeyOf(doc, x.a.model)); const u = weaponUrl(doc, x.wd); if (u) load(u); });
+  const params = JSON.stringify([pw, ph, fin.exposure, fin.key, fin.rim, fin.ambient, ready.map(x => [x.url, { ...x.a, pose: x.pr, weapon: x.wd, arot: x.arot }, MODELS.get(weaponUrl(doc, x.wd))?.status]), fl, L.exposure, L.envLight, L.camPitch, L.zoom3d, L.target, L.fov, L.offsetX, L.key, L.rim, L.fill, L.ambient, theme.glow, theme.accent, theme.text, theme.bg, theme.bg2]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
   const r = getRenderer();
   r.setSize(pw, ph, false);
-  r.toneMappingExposure = L.exposure ?? 1.05;
+  r.toneMappingExposure = (L.exposure ?? 1.05) * (fin.exposure ?? 1);
   const scene = new THREE.Scene();
   scene.environment = envTex;
   scene.environmentIntensity = L.envLight ?? 0.45;
@@ -431,7 +439,7 @@ function renderStage(L, w, h, theme, exporting) {
 
   let maxX = 0.4, maxH = 1;
   const used = [], heldAll = [], handleEntries = [];
-  ready.forEach(({ a, url, pr, wd }, ai) => {
+  ready.forEach(({ a, url, pr, wd, arot }, ai) => {
     const inst = instance(url, L, MODELS.get(url).gltf);
     if (used.includes(inst)) return; // un même fichier ne peut apparaître qu'une fois dans la scène
     used.push(inst);
@@ -444,7 +452,7 @@ function renderStage(L, w, h, theme, exporting) {
     handleEntries.push({ inst, actor: (L.actors || []).indexOf(a) });
     cullStretched(inst.root);
     inst.pivot.scale.setScalar(inst.baseScale * (a.scale || 1));
-    inst.pivot.rotation.set(0, -inst.baseYaw + (a.rotY || 0) * Math.PI / 180, 0);
+    inst.pivot.rotation.set(0, -inst.baseYaw + ((a.rotY || 0) + arot) * Math.PI / 180, 0);
     inst.pivot.position.set(a.x || 0, 0, a.z || 0);
     inst.pivot.updateMatrixWorld(true);
     inst.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
@@ -454,7 +462,8 @@ function renderStage(L, w, h, theme, exporting) {
 
   // lumière : le contre-jour projette les ombres vers l'avant, sur le sol
   const col = c => new THREE.Color(color(c, theme) || '#ffffff');
-  const amb = L.ambient || {}, key = L.key || {}, rim = L.rim || {}, fill = L.fill || {};
+  const lit = (o, def, k) => ({ ...(o || {}), intensity: (o?.intensity ?? def) * (k ?? 1) });
+  const amb = lit(L.ambient, 0.7, fin.ambient), key = lit(L.key, 1.6, fin.key), rim = lit(L.rim, 4, fin.rim), fill = lit(L.fill, 0.4, fin.ambient);
   scene.add(new THREE.HemisphereLight(col(amb.color || '$glow'), new THREE.Color('#05060c'), amb.intensity ?? 0.7));
   const kl = new THREE.DirectionalLight(col(key.color || '#ffffff'), key.intensity ?? 1.6);
   const ka = (key.angle ?? -35) * Math.PI / 180; kl.position.set(Math.sin(ka) * 3, 2.4, Math.cos(ka) * 3); scene.add(kl);
@@ -539,7 +548,7 @@ const POSE_GROUPS = [
 // Poses prédéfinies et réglage fin membre par membre (« gauche » et « droite » sont celles du personnage).
 function poseControls(prefix, P) {
   const pz = P || {};
-  const head = toggle(`${prefix}.on`, 'Régler la pose', pz.on) + `<div class="btnrow"><button class="mini-btn" data-act="openPoseLab">${icon('hand')} Studio de poses (régler les poses par défaut)</button></div>`;
+  const head = toggle(`${prefix}.on`, 'Régler la pose', pz.on) + `<div class="btnrow"><button class="mini-btn" data-act="poseAgent" data-prefix="${prefix}">${icon('refresh')} Pose par défaut de l'agent</button><button class="mini-btn" data-act="openPoseLab">${icon('hand')} Studio de poses</button></div>`;
   if (!pz.on) return head + '<p class="hint">Active pour choisir une pose prédéfinie puis ajuster chaque membre.</p>';
   const editing = deps.actions?.poseEditOn?.();
   const v = poseValues(pz);

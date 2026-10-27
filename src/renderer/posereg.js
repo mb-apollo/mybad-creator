@@ -14,7 +14,23 @@ let REG = read();
 function read() {
   try { const r = JSON.parse(localStorage.getItem(KEY) || '{}'); return r && typeof r === 'object' ? r : {}; } catch { return {}; }
 }
-function write() { try { localStorage.setItem(KEY, JSON.stringify(REG)); } catch { /* stockage plein : le réglage reste valable jusqu'à la fermeture */ } }
+let DRAFT = false;                       // le Studio est ouvert : REG est un brouillon, SAVED la dernière version enregistrée
+let SAVED = null, HIST = { stack: [], i: -1, t: 0 };
+function store() { try { localStorage.setItem(KEY, JSON.stringify(REG)); } catch { /* stockage plein : le réglage reste valable jusqu'à la fermeture */ } }
+function write() { if (DRAFT) histPush(); else store(); }
+
+// ------------------------------------------------------------------ brouillon du Studio : enregistrer, annuler / rétablir
+const snap = () => JSON.stringify(REG);
+function histCommit() { clearTimeout(HIST.t); HIST.t = 0; const j = snap(); if (HIST.stack[HIST.i] === j) return; HIST.stack = HIST.stack.slice(0, HIST.i + 1); HIST.stack.push(j); if (HIST.stack.length > 200) HIST.stack.shift(); HIST.i = HIST.stack.length - 1; }
+function histPush() { clearTimeout(HIST.t); HIST.t = setTimeout(histCommit, 350); }   // un glissé de curseur = un seul pas d'historique
+export function beginDraft() { SAVED = snap(); DRAFT = true; HIST = { stack: [SAVED], i: 0, t: 0 }; }
+export function saveDraft() { histCommit(); SAVED = snap(); store(); }
+export function endDraft(save) { if (save) saveDraft(); else { REG = JSON.parse(SAVED); } DRAFT = false; SAVED = null; clearTimeout(HIST.t); }
+export const isDirty = () => DRAFT && snap() !== SAVED;
+export function undoDraft() { histCommit(); if (HIST.i <= 0) return false; REG = JSON.parse(HIST.stack[--HIST.i]); return true; }
+export function redoDraft() { histCommit(); if (HIST.i >= HIST.stack.length - 1) return false; REG = JSON.parse(HIST.stack[++HIST.i]); return true; }
+export const canUndoDraft = () => { histCommit(); return HIST.i > 0; };
+export const canRedoDraft = () => { histCommit(); return HIST.i < HIST.stack.length - 1; };
 
 // id : 'default' | 'agent:<clé>' | 'custom:<id>' | 'preset:<clé>' | 'stance:<fusil|pistolet>:<position>' | 'weapon:<arme>'
 const parse = id => { const [type, a, b] = id.split(':'); return { type, a, b }; };
@@ -97,6 +113,8 @@ export const presetsList = () => [
   ...customList().map(c => ['custom:' + c.id, c.name, getItem('custom:' + c.id)]),
 ];
 export const stancePose = (kind, stance) => getItem(`stance:${kind}:${stance}`);
+// Orientation par défaut d'un agent quand il est placé dans une scène (degrés, s'ajoute à la rotation du personnage).
+export const agentRotY = agent => (agent ? (REG.agents?.[agent]?.rotY ?? BUNDLED.agents?.[agent]?.rotY ?? 0) : 0);
 export const weaponDefaults = key => clone(REG.weapons?.[key] || BUNDLED.weapons?.[key] || {});
 
 // Pose « automatique » d'un personnage (calque neuf) : la pose de son agent si elle existe, sinon la pose par défaut, avec le léger décalage de son côté.

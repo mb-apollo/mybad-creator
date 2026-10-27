@@ -50,6 +50,12 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   **Pour figer une configuration exportée pour tout le monde** : copier son contenu (`data`) dans `poses-default.json` (clés `default`, `agents`, `custom`, `presets`,
   `stances`, `weapons`). Pose étendue : `shL/shR` {up,fwd}, `footL/footR` {pitch,yaw}, `handL/handR` {…, spread, flex, side, twist, index1…pinky3}.
   Arme : `aim` {x,y,z,pitch,yaw} (corps), `lx/ly/lz/lroll` (main secondaire), `x/y/z/rx/ry/rz/scale` (main principale).
+- Studio de poses, brouillon : `posereg.beginDraft / saveDraft / endDraft / undoDraft / redoDraft` (le Studio édite `REG` en mémoire ; seul « Enregistrer » écrit dans le
+  localStorage ; fermer propose d'enregistrer ou d'abandonner). Orientation par défaut d'un agent : `agent:<clé>`.rotY, lue par `agentRotY()` et ajoutée à la rotation
+  du personnage au rendu. Une pose peut porter le placement de l'arme (`weapon.x/y/z/rx/ry/rz/scale`, `weapon.lx/ly/lz/lroll`) ; Maj + glisser dans l'aperçu déplace la visée.
+  Bouton « Pose par défaut de l'agent » (onglet 3D) : remet `pose: { on, auto: true, side }` et retire l'arme du personnage.
+- Réglages d'ambiance à 2 niveaux (`scene.js` : `LOOK_OPTS`, `finOf(doc)`) : globaux (localStorage `mbc.look`, panneau Thème) puis `doc.finish` par affiche ; ce sont des
+  multiplicateurs (effets, exposition et lumières des personnages 3D, saturation, contraste). Les réglages 3D (pose, arme, visage) survivent à `applyTemplate` (render.js).
 - `src/renderer/custom.js` : modèles d'affiches personnalisés (localStorage, clés `custom:<id>` ajoutées à `TEMPLATES`).
 - Ambiance « nuit noire » (gabarits) : `finish()` (étalonnage 0,4, pas d'éclaircie, bloom 0,3, vignette 0,6, grain 0,22), `NIGHT_LIGHT` (lumière principale blanche et dure,
   contre-jour bleu, très peu d'ambiance), halos et étoiles réduits. Mesures de référence : noirs ≈ 1, centre ≈ 50, grain ≈ 0,9 (outil : mesurer sur un canvas).

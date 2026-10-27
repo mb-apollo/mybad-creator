@@ -7,7 +7,7 @@ import { esc, setPath, getPath, section, syncRange } from './ui.js';
 import { gameItems, WEAPONS } from './engine/games.js';
 import { renderModelPreview, HANDS } from './model3d.js';
 import { WEAPON_STANCES, poseValues } from './pose3d.js';
-import { getItem, setItem, resetItem, resetAll, hasOverride, overrideCount, exportConfig, importConfig, presetsList, customList, addCustom, renameCustom, deleteCustom } from './posereg.js';
+import { getItem, setItem, resetItem, resetAll, hasOverride, overrideCount, exportConfig, importConfig, presetsList, customList, addCustom, renameCustom, deleteCustom, beginDraft, saveDraft, endDraft, isDirty, undoDraft, redoDraft, canUndoDraft, canRedoDraft } from './posereg.js';
 
 const API = window.studio;
 const $ = (s, r = document) => r.querySelector(s);
@@ -76,17 +76,18 @@ function aimControls(prefix, a) {
 function poseWeaponControls(d) {
   const w = d.weapon;
   let h = selp('weapon.key', 'Arme tenue', w?.key || '', [['', 'Aucune arme'], ...WEAPONS.map(x => [x.key, x.name])]);
-  if (w?.key) h += selp('weapon.hand', 'Mains', w.hand || (WEAPONS.find(x => x.key === w.key)?.kind === 'rifle' ? 'RL' : 'R'), HANDS) + aimControls('weapon.aim', w.aim);
+  if (w?.key) h += selp('weapon.hand', 'Mains', w.hand || (WEAPONS.find(x => x.key === w.key)?.kind === 'rifle' ? 'RL' : 'R'), HANDS) + aimControls('weapon.aim', w.aim)
+    + section('Déplacer l\'arme dans la main', placementControls(w, 'weapon.'), false) + section('Main secondaire', secondaryControls(w, 'weapon.'), false);
   return h;
 }
-function placementControls(d) {
-  return rg('scale', 'Taille de l\'arme', d.scale ?? 1, 0.5, 1.6, '×', 0.01)
-    + rg('x', 'Décalage avant / arrière', d.x ?? 0, -0.3, 0.3, ' m', 0.005) + rg('y', 'Décalage haut / bas', d.y ?? 0, -0.3, 0.3, ' m', 0.005) + rg('z', 'Décalage gauche / droite', d.z ?? 0, -0.3, 0.3, ' m', 0.005)
-    + rg('rx', 'Roulis de l\'arme', d.rx ?? 0, -180, 180) + rg('ry', 'Cap de l\'arme', d.ry ?? 0, -180, 180) + rg('rz', 'Tangage de l\'arme', d.rz ?? 0, -180, 180);
+function placementControls(d, p = '') {
+  return rg(p + 'scale', 'Taille de l\'arme', d.scale ?? 1, 0.5, 1.6, '×', 0.01)
+    + rg(p + 'x', 'Décalage avant / arrière', d.x ?? 0, -0.3, 0.3, ' m', 0.005) + rg(p + 'y', 'Décalage haut / bas', d.y ?? 0, -0.3, 0.3, ' m', 0.005) + rg(p + 'z', 'Décalage gauche / droite', d.z ?? 0, -0.3, 0.3, ' m', 0.005)
+    + rg(p + 'rx', 'Roulis de l\'arme', d.rx ?? 0, -180, 180) + rg(p + 'ry', 'Cap de l\'arme', d.ry ?? 0, -180, 180) + rg(p + 'rz', 'Tangage de l\'arme', d.rz ?? 0, -180, 180);
 }
-function secondaryControls(d) {
-  return rg('lx', 'Main secondaire avant / arrière', d.lx ?? 0, -0.3, 0.3, ' m', 0.005) + rg('ly', 'Main secondaire haut / bas', d.ly ?? 0, -0.3, 0.3, ' m', 0.005) + rg('lz', 'Main secondaire côté', d.lz ?? 0, -0.3, 0.3, ' m', 0.005)
-    + rg('lroll', 'Rotation de la main secondaire', d.lroll ?? 0, -180, 180);
+function secondaryControls(d, p = '') {
+  return rg(p + 'lx', 'Main secondaire avant / arrière', d.lx ?? 0, -0.3, 0.3, ' m', 0.005) + rg(p + 'ly', 'Main secondaire haut / bas', d.ly ?? 0, -0.3, 0.3, ' m', 0.005) + rg(p + 'lz', 'Main secondaire côté', d.lz ?? 0, -0.3, 0.3, ' m', 0.005)
+    + rg(p + 'lroll', 'Rotation de la main secondaire', d.lroll ?? 0, -180, 180);
 }
 
 // ------------------------------------------------------------------ état et interface
@@ -103,26 +104,32 @@ function build() {
       <span class="pl-status" id="plStatus"></span>
       <span class="spacer"></span>
       <select class="input" id="plAgent" title="Personnage d'aperçu"></select>
+      <button class="ghost-btn" id="plUndo" title="Annuler (Ctrl+Z)">↶ Annuler</button>
+      <button class="ghost-btn" id="plRedo" title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
+      <button class="primary-btn" id="plSave" title="Applique tes réglages à toutes les affiches">Enregistrer</button>
       <button class="ghost-btn" id="plExport" title="Enregistrer tous les réglages dans un fichier">Exporter</button>
       <button class="ghost-btn" id="plImport" title="Reprendre un fichier exporté (fusionne avec tes réglages)">Importer</button>
       <button class="ghost-btn" id="plResetAll" title="Revenir aux poses d'origine du logiciel">Tout réinitialiser</button>
-      <button class="primary-btn" id="plClose">Fermer</button>
+      <button class="ghost-btn" id="plClose">Fermer</button>
     </div>
     <div class="pl-body">
       <nav class="pl-list" id="plList"></nav>
       <div class="pl-view">
         <canvas id="plCanvas" width="640" height="800"></canvas>
         <div class="pl-cam" id="plCam"></div>
-        <div class="pl-hint">Glisse sur l'aperçu pour tourner autour du personnage, molette pour zoomer.</div>
+        <div class="pl-hint">Glisse pour tourner autour du personnage, molette pour zoomer. <b>Maj + glisser</b> déplace l'arme (pose avec arme et visée activée).</div>
       </div>
       <div class="pl-ctl"><div class="pl-ctl-head" id="plHead"></div><div id="plControls"></div></div>
     </div>`;
   document.body.appendChild(root);
-  $('#plClose', root).onclick = closePoseLab;
+  $('#plClose', root).onclick = () => closePoseLab();
+  $('#plSave', root).onclick = () => { saveDraft(); status(); refreshList(); };
+  $('#plUndo', root).onclick = () => stepHistory(undoDraft);
+  $('#plRedo', root).onclick = () => stepHistory(redoDraft);
   $('#plExport', root).onclick = doExport; $('#plImport', root).onclick = doImport;
   $('#plResetAll', root).onclick = async () => {
     const ok = API?.confirm ? await API.confirm({ message: 'Revenir aux poses d\'origine ?', detail: 'Tous tes réglages du Studio (poses, poses génériques, armes) seront effacés. Pense à les exporter avant.', ok: 'Tout réinitialiser' }) : confirm('Tout réinitialiser ?');
-    if (ok) { resetAll(); if (!find(ST.id)) ST.id = 'default'; refreshList(); selectItem(ST.id); }
+    if (ok) { resetAll(); if (!find(ST.id)) ST.id = 'default'; refreshList(); selectItem(ST.id); status(); }
   };
   $('#plAgent', root).onchange = e => { ST.agent = e.target.value; preview(); };
   $('#plList', root).onclick = e => {
@@ -169,9 +176,13 @@ function build() {
   };
   // caméra : glisser pour tourner, molette pour zoomer
   const cv = $('#plCanvas', root);
-  cv.onpointerdown = e => { cv.setPointerCapture(e.pointerId); cv._x = e.clientX; };
-  cv.onpointermove = e => { if (cv._x == null) return; ST.cam.rotY = Math.max(-180, Math.min(180, ST.cam.rotY + (e.clientX - cv._x) * 0.5)); cv._x = e.clientX; preview(); };
-  cv.onpointerup = () => { cv._x = null; };
+  cv.onpointerdown = e => { try { cv.setPointerCapture(e.pointerId); } catch { /* pointeur synthétique */ } cv._x = e.clientX; cv._y = e.clientY; cv._mv = e.shiftKey && !!aimTarget(); };
+  cv.onpointermove = e => {
+    if (cv._x == null) return;
+    if (cv._mv) { dragWeapon(e.clientX - cv._x, e.clientY - cv._y, cv); cv._x = e.clientX; cv._y = e.clientY; return; }
+    ST.cam.rotY = Math.max(-180, Math.min(180, ST.cam.rotY + (e.clientX - cv._x) * 0.5)); cv._x = e.clientX; preview();
+  };
+  cv.onpointerup = () => { cv._x = null; cv._mv = false; };
   cv.onwheel = e => { e.preventDefault(); ST.cam.zoom3d = Math.max(0.5, Math.min(4, ST.cam.zoom3d * (e.deltaY < 0 ? 1.08 : 0.92))); preview(); };
   $('#plCam', root).onclick = e => {
     const b = e.target.closest('button[data-v]'); if (!b) return;
@@ -179,11 +190,23 @@ function build() {
     Object.assign(ST.cam, { rotY, camPitch, zoom3d, target, offsetX }); preview();
   };
   $('#plCam', root).innerHTML = [['Face', '0,3,1,0.5,0'], ['3/4', '-30,3,1,0.5,0'], ['Profil', '-90,3,1,0.5,0'], ['Dos', '180,3,1,0.5,0'], ['Dessus', '-30,55,1,0.5,0'], ['Buste', '-25,3,1.9,0.72,0'], ['Mains', '-40,10,2.6,0.6,0']].map(([l, v]) => `<button class="mini-btn" data-v="${v}">${l}</button>`).join('');
-  document.addEventListener('keydown', e => { if (ST.open && e.key === 'Escape' && !ST.rename) closePoseLab(); });
+  document.addEventListener('keydown', e => {
+    if (!ST.open) return;
+    const typing = /^(INPUT|TEXTAREA)$/.test(e.target.tagName) && e.target.type !== 'range' && e.target.type !== 'checkbox';
+    if ((e.ctrlKey || e.metaKey) && !typing && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); e.stopPropagation(); stepHistory(e.shiftKey ? redoDraft : undoDraft); }
+    else if ((e.ctrlKey || e.metaKey) && !typing && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); e.stopPropagation(); stepHistory(redoDraft); }
+    else if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); e.stopPropagation(); saveDraft(); status(); refreshList(); }
+    else if (e.key === 'Escape' && !ST.rename) closePoseLab();
+  }, true);
 }
 function deepDelete(o, path) { const ks = path.split('.'), last = ks.pop(); const p = ks.reduce((a, k) => a?.[k], o); if (p) delete p[last]; }
 
-const status = () => { $('#plStatus', root).textContent = overrideCount() + ' élément(s) personnalisé(s) · enregistré automatiquement'; };
+function stepHistory(fn) { if (!fn()) return; if (!find(ST.id)) ST.id = 'default'; refreshList(); selectItem(ST.id); }
+const status = () => {
+  $('#plStatus', root).textContent = overrideCount() + ' élément(s) personnalisé(s) · ' + (isDirty() ? 'modifications non enregistrées' : 'tout est enregistré');
+  $('#plStatus', root).classList.toggle('warn', isDirty());
+  $('#plSave', root).disabled = !isDirty(); $('#plUndo', root).disabled = !canUndoDraft(); $('#plRedo', root).disabled = !canRedoDraft();
+};
 function persist() {
   // un élément « poseur » (agent / générique) garde uniquement ses réglages
   setItem(ST.id, ST.data);
@@ -219,12 +242,13 @@ function renderControls() {
   $('#plHead', root).innerHTML = head;
   const stanceSel = `<div class="field"><label>Position utilisée pour l'aperçu</label><select class="input" data-path="__stance">${[...WEAPON_STANCES].map(([k, l]) => `<option value="${k}" ${k === ST.previewStance ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>`;
   let h = '';
-  if (POSE_TYPES.includes(it.type) || it.id.startsWith('preset:')) h = section('Arme de la pose', poseWeaponControls(d), !!d.weapon?.key) + poseControls(d);
+  if (POSE_TYPES.includes(it.type) || it.id.startsWith('preset:')) h = (it.type === 'agent' ? section('Orientation par défaut', rg('rotY', 'Rotation de l\'agent dans une scène', d.rotY ?? 0, -180, 180) + '<p class="hint">S\'ajoute à la rotation réglée sur le personnage quand cet agent est placé dans une affiche.</p>', true) : '') + section('Arme de la pose', poseWeaponControls(d), !!d.weapon?.key) + poseControls(d);
   else if (it.type === 'stance') {
     const prev = WEAPONS.filter(w => w.kind === it.kind).map(w => `<option value="${w.key}" ${ST.weapon[it.kind] === w.key ? 'selected' : ''}>${esc(w.name)}</option>`).join('');
     const hand = d.hand || (d.both ?? it.kind === 'rifle' ? 'RL' : 'R');
     h = `<div class="field"><label>Arme d'aperçu</label><select class="input" id="plWeapon">${prev}</select></div>`
-      + section('Arme', selp('hand', 'Mains', hand, HANDS) + aimControls('aim', d.aim), true) + poseControls(d);
+      + section('Arme', selp('hand', 'Mains', hand, HANDS) + aimControls('aim', d.aim), true)
+      + section('Déplacer l\'arme dans la main', placementControls(d), false) + section('Main secondaire', secondaryControls(d), false) + poseControls(d);
   } else if (it.type === 'weapon') {
     h = stanceSel + section('Placement dans la main principale', placementControls(d), true) + section('Main secondaire', secondaryControls(d), true)
       + `<p class="hint">Ces réglages s'appliquent à toutes les affiches. Pour régler les doigts, choisis une pose ou une position d'arme dans la liste.</p>`;
@@ -239,14 +263,31 @@ function mirror([from, to]) {
 }
 
 // ------------------------------------------------------------------ aperçu 3D
+const PLACE = ['scale', 'x', 'y', 'z', 'rx', 'ry', 'rz', 'lx', 'ly', 'lz', 'lroll'];
+const placeOf = d => Object.fromEntries(PLACE.filter(k => d[k] != null).map(k => [k, d[k]]));
 function previewLayer() {
   const it = find(ST.id), d = ST.data, ag = ST.agent;
   let pose, weapon = null;
-  if (it.type === 'stance') { const { both, aim, hand, ...p } = d; pose = { on: true, ...p }; weapon = { key: ST.weapon[it.kind], hand: hand || (both ?? it.kind === 'rifle' ? 'RL' : 'R'), both, aim }; }
+  if (it.type === 'stance') { const { both, aim, hand, ...p } = d; pose = { on: true, ...p }; weapon = { ...placeOf(d), key: ST.weapon[it.kind], hand: hand || (both ?? it.kind === 'rifle' ? 'RL' : 'R'), both, aim }; }
   else if (it.type === 'weapon') { const { both, aim, hand, ...p } = getItem(`stance:${it.kind}:${ST.previewStance}`); pose = { on: true, ...p }; weapon = { ...d, key: it.key, hand: hand || (both ?? it.kind === 'rifle' ? 'RL' : 'R'), both, aim }; }
   else { const { weapon: w, ...p } = d; pose = { on: true, ...p }; weapon = w?.key ? w : null; }
   return { id: 'poselab-preview', type: 'model', model: 'g:valorant:' + ag, x: 0, y: 0, w: 640, h: 800, rot: 0, ...ST.cam, fov: 28, anim: 0, animTime: 0,
     key: { color: '#ffffff', intensity: 1.5, angle: -35 }, rim: { color: '#7ab8ff', intensity: 2, angle: 150 }, fill: { color: '#ffffff', intensity: 0.7 }, ambient: { color: '#ffffff', intensity: 0.8 }, pose, weapon };
+}
+// Objet « visée » de l'élément en cours (pose avec arme, ou position d'arme), sinon null.
+function aimTarget() {
+  const it = find(ST.id); if (!it) return null;
+  if (it.type === 'stance') return ST.data.aim ? ST.data : null;
+  if (POSE_TYPES.includes(it.type) || it.id.startsWith('preset:')) return ST.data.weapon?.aim ? ST.data.weapon : null;
+  return null;
+}
+// Déplace l'arme avec la souris : le glissé est converti en mètres dans le repère du personnage (avant, haut, côté) selon l'angle de caméra.
+function dragWeapon(dx, dy, cv) {
+  const t = aimTarget(); if (!t) return;
+  const a = t.aim, r = cv.getBoundingClientRect(), k = (cv.width / r.width) / (680 * ST.cam.zoom3d); // pixels d'écran → hauteurs de personnage
+  const ux = dx * k, uy = -dy * k, ry = (ST.cam.rotY * Math.PI) / 180;
+  a.z = (a.z ?? 0) - ux * Math.cos(ry); a.x = (a.x ?? 0) + ux * Math.sin(ry); a.y = (a.y ?? 0) + uy;
+  persist(); renderControls();
 }
 function preview() {
   if (!ST.open || ST.raf) return;
@@ -282,10 +323,20 @@ export function openPoseLab() {
   if (!root) build();
   const list = previewAgents();
   if (!list.length) { alert('Ajoute d\'abord un personnage 3D (Bibliothèque ou pack 3D) pour utiliser le Studio de poses.'); return; }
+  if (!ST.open) beginDraft();
   ST.open = true; root.hidden = false;
   if (!ST.agent || !list.find(a => a.key === ST.agent)) ST.agent = (list.find(a => a.key === 'jett') || list[0]).key;
   $('#plAgent', root).innerHTML = list.map(a => `<option value="${a.key}" ${a.key === ST.agent ? 'selected' : ''}>${esc(a.name)}</option>`).join('');
   refreshList(); selectItem(find(ST.id) ? ST.id : 'default');
 }
-export function closePoseLab() { if (root) root.hidden = true; ST.open = false; }
+export async function closePoseLab() {
+  if (!root || !ST.open) return;
+  if (isDirty()) {
+    const ask = o => (API?.confirm ? API.confirm(o) : Promise.resolve(confirm(o.message)));
+    if (await ask({ message: 'Enregistrer tes changements ?', detail: 'Ils s\'appliqueront à toutes les affiches. Sinon ils seront perdus.', ok: 'Enregistrer' })) endDraft(true);
+    else if (await ask({ message: 'Abandonner tes changements ?', detail: 'Les réglages non enregistrés seront perdus.', ok: 'Abandonner' })) endDraft(false);
+    else return;
+  } else endDraft(false);
+  root.hidden = true; ST.open = false;
+}
 void getPath;

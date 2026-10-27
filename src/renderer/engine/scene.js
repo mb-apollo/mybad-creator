@@ -309,12 +309,28 @@ function drawModel(c, L, env, b) {
   c.drawImage(cv, b.x, b.y, b.w, b.h);
 }
 
+// ---------------------------------------------------------------- réglages d'ambiance (2 niveaux)
+// Chaque option est un multiplicateur (1 = valeur du modèle). Niveau 1 : réglages globaux (toutes les affiches). Niveau 2 : réglages de l'affiche
+// (doc.finish), qui prennent le pas sur les globaux pour les options qu'ils définissent.
+export const LOOK_OPTS = [
+  ['grain', 'Grain', 0, 3], ['vignette', 'Vignette (bords sombres)', 0, 2], ['bright', 'Luminosité (éclaircie)', 0, 2], ['bloom', 'Halo des lumières', 0, 2.5],
+  ['grade', 'Étalonnage (teinte des ombres)', 0, 2], ['sat', 'Saturation', 0, 2], ['contrast', 'Contraste', 0.5, 1.5],
+  ['glow', 'Halos de fond', 0, 2], ['beam', 'Faisceau, traînées et barres', 0, 2], ['stars', 'Étoiles et constellations', 0, 3], ['smoke', 'Fumée', 0, 2], ['floor', 'Sol lumineux', 0, 2],
+  ['exposure', 'Exposition des personnages', 0.4, 1.8], ['key', 'Lumière principale des personnages', 0, 2.5], ['rim', 'Contre-jour des personnages', 0, 2.5], ['ambient', 'Ambiance des personnages', 0, 3],
+];
+let GLOBAL_LOOK = {};
+export const setGlobalLook = o => { GLOBAL_LOOK = o && typeof o === 'object' ? o : {}; };
+export const getGlobalLook = () => GLOBAL_LOOK;
+// Valeurs effectives d'une affiche.
+export const finOf = doc => ({ ...GLOBAL_LOOK, ...(doc?.finish || {}) });
+const FIN_OF_EFFECT = { vignette: 'vignette', grain: 'grain', lift: 'bright', bloom: 'bloom', grade: 'grade', glow: 'glow', bigstar: 'glow', beam: 'beam', streaks: 'beam', bars: 'beam', stars: 'stars', constellation: 'stars', smoke: 'smoke', floor: 'floor' };
+
 // ---------------------------------------------------------------- effets procéduraux
 function drawEffect(c, L, env, b) {
   const th = env.theme, u = env.u;
   const col = color(L.color, th) || '#ffffff';
   const fin = env.fin || {};
-  const finK = L.effect === 'vignette' ? fin.vignette : L.effect === 'grain' ? fin.grain : L.effect === 'lift' ? fin.bright : 1;
+  const finK = fin[FIN_OF_EFFECT[L.effect]];
   const amt = (L.amount ?? 0.5) * (L.themed ? (th.light ?? 1) : 1) * (finK ?? 1);
   if (amt <= 0) return;
   const R = rnd(L.seed || 7);
@@ -457,7 +473,7 @@ function drawEffect(c, L, env, b) {
       // étalonnage : ombres teintées, contraste, saturation
       const src = c.canvas, W = src.width, H = src.height;
       const t = pool('grade', W, H), tc = t.getContext('2d');
-      tc.filter = `contrast(${100 + 25 * amt}%) saturate(${100 + 15 * amt}%)`; tc.drawImage(src, 0, 0); tc.filter = 'none';
+      tc.filter = `contrast(${(100 + 25 * amt) * (fin.contrast ?? 1)}%) saturate(${(100 + 15 * amt) * (fin.sat ?? 1)}%)`; tc.drawImage(src, 0, 0); tc.filter = 'none';
       c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
       c.globalAlpha = 1; c.drawImage(t, 0, 0);
       c.globalCompositeOperation = 'soft-light'; c.globalAlpha = Math.min(1, 0.55 * amt); c.fillStyle = col; c.fillRect(0, 0, W, H);
@@ -615,7 +631,7 @@ export function renderScene(canvas, doc, env0) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none';
-  const env = { ...env0, W, H, u: Math.min(W, H * 0.8) / 1080, theme: doc.theme, T: doc.T, fin: doc.finish };
+  const env = { ...env0, W, H, u: Math.min(W, H * 0.8) / 1080, theme: doc.theme, T: doc.T, fin: finOf(doc) };
   for (const L of doc.layers) {
     try { renderLayer(ctx, L, env); } catch (e) { console.error('calque', L.name, e); }
   }

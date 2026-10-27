@@ -4,7 +4,7 @@ import { $, $$, esc, getPath, setPath, section, num, range, toggle, select as se
 import { THEMES, THEME_TOKENS, FORMATS, applyTemplate, setScriptMode, renderDoc, FONT_ROLES, FONT_LIST, setGameDefaults } from './engine/render.js';
 import { TEMPLATES } from './engine/templates.js';
 import * as Custom from './custom.js';
-import { BLENDS, layerText, textLayout, uid } from './engine/scene.js';
+import { BLENDS, layerText, textLayout, uid, LOOK_OPTS, setGlobalLook, getGlobalLook, finOf } from './engine/scene.js';
 import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { align, distribute, arrange, deleteSelected, duplicateSelected, addLayer, requestRender, getPaint, startPaint, stopPaint, setPaintOpt, resetMask } from './editor.js';
 
@@ -497,6 +497,7 @@ function planningRows() { return [1, 2, 3, 4, 5].map(i => (S.doc.T[`pl${i}d`] ||
 
 // ================================================================ THÈME
 let themePreview = null;
+const P_thumbs = () => scheduleThemeThumbs();
 const loadCustomThemes = () => { try { return JSON.parse(localStorage.getItem('mbc.themes') || '[]'); } catch { return []; } };
 const saveCustomThemes = list => { try { localStorage.setItem('mbc.themes', JSON.stringify(list)); } catch { /* stockage indisponible */ } };
 const allThemes = () => [...THEMES, ...loadCustomThemes()];
@@ -511,6 +512,9 @@ function renderThemeThumbs() {
     try { renderDoc(cv, d, actions.env(d, true, true), 0.13); } catch (err) { console.error(err); }
   });
 }
+// Réglages d'ambiance globaux (niveau 1) : mémorisés sur l'ordinateur, valables pour toutes les affiches.
+try { setGlobalLook(JSON.parse(localStorage.getItem('mbc.look') || '{}')); } catch { setGlobalLook({}); }
+const saveGlobalLook = () => { try { localStorage.setItem('mbc.look', JSON.stringify(getGlobalLook())); } catch { /* stockage indisponible */ } };
 export function renderTheme() {
   const box = $('#themeBody'); if (!box || !S.doc) return;
   setTimeout(scheduleThemeThumbs, 0);
@@ -518,8 +522,9 @@ export function renderTheme() {
   let h = section('Ambiance', `<div class="presets live">${allThemes().map(t => `<button class="preset ${S.doc.themeId === t.id ? 'on' : ''}" data-theme="${esc(t.id)}" title="Survole pour prévisualiser, clique pour appliquer"><canvas data-tv="${esc(t.id)}"></canvas><span>${esc(t.name)}</span>${t.custom ? `<i class="del" data-deltheme="${esc(t.id)}" title="Supprimer ce thème">×</i>` : ''}</button>`).join('')}</div>
     <div class="themesave"><input class="input" id="themeName" placeholder="Nom de ton thème" maxlength="24" spellcheck="false"><button class="mini-btn" data-act="saveTheme">${icon('plus')} Enregistrer le thème actuel</button></div>
     ${range('light', 'Intensité lumineuse', th.light ?? 1, 0, 2, 0.01, pct)}`);
-  const fin = S.doc.finish || {};
-  h += section('Finition', `${range('fin.bright', 'Luminosité', fin.bright ?? 1, 0, 2, 0.01, pct)}${range('fin.vignette', 'Vignette (bords sombres)', fin.vignette ?? 1, 0, 2, 0.01, pct)}${range('fin.grain', 'Grain', fin.grain ?? 1, 0, 3, 0.01, pct)}`);
+  const glob = getGlobalLook(), own = S.doc.finish || {}, eff = finOf(S.doc), nOwn = Object.keys(own).length;
+  h += section('Réglages globaux (toutes les affiches)', `<p class="hint">Ces réglages s'appliquent à toutes tes affiches, tout de suite. 100 % = valeur d'origine des modèles.</p>${LOOK_OPTS.map(([k, l, a, b]) => range('gfin.' + k, l, glob[k] ?? 1, a, b, 0.01, pct)).join('')}<div class="btnrow"><button class="mini-btn" data-act="globalLookReset">Revenir aux valeurs d'origine</button></div>`, false);
+  h += section('Réglages de cette affiche', `<p class="hint">${nOwn ? nOwn + ' réglage(s) propre(s) à cette affiche : ils priment sur les réglages globaux.' : 'Cette affiche suit les réglages globaux. Bouge un curseur pour la régler seule.'}</p>${LOOK_OPTS.map(([k, l, a, b]) => range('fin.' + k, l + (own[k] != null ? ' •' : ''), eff[k] ?? 1, a, b, 0.01, pct)).join('')}<div class="btnrow"><button class="mini-btn" data-act="ownLookReset" ${nOwn ? '' : 'disabled'}>Suivre les réglages globaux</button></div>`, nOwn > 0);
   h += section('Couleurs', `<div class="tokens">${THEME_TOKENS.map(([k, l]) => `<label class="token"><input type="color" data-token="${k}" value="${th[k]}"><span>${esc(l)}</span><code>${esc(th[k])}</code></label>`).join('')}</div>`);
   h += section('Polices', FONT_ROLES.map(([k, l]) => `<div class="field"><label>${esc(l)}</label><select class="input" data-font="${k}">${FONT_LIST.map(f => `<option ${S.doc.fonts[k] === f ? 'selected' : ''} style="font-family:'${f}'">${f}</option>`).join('')}</select></div>`).join('') + '<p class="hint">Les calques sans police forcée suivent ces polices.</p>');
   setHTML(box, h);
@@ -540,14 +545,19 @@ export function initTheme() {
     const el = e.target;
     if (el.dataset.token) { change(d => { d.theme[el.dataset.token] = el.value; d.themeId = 'custom'; }); el.parentElement.querySelector('code').textContent = el.value; $$('.preset', box).forEach(p => p.classList.remove('on')); }
     if (el.dataset.path?.startsWith('fin.')) { change(d => { (d.finish ||= {})[el.dataset.path.slice(4)] = +el.value; }); syncRange(el, pct(+el.value)); }
+    if (el.dataset.path?.startsWith('gfin.')) { getGlobalLook()[el.dataset.path.slice(5)] = +el.value; saveGlobalLook(); syncRange(el, pct(+el.value)); requestRender(); P_thumbs(); }
     if (el.dataset.path === 'light') { change(d => { d.theme.light = +el.value; }); syncRange(el, pct(+el.value)); }
   });
   box.addEventListener('change', e => {
     const el = e.target;
+    if (el.dataset.path?.startsWith('fin.')) { renderTheme(); }
+    if (el.dataset.path?.startsWith('gfin.')) { change(() => {}, { immediate: true }); renderTheme(); }
     if (el.dataset.font) change(d => { d.fonts[el.dataset.font] = el.value; }, { immediate: true });
     if (el.dataset.token || el.type === 'range') change(() => {}, { immediate: true });
   });
   box.addEventListener('click', e => {
+    if (e.target.closest('[data-act="globalLookReset"]')) { setGlobalLook({}); saveGlobalLook(); requestRender(); change(() => {}, { immediate: true }); renderTheme(); return; }
+    if (e.target.closest('[data-act="ownLookReset"]')) { change(d => { d.finish = {}; }, { immediate: true }); renderTheme(); return; }
     const del = e.target.closest('[data-deltheme]');
     if (del) { e.stopPropagation(); saveCustomThemes(loadCustomThemes().filter(x => x.id !== del.dataset.deltheme)); renderTheme(); return; }
     if (e.target.closest('[data-act="saveTheme"]')) {

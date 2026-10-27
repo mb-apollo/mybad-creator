@@ -104,7 +104,8 @@ function paint(c, L, env, b, fillKey = 'fill') {
   const g = L.grad;
   if (g && g.on) {
     const ang = (g.angle ?? 90) * Math.PI / 180;
-    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, r = Math.max(b.w, b.h) / 2;
+    // le dégradé couvre exactement le rectangle dans sa direction (sinon un rectangle large démarrait déjà assombri : coupure nette sur son bord)
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, r = (Math.abs(Math.cos(ang)) * b.w + Math.abs(Math.sin(ang)) * b.h) / 2;
     const gr = c.createLinearGradient(cx - Math.cos(ang) * r, cy - Math.sin(ang) * r, cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
     gr.addColorStop(0, color(g.from, th) || '#fff'); gr.addColorStop(1, color(g.to, th) || '#000');
     return gr;
@@ -322,7 +323,8 @@ let GLOBAL_LOOK = {};
 export const setGlobalLook = o => { GLOBAL_LOOK = o && typeof o === 'object' ? o : {}; };
 export const getGlobalLook = () => GLOBAL_LOOK;
 // Valeurs effectives d'une affiche.
-export const finOf = doc => ({ ...GLOBAL_LOOK, ...(doc?.finish || {}) });
+// Priorité : réglages de l'affiche > réglages globaux > base du thème (certains thèmes, comme Azur, fournissent la leur).
+export const finOf = doc => ({ ...(doc?.theme?.fin || {}), ...GLOBAL_LOOK, ...(doc?.finish || {}) });
 const FIN_OF_EFFECT = { vignette: 'vignette', grain: 'grain', lift: 'bright', bloom: 'bloom', grade: 'grade', glow: 'glow', bigstar: 'glow', beam: 'beam', streaks: 'beam', bars: 'beam', stars: 'stars', constellation: 'stars', smoke: 'smoke', floor: 'floor' };
 
 // ---------------------------------------------------------------- effets procéduraux
@@ -331,7 +333,8 @@ function drawEffect(c, L, env, b) {
   const col = color(L.color, th) || '#ffffff';
   const fin = env.fin || {};
   const finK = fin[FIN_OF_EFFECT[L.effect]];
-  const amt = (L.amount ?? 0.5) * (L.themed ? (th.light ?? 1) : 1) * (finK ?? 1);
+  // « Luminosité » : l'éclaircie du modèle est nulle par défaut, le curseur l'ajoute (100 % = inchangé)
+  const amt = L.effect === 'lift' ? Math.max(0, (L.amount ?? 0.5) + ((finK ?? 1) - 1) * 0.8) : (L.amount ?? 0.5) * (L.themed ? (th.light ?? 1) : 1) * (finK ?? 1);
   if (amt <= 0) return;
   const R = rnd(L.seed || 7);
   switch (L.effect) {

@@ -32,6 +32,7 @@ function refreshTab() {
   if (tab === 'model3d') P.renderModel3d();
   if (tab === 'content') P.renderContent();
   if (tab === 'theme') P.renderTheme();
+  if (tab === 'look') P.renderLook();
   if (tab === 'library') P.renderLibrary();
 }
 function buildFormats() {
@@ -681,7 +682,7 @@ async function boot() {
   P.actions.onPropAction = modelPropAction;
   P.actions.addModelLayer = () => newModelLayer();
   P.actions.addSceneLayer = () => newSceneLayer();
-  P.initLayers(); P.initContent(); P.initTheme(); P.initLibrary(); P.initGallery();
+  P.initLayers(); P.initContent(); P.initTheme(); P.initLook(); P.initLibrary(); P.initGallery();
   let doc = null;
   if (API) {
     S.kit = (await API.storeGet('kit')) || null;
@@ -714,7 +715,7 @@ async function boot() {
 boot();
 
 // Accès pour les tests automatisés
-window.__creator = { modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles };
+window.__creator = { exportCanvas, modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles };
 P.actions.togglePoseEdit = togglePoseEdit;
 P.actions.poseEditOn = () => !!getPoseEdit();
 void copySelected; void selected; void resetHistory; void emit; void icon;

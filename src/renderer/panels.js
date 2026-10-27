@@ -522,13 +522,51 @@ export function renderTheme() {
   let h = section('Ambiance', `<div class="presets live">${allThemes().map(t => `<button class="preset ${S.doc.themeId === t.id ? 'on' : ''}" data-theme="${esc(t.id)}" title="Survole pour prévisualiser, clique pour appliquer"><canvas data-tv="${esc(t.id)}"></canvas><span>${esc(t.name)}</span>${t.custom ? `<i class="del" data-deltheme="${esc(t.id)}" title="Supprimer ce thème">×</i>` : ''}</button>`).join('')}</div>
     <div class="themesave"><input class="input" id="themeName" placeholder="Nom de ton thème" maxlength="24" spellcheck="false"><button class="mini-btn" data-act="saveTheme">${icon('plus')} Enregistrer le thème actuel</button></div>
     ${range('light', 'Intensité lumineuse', th.light ?? 1, 0, 2, 0.01, pct)}`);
-  const glob = getGlobalLook(), own = S.doc.finish || {}, eff = finOf(S.doc), nOwn = Object.keys(own).length;
-  h += section('Réglages globaux (toutes les affiches)', `<p class="hint">Ces réglages s'appliquent à toutes tes affiches, tout de suite. 100 % = valeur d'origine des modèles.</p>${LOOK_OPTS.map(([k, l, a, b]) => range('gfin.' + k, l, glob[k] ?? 1, a, b, 0.01, pct)).join('')}<div class="btnrow"><button class="mini-btn" data-act="globalLookReset">Revenir aux valeurs d'origine</button></div>`, false);
-  h += section('Réglages de cette affiche', `<p class="hint">${nOwn ? nOwn + ' réglage(s) propre(s) à cette affiche : ils priment sur les réglages globaux.' : 'Cette affiche suit les réglages globaux. Bouge un curseur pour la régler seule.'}</p>${LOOK_OPTS.map(([k, l, a, b]) => range('fin.' + k, l + (own[k] != null ? ' •' : ''), eff[k] ?? 1, a, b, 0.01, pct)).join('')}<div class="btnrow"><button class="mini-btn" data-act="ownLookReset" ${nOwn ? '' : 'disabled'}>Suivre les réglages globaux</button></div>`, nOwn > 0);
   h += section('Couleurs', `<div class="tokens">${THEME_TOKENS.map(([k, l]) => `<label class="token"><input type="color" data-token="${k}" value="${th[k]}"><span>${esc(l)}</span><code>${esc(th[k])}</code></label>`).join('')}</div>`);
   h += section('Polices', FONT_ROLES.map(([k, l]) => `<div class="field"><label>${esc(l)}</label><select class="input" data-font="${k}">${FONT_LIST.map(f => `<option ${S.doc.fonts[k] === f ? 'selected' : ''} style="font-family:'${f}'">${f}</option>`).join('')}</select></div>`).join('') + '<p class="hint">Les calques sans police forcée suivent ces polices.</p>');
   setHTML(box, h);
 }
+// ---------------------------------------------------------------- RÉGLAGES D'AMBIANCE (onglet à côté de Propriétés)
+// Deux niveaux : toutes les affiches (réglages globaux, mémorisés sur l'ordinateur) et cette affiche (prime sur les globaux).
+let lookScope = 'global';
+const LOOK_GROUPS = [
+  ['Image', ['grain', 'vignette', 'bright', 'bloom', 'grade', 'sat', 'contrast']],
+  ['Lumière et décor', ['glow', 'beam', 'stars', 'smoke', 'floor']],
+  ['Personnages 3D', ['exposure', 'key', 'rim', 'ambient']],
+];
+export function renderLook() {
+  const box = $('#lookBody'); if (!box || !S.doc) return;
+  const glob = getGlobalLook(), own = S.doc.finish || {}, eff = finOf(S.doc), g = lookScope === 'global', nOwn = Object.keys(own).length;
+  const val = k => (g ? (glob[k] ?? S.doc.theme?.fin?.[k] ?? 1) : (eff[k] ?? 1));
+  const opt = Object.fromEntries(LOOK_OPTS.map(o => [o[0], o]));
+  const head = `<div class="pad"><div class="seg wide small" data-lookscope>${seg_btn('global', 'Toutes les affiches', g)}${seg_btn('doc', 'Cette affiche', !g)}</div>
+    <p class="hint">${g ? 'Ces réglages valent pour toutes tes affiches, tout de suite. 100 % = valeur d\'origine.' : (nOwn ? nOwn + ' réglage(s) propre(s) à cette affiche (repérés par •) : ils priment sur les réglages globaux.' : 'Cette affiche suit les réglages globaux. Bouge un curseur pour la régler seule.')}</p></div>`;
+  const body = LOOK_GROUPS.map(([title, keys]) => section(title, keys.map(k => { const [, l, a, b] = opt[k]; return range((g ? 'gfin.' : 'fin.') + k, l + (!g && own[k] != null ? ' •' : ''), val(k), a, b, 0.01, pct); }).join(''), true)).join('');
+  const foot = g ? '<div class="pad btnrow"><button class="mini-btn" data-act="globalLookReset">Revenir aux valeurs d\'origine</button></div>'
+    : `<div class="pad btnrow"><button class="mini-btn" data-act="ownLookReset" ${nOwn ? '' : 'disabled'}>Suivre les réglages globaux</button></div>`;
+  setHTML(box, head + body + foot);
+}
+const seg_btn = (v, label, on) => `<button type="button" data-v="${v}" class="${on ? 'on' : ''}">${label}</button>`;
+export function initLook() {
+  const box = $('#lookBody');
+  box.addEventListener('input', e => {
+    const el = e.target, path = el.dataset.path; if (!path) return;
+    if (path.startsWith('fin.')) { change(d => { (d.finish ||= {})[path.slice(4)] = +el.value; }); syncRange(el, pct(+el.value)); }
+    else if (path.startsWith('gfin.')) { getGlobalLook()[path.slice(5)] = +el.value; saveGlobalLook(); syncRange(el, pct(+el.value)); requestRender(); scheduleThumbs(); }
+  });
+  box.addEventListener('change', e => {
+    const path = e.target.dataset.path; if (!path) return;
+    if (path.startsWith('fin.')) { change(() => {}, { immediate: true }); renderLook(); }
+    else if (path.startsWith('gfin.')) { change(() => {}, { immediate: true }); }
+  });
+  box.addEventListener('click', e => {
+    const sc = e.target.closest('[data-lookscope] button');
+    if (sc) { lookScope = sc.dataset.v; renderLook(); return; }
+    if (e.target.closest('[data-act="globalLookReset"]')) { setGlobalLook({}); saveGlobalLook(); requestRender(); change(() => {}, { immediate: true }); renderLook(); return; }
+    if (e.target.closest('[data-act="ownLookReset"]')) { change(d => { d.finish = {}; }, { immediate: true }); renderLook(); }
+  });
+}
+
 export function initTheme() {
   const box = $('#themeBody');
   box.addEventListener('mouseover', e => {
@@ -544,20 +582,14 @@ export function initTheme() {
   box.addEventListener('input', e => {
     const el = e.target;
     if (el.dataset.token) { change(d => { d.theme[el.dataset.token] = el.value; d.themeId = 'custom'; }); el.parentElement.querySelector('code').textContent = el.value; $$('.preset', box).forEach(p => p.classList.remove('on')); }
-    if (el.dataset.path?.startsWith('fin.')) { change(d => { (d.finish ||= {})[el.dataset.path.slice(4)] = +el.value; }); syncRange(el, pct(+el.value)); }
-    if (el.dataset.path?.startsWith('gfin.')) { getGlobalLook()[el.dataset.path.slice(5)] = +el.value; saveGlobalLook(); syncRange(el, pct(+el.value)); requestRender(); P_thumbs(); }
     if (el.dataset.path === 'light') { change(d => { d.theme.light = +el.value; }); syncRange(el, pct(+el.value)); }
   });
   box.addEventListener('change', e => {
     const el = e.target;
-    if (el.dataset.path?.startsWith('fin.')) { renderTheme(); }
-    if (el.dataset.path?.startsWith('gfin.')) { change(() => {}, { immediate: true }); renderTheme(); }
     if (el.dataset.font) change(d => { d.fonts[el.dataset.font] = el.value; }, { immediate: true });
     if (el.dataset.token || el.type === 'range') change(() => {}, { immediate: true });
   });
   box.addEventListener('click', e => {
-    if (e.target.closest('[data-act="globalLookReset"]')) { setGlobalLook({}); saveGlobalLook(); requestRender(); change(() => {}, { immediate: true }); renderTheme(); return; }
-    if (e.target.closest('[data-act="ownLookReset"]')) { change(d => { d.finish = {}; }, { immediate: true }); renderTheme(); return; }
     const del = e.target.closest('[data-deltheme]');
     if (del) { e.stopPropagation(); saveCustomThemes(loadCustomThemes().filter(x => x.id !== del.dataset.deltheme)); renderTheme(); return; }
     if (e.target.closest('[data-act="saveTheme"]')) {

@@ -54,8 +54,10 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   localStorage ; fermer propose d'enregistrer ou d'abandonner). Orientation par défaut d'un agent : `agent:<clé>`.rotY, lue par `agentRotY()` et ajoutée à la rotation
   du personnage au rendu. Une pose peut porter le placement de l'arme (`weapon.x/y/z/rx/ry/rz/scale`, `weapon.lx/ly/lz/lroll`) ; Maj + glisser dans l'aperçu déplace la visée.
   Bouton « Pose par défaut de l'agent » (onglet 3D) : remet `pose: { on, auto: true, side }` et retire l'arme du personnage.
-- Réglages d'ambiance à 2 niveaux (`scene.js` : `LOOK_OPTS`, `finOf(doc)`) : globaux (localStorage `mbc.look`, panneau Thème) puis `doc.finish` par affiche ; ce sont des
-  multiplicateurs (effets, exposition et lumières des personnages 3D, saturation, contraste). Les réglages 3D (pose, arme, visage) survivent à `applyTemplate` (render.js).
+- Onglet **Réglages** (à côté de Propriétés ; `renderLook`/`initLook` dans panels.js) : réglages d'ambiance à 2 niveaux (`scene.js` : `LOOK_OPTS`, `finOf(doc)`) — « Toutes les affiches »
+  (localStorage `mbc.look`) puis « Cette affiche » (`doc.finish`). Priorité : affiche > global > base du thème (`theme.fin`, ex. thème Azur). Multiplicateurs : effets, exposition et lumières des
+  personnages 3D, saturation, contraste ; « Luminosité » (effet `lift`) est additive (l'éclaircie du modèle vaut 0). Les réglages 3D (pose, arme, visage) survivent à `applyTemplate` (render.js).
+- Dégradés de formes (`paint()` dans scene.js) : la ligne du dégradé est projetée sur le rectangle (`r = (|cos|·w + |sin|·h) / 2`) ; l'ancien `max(w, h) / 2` faisait démarrer un rectangle large déjà assombri (coupure nette).
 - `src/renderer/custom.js` : modèles d'affiches personnalisés (localStorage, clés `custom:<id>` ajoutées à `TEMPLATES`).
 - Ambiance « nuit noire » (gabarits) : `finish()` (étalonnage 0,4, pas d'éclaircie, bloom 0,3, vignette 0,6, grain 0,22), `NIGHT_LIGHT` (lumière principale blanche et dure,
   contre-jour bleu, très peu d'ambiance), halos et étoiles réduits. Mesures de référence : noirs ≈ 1, centre ≈ 50, grain ≈ 0,9 (outil : mesurer sur un canvas).

@@ -1,4 +1,4 @@
-- Studio de poses : boutons Enregistrer, Annuler et Rétablir (les changements restent un brouillon jusqu'à l'enregistrement), orientation par défaut de chaque agent, et arme déplaçable pour chaque pose (curseurs, ou Maj + glisser dans l'aperçu)
-- Réglages d'ambiance à deux niveaux dans l'onglet Thème : globaux pour toutes les affiches (grain, luminosité, exposition, vignette, saturation, contraste, lumières des personnages…), puis propres à chaque affiche
-- Onglet 3D : bouton « Pose par défaut de l'agent » pour revenir à la pose de l'agent après une pose générique
-- Correction : changer Victoire / Défaite, le nombre de lignes ou activer la 3D ne remet plus à zéro les poses, armes et visages réglés sur les personnages 3D
+- Nouvel onglet « Réglages » à côté de Propriétés : grain, vignette, luminosité, halos, saturation, contraste, exposition et lumières des personnages, réglables pour toutes les affiches ou pour l'affiche ouverte seulement
+- Les dégradés des affiches ne font plus de coupure nette (Game Day et les autres modèles concernés)
+- Nouveau thème clair « Azur » (bleu très clair)
+- Le rendu qualité de la 2.8.0 est retiré

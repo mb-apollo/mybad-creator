@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('studio', {
   saveProject: o => ipcRenderer.invoke('project:save', o),
   openProject: () => ipcRenderer.invoke('project:open'),
   openPath: p => ipcRenderer.invoke('project:openPath', p),
+  saveText: o => ipcRenderer.invoke('text:save', o),
+  openText: () => ipcRenderer.invoke('text:open'),
   exportImage: o => ipcRenderer.invoke('export:image', o),
   pickFolder: () => ipcRenderer.invoke('export:pickFolder'),
   writeInFolder: o => ipcRenderer.invoke('export:writeInFolder', o),

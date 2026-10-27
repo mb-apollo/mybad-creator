@@ -146,6 +146,17 @@ ipcMain.handle('project:open', async () => {
   const p = r.filePaths[0]; addRecent(p);
   return { filePath: p, data: fs.readFileSync(p, 'utf8') };
 });
+// Fichiers texte simples (configuration du Studio de poses)
+ipcMain.handle('text:save', async (_e, { data, suggested }) => {
+  const r = await dialog.showSaveDialog(win, { title: 'Enregistrer la configuration de poses', defaultPath: path.join(app.getPath('documents'), suggested || 'poses-mybad.json'), filters: [{ name: 'Configuration de poses', extensions: ['json'] }] });
+  if (r.canceled || !r.filePath) return null;
+  fs.writeFileSync(r.filePath, data, 'utf8'); return r.filePath;
+});
+ipcMain.handle('text:open', async () => {
+  const r = await dialog.showOpenDialog(win, { title: 'Importer une configuration de poses', properties: ['openFile'], filters: [{ name: 'Configuration de poses', extensions: ['json'] }] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  return { filePath: r.filePaths[0], data: fs.readFileSync(r.filePaths[0], 'utf8') };
+});
 ipcMain.handle('project:openPath', async (_e, p) => {
   try { const data = fs.readFileSync(p, 'utf8'); addRecent(p); return { filePath: p, data }; } catch { return { error: 'Fichier introuvable : ' + p }; }
 });

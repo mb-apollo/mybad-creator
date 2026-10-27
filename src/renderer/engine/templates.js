@@ -78,7 +78,11 @@ function emblemAt(cx, cy, h, o = {}) {
 }
 
 // Pose de base naturelle : bras légèrement écartés du corps, coudes à peine pliés, mains détendues (rien ne traverse le corps).
-export const DEFAULT_POSE = side => ({ on: true, armL: { out: 17, fwd: 7, elbow: 24, roll: 14 }, armR: { out: 17, fwd: 7, elbow: 24, roll: 14 }, handL: { curl: 22, thumb: 12 }, handR: { curl: 22, thumb: 12 }, torso: { twist: side * 3 }, head: { tilt: side * 1.5 } });
+const BASE_POSE = side => ({ on: true, armL: { out: 17, fwd: 7, elbow: 24, roll: 14 }, armR: { out: 17, fwd: 7, elbow: 24, roll: 14 }, handL: { curl: 22, thumb: 12 }, handR: { curl: 22, thumb: 12 }, torso: { twist: side * 3 }, head: { tilt: side * 1.5 } });
+// Le Studio de poses (posereg.js) peut remplacer cette pose : POSE_HOOK.fn(côté, pose d'origine).
+export const POSE_HOOK = { fn: null };
+export const baseDefaultPose = BASE_POSE;
+export const DEFAULT_POSE = side => (POSE_HOOK.fn ? POSE_HOOK.fn(side, BASE_POSE(side)) : BASE_POSE(side));
 
 // Scène 3D commune : positions, sol, caméra et lumière par défaut pour n joueurs.
 export const sceneActors = n => {

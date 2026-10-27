@@ -14,6 +14,9 @@ const PAT = {
   thighL: [/^L_Hip(_\d+)?$/i, /LeftUpLeg(_\d+)?$/i, /^thigh_l(_\d+)?$/i],
   footL: [/^L_Foot(_\d+)?$/i, /LeftFoot(_\d+)?$/i, /^foot_l(_\d+)?$/i],
   toeL: [/^L_Toe(_\d+)?$/i, /LeftToeBase(_\d+)?$/i, /^ball_l(_\d+)?$/i],
+  toeR: [/^R_Toe(_\d+)?$/i, /RightToeBase(_\d+)?$/i, /^ball_r(_\d+)?$/i],
+  clavL: [/^L_Clavicle(_\d+)?$/i, /^clavicle_l(_\d+)?$/i, /mixamorig.?LeftShoulder(_\d+)?$/i],
+  clavR: [/^R_Clavicle(_\d+)?$/i, /^clavicle_r(_\d+)?$/i, /mixamorig.?RightShoulder(_\d+)?$/i],
   thighR: [/^R_Hip(_\d+)?$/i, /RightUpLeg(_\d+)?$/i, /^thigh_r(_\d+)?$/i],
   kneeL: [/^L_Knee(_\d+)?$/i, /LeftLeg(_\d+)?$/i, /^calf_l(_\d+)?$/i],
   kneeR: [/^R_Knee(_\d+)?$/i, /RightLeg(_\d+)?$/i, /^calf_r(_\d+)?$/i],
@@ -54,7 +57,11 @@ export function rigOf(root) {
     const inward = lat0.clone().multiplyScalar(s === 'L' ? -1 : 1); // la paume regarde vers le corps dans la pose du fichier
     if (n.dot(inward) < 0) n.negate();
     rig.handFrame[s] = { d: d.clone().applyQuaternion(hqi), a: a.clone().applyQuaternion(hqi), n: n.clone().applyQuaternion(hqi) };
+    { const F = rig.handFrame[s]; F.sgnFlex = Math.sign(new THREE.Vector3().crossVectors(F.a, F.d).dot(F.n)) || 1; F.sgnSide = Math.sign(new THREE.Vector3().crossVectors(F.n, F.d).dot(F.a)) || 1; }
+    rig.fingerN ||= { L: {}, R: {} };
     for (const f of FINGERS) {
+      const b0 = rig.finger[s][f][0];
+      rig.fingerN[s][f] = b0 ? n.clone().applyQuaternion(worldQuat(b0).invert()) : null;
       rig.fingerAxis[s][f] = rig.finger[s][f].map((b, j) => {
         if (!b) return null;
         const nxt = rig.finger[s][f][j + 1], prv = rig.finger[s][f][j - 1];
@@ -204,10 +211,30 @@ function settings(P) {
     torso: { bend: 0, lean: 0, twist: P.chest || 0, ...P.torso },
     head: { turn: P.headTurn || 0, nod: 0, tilt: P.headTilt || 0, ...P.head },
     handL: { curl: 0, ...P.handL }, handR: { curl: 0, ...P.handR },
+    shL: { up: 0, fwd: 0, ...P.shL }, shR: { up: 0, fwd: 0, ...P.shR },
+    footL: { pitch: 0, yaw: 0, ...P.footL }, footR: { pitch: 0, yaw: 0, ...P.footR },
   };
 }
 
 export const poseValues = settings;
+
+// Tourne un os autour d'un axe du monde ; un angle positif rapproche le point sonde de la direction voulue.
+function turnToward(bone, axis, ang, probe, want) {
+  if (!bone || !ang || !probe) return;
+  const p0 = worldPos(probe); rotateWorld(bone, axis, 0.1);
+  const d = worldPos(probe).sub(p0); rotateWorld(bone, axis, -0.1);
+  rotateWorld(bone, axis, (d.dot(want) >= 0 ? 1 : -1) * ang);
+}
+// Poignet : flexion (vers la paume), inclinaison (vers le pouce) et rotation de la main, dans le repère de la main.
+export function applyWrist(rig, s, H) {
+  const hand = rig['hand' + s], F = rig.handFrame?.[s];
+  if (!hand || !F || !(H.flex || H.side || H.twist)) return;
+  const q = new THREE.Quaternion().setFromAxisAngle(F.a, (H.flex || 0) * RAD * F.sgnFlex)
+    .multiply(new THREE.Quaternion().setFromAxisAngle(F.n, (H.side || 0) * RAD * F.sgnSide))
+    .multiply(new THREE.Quaternion().setFromAxisAngle(F.d, (H.twist || 0) * RAD));
+  hand.quaternion.multiply(q);
+  hand.updateWorldMatrix(true, true);
+}
 
 export function applyPose(root, P) {
   const rig = rigOf(root);
@@ -240,6 +267,13 @@ export function applyPose(root, P) {
     rotateWorld(b, fwd0.clone().negate(), S.torso.lean * RAD / spine.length);
     rotateWorld(b, UP, S.torso.twist * RAD / spine.length);
   });
+  // épaules : montée et avancée des clavicules (avant que les bras visent)
+  for (const s of ['L', 'R']) {
+    const c = rig['clav' + s], G = S['sh' + s], probe = rig['upper' + s];
+    if (!c || !probe || (!G.up && !G.fwd)) continue;
+    turnToward(c, fwd0, G.up * RAD, probe, UP);
+    turnToward(c, UP, G.fwd * RAD, probe, fwd0);
+  }
   if (rig.head) {
     rotateWorld(rig.head, UP, S.head.turn * RAD);
     rotateWorld(rig.head, lat0, S.head.nod * RAD);
@@ -262,34 +296,43 @@ export function applyPose(root, P) {
     }
   }
   root.updateMatrixWorld(true);
+  // pieds : pointe levée / baissée et ouverture
+  if (hipsLat) for (const [s, sign] of [['L', 1], ['R', -1]]) {
+    const foot = rig['foot' + s], toe = rig['toe' + s], G = S['foot' + s];
+    if (!foot || !toe || (!G.pitch && !G.yaw)) continue;
+    turnToward(foot, hipsLat, G.pitch * RAD, toe, UP);
+    turnToward(foot, UP, G.yaw * RAD, toe, hipsLat.clone().multiplyScalar(sign));
+  }
+  for (const s of ['L', 'R']) applyWrist(rig, s, S['hand' + s]);
+  root.updateMatrixWorld(true);
   applyFingers(rig, S);
   return true;
 }
 
 // Flexion des doigts (0 = ouverts, 100 = poing). curl règle tous les doigts, chaque doigt peut être précisé.
 const CURL = { Thumb: [22, 30, 42], Index: [62, 88, 60], Middle: [66, 90, 62], Ring: [68, 92, 64], Pinky: [70, 92, 64] };
-// Plie un doigt à une valeur absolue (0 = ouvert, 100 = poing), à partir de sa pose de repos.
+// Écartement des doigts (degrés pour 100 %) : positif = les doigts s'écartent, éventail autour du majeur.
+const SPREAD = { Thumb: 0, Index: 1, Middle: 0, Ring: -1, Pinky: -2 }, SPREAD_DEG = 9;
+// Plie un doigt à une valeur absolue (0 = ouvert, 100 = poing), à partir de sa pose de repos, avec l'écartement et les
+// ajustements d'articulations de la main (rig.handExtra).
 export function setFingerCurl(rig, s, f, c) {
-  const q = new THREE.Quaternion();
+  const q = new THREE.Quaternion(), ex = rig.handExtra?.[s], key = f.toLowerCase();
   rig.finger[s][f].forEach((b, j) => {
     if (!b) return;
     b.quaternion.copy(rig.rest.get(b) || b.quaternion);
-    const ax = rig.fingerAxis[s][f][j];
-    if (ax) b.quaternion.multiply(q.setFromAxisAngle(ax, CURL[f][j] * (c / 100) * RAD));
+    if (j === 0 && ex?.spread && SPREAD[f] && rig.fingerN?.[s]?.[f]) b.quaternion.multiply(q.setFromAxisAngle(rig.fingerN[s][f], SPREAD[f] * (ex.spread / 100) * SPREAD_DEG * RAD * (rig.handFrame?.[s]?.sgnSide || 1)));
+    const ax = rig.fingerAxis[s][f][j], cj = (c + (ex?.H?.[key + (j + 1)] || 0)) / 100;
+    if (ax && cj) b.quaternion.multiply(q.setFromAxisAngle(ax, CURL[f][j] * cj * RAD));
     b.updateMatrix();
   });
   const first = rig.finger[s][f].find(Boolean); if (first) first.updateWorldMatrix(true, true);
 }
 export function applyFingers(rig, S) {
   if (!rig.finger) return;
-  const q = new THREE.Quaternion();
+  rig.handExtra = { L: { spread: S.handL.spread || 0, H: S.handL }, R: { spread: S.handR.spread || 0, H: S.handR } };
   for (const s of ['L', 'R']) {
     const H = S['hand' + s];
-    for (const f of FINGERS) {
-      const c = (H[f.toLowerCase()] ?? H.curl ?? 0) / 100;
-      if (!c) continue;
-      rig.finger[s][f].forEach((b, j) => { const ax = rig.fingerAxis[s][f][j]; if (b && ax) b.quaternion.multiply(q.setFromAxisAngle(ax, CURL[f][j] * c * RAD)); });
-    }
+    for (const f of FINGERS) setFingerCurl(rig, s, f, H[f.toLowerCase()] ?? H.curl ?? 0);
   }
   rig.finger.L.Index[0]?.updateWorldMatrix(true, true); rig.finger.R.Index[0]?.updateWorldMatrix(true, true);
 }

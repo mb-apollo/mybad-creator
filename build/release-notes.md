@@ -1,3 +1,3 @@
-- Mains : les doigts se refermaient vers le dos de la main au lieu de la paume ; corrigé pour tous les agents (poings, mains détendues, poses prédéfinies avec des mains adaptées)
-- Armes : la poignée se place dans la paume et les doigts s'enroulent autour ; la main gauche se pose sur le garde-main
-- Armes : fusil épaulé plus proche du corps pour que la main gauche atteigne le garde-main
+- Nouveau Studio de poses (bouton en haut) : règle toutes les poses par défaut avec un aperçu 3D en direct — bras, épaules, buste, tête, jambes, pieds, poignets, chaque doigt à l'articulation près, écartement des doigts
+- Studio : poses prédéfinies, positions d'arme (fusils et pistolets), placement de chaque arme dans la main et de la main gauche, visée du fusil
+- Export / import de la configuration en fichier, pour la reprendre comme poses par défaut du logiciel

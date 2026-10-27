@@ -40,6 +40,12 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   main droite par rapport au corps (`def.aim` = x avant, y haut, z droite, pitch, yaw) ; pistolet : bras réglés par `WEAPON_POSES`.
   `WEAPON_POSES[type][position]` (pose3d.js) : prêt, visée, détendu, présentation, bras libres. Les 5 armes sont livrées dans
   `src/renderer/assets/games/weapons/*.glb` (WebP 1024 px) ; une arme importée dans la bibliothèque (`g:weapons:<clé>`) les remplace.
+- `src/renderer/poselab.js` + `posereg.js` : **Studio de poses** (bouton en haut, ou onglet 3D › Pose). `posereg.js` mémorise (localStorage `mbc.poselab`) les
+  réglages de l'utilisateur par élément (`default`, `preset:<clé>`, `stance:<fusil|pistolet>:<position>`, `weapon:<arme>`) et les fournit à `model3d.js` /
+  `templates.js` (`POSE_HOOK`). Export / import JSON (`kind: 'poselab'`). **Pour figer une config exportée comme valeurs par défaut** : `data.default` →
+  `BASE_POSE` (templates.js), `data.presets[k]` → `POSES` (pose3d.js), `data.stances[kind][pos]` → `WEAPON_POSES` (pose3d.js), `data.weapons[arme]` →
+  `WEAPON_DEFAULTS` (posereg.js). Pose étendue : `shL/shR` {up,fwd}, `footL/footR` {pitch,yaw}, `handL/handR` {…, spread, flex, side, twist, index1…pinky3}.
+  Arme : `aim` {x,y,z,pitch,yaw} (corps), `lx/ly/lz/lroll` (main gauche), `x/y/z/rx/ry/rz/scale` (main droite).
 - `src/renderer/custom.js` : modèles d'affiches personnalisés (localStorage, clés `custom:<id>` ajoutées à `TEMPLATES`).
 - `src/renderer/engine/mask.js` : masques au pinceau (PNG dans `doc.assets`, clé `mask-<id calque>`).
 - Calque 3D « scène » : un calque `model` avec `actors[]` (plusieurs personnages, sol, ombres, reflets) rendu par `renderStage`.

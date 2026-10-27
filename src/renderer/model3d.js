@@ -10,7 +10,8 @@ import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripWithLeftHand, wrapFingers, HOLD } from './weapons.js';
 import { sceneDefaults } from './engine/templates.js';
 import { addLayer } from './editor.js';
-import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, POSES, WEAPON_POSES, WEAPON_STANCES, FACES, applyFace, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams } from './pose3d.js';
+import { presetsList, stancePose, weaponDefaults } from './posereg.js';
+import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, WEAPON_STANCES, FACES, applyFace, applyWrist, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams } from './pose3d.js';
 
 let deps = {};
 let renderer = null, loader = null, envTex = null;
@@ -113,17 +114,19 @@ export function dragPoseHandle(L, h, start, ndc) {
 // ---------------------------------------------------------------- armes tenues en main
 const weaponUrl = (doc, def) => (def?.key ? S.libraryModels.get('g:weapons:' + def.key) || null : null);
 const weaponKind = key => WEAPONS.find(w => w.key === key)?.kind || 'rifle';
-function holdWeapon(doc, inst, def, cacheKey, pz) {
+function holdWeapon(doc, inst, def0, cacheKey, pz) {
+  const def = def0 && { ...weaponDefaults(def0.key), ...def0 };   // placement du Studio de poses sous les réglages du calque
   const url = weaponUrl(doc, def);
   if (!url) return null;
   const m = load(url);
   if (m.status !== 'ready') return null;
   const w = weaponInstance(cacheKey + ':' + def.key, m.gltf);
-  if (def.aim && weaponKind(def.key) === 'rifle') aimHand(inst, def.aim);
+  const V = poseValues(pz || {});
+  if (def.aim) aimHand(inst, def.aim, V.handR);
   const geo = placeWeapon(inst, def, w);
   if (!geo) return null;
-  const both = def.both ?? weaponKind(def.key) === 'rifle', V = poseValues(pz || {});
-  if (both) gripWithLeftHand(inst, w, weaponKind(def.key));
+  const both = def.both ?? weaponKind(def.key) === 'rifle';
+  if (both) gripWithLeftHand(inst, w, weaponKind(def.key), def, V.handL);
   const fb = H => Object.fromEntries(['thumb', 'index', 'middle', 'ring', 'pinky'].map(f => [f.charAt(0).toUpperCase() + f.slice(1), H[f] ?? H.curl ?? 0]));
   const kind = weaponKind(def.key), minCurl = kind === 'pistol' ? 40 : 25;
   wrapFingers(inst, w, 'R', geo, fb(V.handR), minCurl, { x: w.grip.x + HOLD.x, y: w.grip.y + HOLD.y, z: 0 }, 0.11, true);
@@ -244,6 +247,9 @@ function renderModel(L, w, h, theme, exporting) {
 }
 
 // Fournit au moteur 2D la fonction de rendu des calques 3D.
+// Rendu autonome d'un calque 3D (aperçu du Studio de poses) : null tant que les modèles se chargent.
+export const renderModelPreview = (L, w, h, theme) => renderModel(L, w, h, theme, false);
+
 export function modelEnv(doc, exporting) {
   return (L, b) => {
     S.doc_override = doc;
@@ -304,12 +310,13 @@ export function modelProps(L) {
   return h;
 }
 export function modelPropAction(act, L, btn) {
+  if (act === 'openPoseLab') deps.actions?.openPoseLab?.();
   if (act === 'poseEditToggle' && L) { deps.actions?.togglePoseEdit?.(L); deps.actions?.renderProps?.(); }
   if (act === 'weaponAuto' && L) {
     const prefix = btn.dataset.prefix, def = getPath(L, prefix);
     if (def?.key) {
       const kind = weaponKind(def.key), posePrefix = prefix.replace(/weapon$/, 'pose');
-      const { both, aim, ...pose } = WEAPON_POSES[kind][btn.dataset.stance || 'pret'];
+      const { both, aim, ...pose } = stancePose(kind, btn.dataset.stance || 'pret');
       change(() => { def.both = both; def.aim = aim || null; setPath(L, posePrefix, { on: true, ...JSON.parse(JSON.stringify(pose)) }); }, { immediate: true });
     }
     deps.actions?.renderProps?.();
@@ -331,7 +338,7 @@ export function modelPropAction(act, L, btn) {
   }
   if (act === 'poseDel') { savePoses(loadPoses().filter(x => x.id !== btn.dataset.id)); deps.actions?.renderProps?.(); }
   if (act === 'posePreset' && L) {
-    const p = POSES.find(x => x[0] === btn.dataset.key);
+    const p = presetsList().find(x => x[0] === btn.dataset.key);
     if (p) change(() => setPath(L, btn.dataset.prefix, { on: true, ...JSON.parse(JSON.stringify(p[2])) }), { immediate: true });
     deps.actions?.renderProps?.();
   }
@@ -511,13 +518,13 @@ const POSE_GROUPS = [
 // Poses prédéfinies et réglage fin membre par membre (« gauche » et « droite » sont celles du personnage).
 function poseControls(prefix, P) {
   const pz = P || {};
-  const head = toggle(`${prefix}.on`, 'Régler la pose', pz.on);
+  const head = toggle(`${prefix}.on`, 'Régler la pose', pz.on) + `<div class="btnrow"><button class="mini-btn" data-act="openPoseLab">${icon('hand')} Studio de poses (régler les poses par défaut)</button></div>`;
   if (!pz.on) return head + '<p class="hint">Active pour choisir une pose prédéfinie puis ajuster chaque membre.</p>';
   const editing = deps.actions?.poseEditOn?.();
   const v = poseValues(pz);
   return head
     + `<div class="btnrow"><button class="mini-btn ${editing ? 'on' : ''}" data-act="poseEditToggle">${icon('hand')} ${editing ? 'Terminer la manipulation' : 'Bouger les membres sur le personnage'}</button></div>${editing ? '<p class="hint">Glisse les points du personnage : mains et pieds (le bras ou la jambe suit), coudes, genoux, tête et buste.</p>' : ''}`
-    + `<div class="posegrid">${POSES.map(([k, label]) => `<button class="mini-btn" data-act="posePreset" data-key="${k}" data-prefix="${prefix}">${esc(label)}</button>`).join('')}</div>`
+    + `<div class="posegrid">${presetsList().map(([k, label]) => `<button class="mini-btn" data-act="posePreset" data-key="${k}" data-prefix="${prefix}">${esc(label)}</button>`).join('')}</div>`
     + POSE_GROUPS.map(([title, key, rows]) => section(title, rows.map(([k, label, min, max, fmt]) => range(`${prefix}.${key}.${k}`, label, v[key][k] ?? v[key].curl ?? 0, min, max, 1, fmt || deg)).join(''), false)).join('')
     + myPoses(prefix)
     + `<div class="btnrow"><button class="mini-btn" data-act="poseMirror" data-prefix="${prefix}">Copier gauche → droite</button><button class="mini-btn" data-act="poseReset" data-prefix="${prefix}">Réinitialiser la pose</button></div><p class="hint">Selon le squelette du modèle, certains réglages extrêmes peuvent déformer les mains : Ctrl+Z pour revenir.</p>`;

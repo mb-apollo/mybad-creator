@@ -360,3 +360,25 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 .tools .ttoggle { color: var(--fg); }
 .tools-resize { position: absolute; top: 0; bottom: 0; left: calc(var(--toolw, 48px) - 3px); width: 6px; cursor: col-resize; z-index: 5; }
 .tools-resize:hover { background: rgba(84, 216, 255, .25); }
+
+/* ---- Studio de poses ---- */
+#poselab { position: fixed; inset: 0; z-index: 70; background: var(--bg, #090b17); display: flex; flex-direction: column; }
+#poselab[hidden] { display: none; }
+#poselab .pl-top { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+#poselab .pl-top strong { font-size: 15px; }
+#poselab .pl-status { font-size: 11.5px; color: var(--muted); }
+#poselab .pl-top .input { width: 150px; }
+#poselab .pl-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 250px 1fr 380px; }
+#poselab .pl-list { overflow-y: auto; border-right: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 3px; }
+#poselab .pl-group { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 12px 6px 4px; }
+#poselab .pl-list button { text-align: left; background: transparent; border: 1px solid transparent; color: var(--text); padding: 7px 10px; border-radius: 6px; font-size: 12.5px; }
+#poselab .pl-list button:hover { background: var(--panel-2); }
+#poselab .pl-list button.on { border-color: var(--cyan); background: var(--panel-2); }
+#poselab .pl-list button.mod::after { content: ' ●'; color: var(--cyan); font-size: 9px; }
+#poselab .pl-view { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; padding: 10px; gap: 8px; background: radial-gradient(circle at 50% 35%, #12204a, #070914 70%); }
+#poselab .pl-view canvas { max-height: calc(100% - 70px); max-width: 100%; aspect-ratio: 640 / 800; cursor: ew-resize; touch-action: none; }
+#poselab .pl-cam { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+#poselab .pl-hint { font-size: 11px; color: var(--muted); }
+#poselab .pl-ctl { overflow-y: auto; border-left: 1px solid var(--line); padding: 10px 12px 30px; }
+#poselab .pl-ctl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; }
+#poselab .pl-ctl-head small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }

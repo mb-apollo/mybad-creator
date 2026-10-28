@@ -1,4 +1,2 @@
-- Studio de poses : le regard des agents se règle (yeux vers la gauche/droite et vers le haut/bas), dans la section Tête
-- Les pouces se plient maintenant en travers de la paume, bien plus loin, pour un vrai poing fermé
-- Les pistolets (Ghost, Classic, Sheriff) sont plus grands, et le curseur de taille d'arme monte jusqu'à ×2,4
-- Les poses personnalisées créées dans le Studio apparaissent tout de suite dans la liste des poses des affiches (la liste et les affiches se rafraîchissent à la fermeture du Studio)
+- Nouveau curseur « Écartement entre les personnages » (onglet 3D, section Personnages) pour rapprocher ou écarter les agents d'une scène
+- Les pieds touchent maintenant le sol : le pied le plus bas de chaque agent est ramené au sol, même quand la pose lève une jambe ou plie les genoux

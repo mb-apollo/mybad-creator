@@ -174,6 +174,18 @@ function holdWeapon(doc, inst, def0, cacheKey, pz) {
 }
 const dropWeapons = list => list.forEach(w => w && w.holder.parent && w.holder.parent.remove(w.holder));
 
+// Hauteur (monde) de la cheville la plus basse ; sert à reposer le personnage sur le sol quand une pose lève une jambe ou fléchit les genoux.
+function ankleY(rig) {
+  if (!rig?.footL || !rig?.footR) return null;
+  return Math.min(worldPos(rig.footL).y, worldPos(rig.footR).y);
+}
+// Décalage vertical (monde) à appliquer au pivot pour que le pied le plus bas touche le sol. Le pivot doit être à y = 0, à son échelle finale.
+function groundDrop(inst) {
+  const rig = inst.root.userData.rig; if (inst.footRest == null || !rig) return 0;
+  inst.pivot.position.y = 0; inst.pivot.updateMatrixWorld(true);
+  const y = ankleY(rig); if (y == null) return 0;
+  return -(y - inst.footRest * (inst.pivot.scale.x / inst.baseScale));
+}
 function instance(url, L, gltf) {
   // une seule instance par fichier : les rendus sont séquentiels, la pose est réappliquée à chaque fois
   const key = url;
@@ -205,7 +217,7 @@ function instance(url, L, gltf) {
   pivot.scale.setScalar(scale);
   pivot.updateMatrixWorld(true);
   const face = facingOf(root);
-  inst = { pivot, root, face, baseScale: scale, baseYaw: face ? Math.atan2(face.x, face.z) : 0, size: size.clone().multiplyScalar(scale), mixer: gltf.animations?.length ? new THREE.AnimationMixer(root) : null, clips: gltf.animations || [] };
+  inst = { footRest: ankleY(rig0), pivot, root, face, baseScale: scale, baseYaw: face ? Math.atan2(face.x, face.z) : 0, size: size.clone().multiplyScalar(scale), mixer: gltf.animations?.length ? new THREE.AnimationMixer(root) : null, clips: gltf.animations || [] };
   INSTANCES.set(key, inst);
   return inst;
 }
@@ -252,6 +264,7 @@ function renderModel(L, w, h, theme, exporting) {
   cullStretched(inst.root);
   inst.pivot.rotation.set(0, -inst.baseYaw + ((L.rotY || 0) + arot) * Math.PI / 180, 0);
   inst.pivot.updateMatrixWorld(true);
+  inst.pivot.position.y = groundDrop(inst); inst.pivot.updateMatrixWorld(true);
   const col = c => new THREE.Color(color(c, theme) || '#ffffff');
   const lit = (o, def, k) => ({ ...(o || {}), intensity: (o?.intensity ?? def) * (k ?? 1) });
   const amb = lit(L.ambient, 0.7, fin.ambient), key = lit(L.key, 1.6, fin.key), rim = lit(L.rim, 4, fin.rim), fill = lit(L.fill, 0.4, fin.ambient);
@@ -443,7 +456,7 @@ function renderStage(L, w, h, theme, exporting) {
   const pw = Math.max(16, Math.round(w * k)), ph = Math.max(16, Math.round(h * k));
   const fl = L.floor || {}, fin = finOf(doc);
   ready.forEach(x => { x.arot = agentRotY(agentKeyOf(doc, x.a.model)); const u = weaponUrl(doc, x.wd); if (u) load(u); });
-  const params = JSON.stringify([pw, ph, fin.exposure, fin.key, fin.rim, fin.ambient, ready.map(x => [x.url, { ...x.a, pose: x.pr, weapon: x.wd, arot: x.arot }, MODELS.get(weaponUrl(doc, x.wd))?.status]), fl, L.exposure, L.envLight, L.camPitch, L.zoom3d, L.target, L.fov, L.offsetX, L.key, L.rim, L.fill, L.ambient, theme.glow, theme.accent, theme.text, theme.bg, theme.bg2]);
+  const params = JSON.stringify([pw, ph, fin.exposure, fin.key, fin.rim, fin.ambient, ready.map(x => [x.url, { ...x.a, pose: x.pr, weapon: x.wd, arot: x.arot }, MODELS.get(weaponUrl(doc, x.wd))?.status]), fl, L.spread, L.exposure, L.envLight, L.camPitch, L.zoom3d, L.target, L.fov, L.offsetX, L.key, L.rim, L.fill, L.ambient, theme.glow, theme.accent, theme.text, theme.bg, theme.bg2]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
@@ -471,11 +484,12 @@ function renderStage(L, w, h, theme, exporting) {
     cullStretched(inst.root);
     inst.pivot.scale.setScalar(inst.baseScale * (a.scale || 1));
     inst.pivot.rotation.set(0, -inst.baseYaw + ((a.rotY || 0) + arot) * Math.PI / 180, 0);
-    inst.pivot.position.set(a.x || 0, 0, a.z || 0);
+    inst.pivot.position.set((a.x || 0) * (L.spread ?? 1), 0, a.z || 0);
     inst.pivot.updateMatrixWorld(true);
+    inst.pivot.position.y = groundDrop(inst); inst.pivot.updateMatrixWorld(true);
     inst.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
     group.add(inst.pivot);
-    maxX = Math.max(maxX, Math.abs(a.x || 0) + 0.32 * (a.scale || 1)); maxH = Math.max(maxH, a.scale || 1);
+    maxX = Math.max(maxX, Math.abs((a.x || 0) * (L.spread ?? 1)) + 0.32 * (a.scale || 1)); maxH = Math.max(maxH, a.scale || 1);
   });
 
   // lumière : le contre-jour projette les ombres vers l'avant, sur le sol
@@ -631,7 +645,7 @@ function sceneProps(L) {
     ...gameItems(doc.game, S.extraItems).map(i => [`g:${doc.game}:${i.key}`, i.name]),
   ];
   let h = section('Caméra', `${range('camPitch', 'Angle de caméra', L.camPitch ?? 5, -20, 60, 1, deg)}${range('zoom3d', 'Zoom', L.zoom3d || 1, 0.3, 3, 0.01, pct)}${range('target', 'Hauteur visée', L.target ?? 0.5, 0, 1, 0.01, pct)}${range('offsetX', 'Décalage caméra', L.offsetX || 0, -2, 2, 0.01, v => Math.round(v * 100))}${range('fov', 'Focale (perspective)', L.fov || 26, 10, 70, 1, v => v + '°')}`);
-  h += section('Personnages', (L.actors || []).map((a, i) => `<div class="fadebox"><div class="fadehead"><b>Personnage ${i + 1}</b><button class="mini-btn danger" data-act="actorDel" data-i="${i}" title="Retirer de la scène">${icon('trash')}</button></div>
+  h += section('Personnages', range('spread', 'Écartement entre les personnages', L.spread ?? 1, 0.4, 2.2, 0.01, pct) + (L.actors || []).map((a, i) => `<div class="fadebox"><div class="fadehead"><b>Personnage ${i + 1}</b><button class="mini-btn danger" data-act="actorDel" data-i="${i}" title="Retirer de la scène">${icon('trash')}</button></div>
     ${sel(`actors.${i}.model`, 'Modèle', a.model, opts, { raw: true })}
     ${range(`actors.${i}.x`, 'Position gauche / droite', a.x || 0, -3, 3, 0.01, v => v.toFixed(2))}
     ${range(`actors.${i}.z`, 'Profondeur (vers la caméra)', a.z || 0, -3, 3, 0.01, v => v.toFixed(2))}

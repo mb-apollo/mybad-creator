@@ -32,7 +32,7 @@ export const GAMES = {
 export const WEAPONS = [
   // frac : longueur de l'arme / hauteur de l'agent (proportions du jeu : fusil ≈ moitié de l'agent, pistolet ≈ longueur d'une main et demie)
   { key: 'vandal', name: 'Vandal', kind: 'rifle', frac: 0.5 }, { key: 'phantom', name: 'Phantom', kind: 'rifle', frac: 0.46 },
-  { key: 'classic', name: 'Classic', kind: 'pistol', frac: 0.115 }, { key: 'ghost', name: 'Ghost', kind: 'pistol', frac: 0.125 }, { key: 'sheriff', name: 'Sheriff', kind: 'pistol', frac: 0.14 },
+  { key: 'classic', name: 'Classic', kind: 'pistol', frac: 0.16 }, { key: 'ghost', name: 'Ghost', kind: 'pistol', frac: 0.175 }, { key: 'sheriff', name: 'Sheriff', kind: 'pistol', frac: 0.195 },
 ];
 
 // Éléments ajoutés par l'utilisateur (nouvel agent, voiture personnalisée…)

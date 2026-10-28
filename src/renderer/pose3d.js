@@ -67,7 +67,10 @@ export function rigOf(root) {
         const nxt = rig.finger[s][f][j + 1], prv = rig.finger[s][f][j - 1];
         const dir = nxt ? worldPos(nxt).sub(worldPos(b)) : prv ? worldPos(b).sub(worldPos(prv)) : null;
         if (!dir || dir.lengthSq() < 1e-12) return null;
-        return new THREE.Vector3().crossVectors(dir.normalize(), n).normalize().applyQuaternion(worldQuat(b).invert()); // une courbure positive rapproche le doigt de la paume (+n)
+        // le pouce se replie en travers de la paume (vers l'auriculaire) autant que vers la paume : sa direction de pliure est inclinée
+        const dn = dir.normalize(), wi = worldQuat(b).invert();
+        if (f === 'Thumb') (rig.thumbAcross ||= { L: [], R: [] })[s][j] = new THREE.Vector3().crossVectors(dn, a.clone().negate()).normalize().applyQuaternion(wi);   // pliure en travers de la paume (vers l'auriculaire)
+        return new THREE.Vector3().crossVectors(dn, n).normalize().applyQuaternion(wi); // une courbure positive rapproche le doigt de la paume (+n)
       });
     }
   }
@@ -169,6 +172,11 @@ function setWorldQuat(bone, q) {
   bone.quaternion.copy(pq.invert().multiply(q));
   bone.updateWorldMatrix(false, true);
 }
+// Os des globes oculaires (pas toujours sous la tête dans le squelette) ; vide si le modèle n'en a pas.
+function eyesOf(rig, head) {
+  if (!rig.eyes) { rig.eyes = []; let top = head; while (top.parent) top = top.parent; top.traverse(o => { if (/^[LR]_Eyeball(_[0-9]+)?$/i.test(o.name || '')) rig.eyes.push(o); }); }
+  return rig.eyes;
+}
 function rotateWorld(bone, axis, angle) {
   if (!bone || !angle) return;
   setWorldQuat(bone, new THREE.Quaternion().setFromAxisAngle(axis, angle).multiply(worldQuat(bone)));
@@ -200,7 +208,7 @@ export function facingOf(root) {
 //                 elbow (pliure), roll (sens de la pliure : 0 avant, 90 vers le corps, 180 arrière)
 //   legL / legR : out (écart), fwd (jambe vers l'avant), knee (genou plié)
 //   torso : bend (penché en avant), lean (penché à gauche), twist (rotation à gauche)
-//   head  : turn (rotation à gauche), nod (regard vers le bas), tilt (inclinaison à gauche)
+//   head  : turn (rotation à gauche), nod (regard vers le bas), tilt (inclinaison à gauche), eyeYaw / eyePitch (regard des yeux : gauche / haut)
 // Les anciens réglages (armsDown, armsForward, elbows, chest, headTurn, headTilt, stance) restent compris.
 function settings(P) {
   const A0 = { out: Math.max(0, 90 - (P.armsDown ?? 72)), fwd: P.armsForward || 0, elbow: P.elbows || 0, roll: 0 };
@@ -209,7 +217,7 @@ function settings(P) {
     armL: { ...A0, ...P.armL }, armR: { ...A0, ...P.armR },
     legL: { ...L0, ...P.legL }, legR: { ...L0, ...P.legR },
     torso: { bend: 0, lean: 0, twist: P.chest || 0, ...P.torso },
-    head: { turn: P.headTurn || 0, nod: 0, tilt: P.headTilt || 0, ...P.head },
+    head: { turn: P.headTurn || 0, nod: 0, tilt: P.headTilt || 0, eyeYaw: 0, eyePitch: 0, ...P.head },
     handL: { curl: 0, ...P.handL }, handR: { curl: 0, ...P.handR },
     shL: { up: 0, fwd: 0, ...P.shL }, shR: { up: 0, fwd: 0, ...P.shR },
     footL: { pitch: 0, yaw: 0, ...P.footL }, footR: { pitch: 0, yaw: 0, ...P.footR },
@@ -275,9 +283,15 @@ export function applyPose(root, P) {
     turnToward(c, UP, G.fwd * RAD, probe, fwd0);
   }
   if (rig.head) {
+    const hq0 = worldQuat(rig.head).clone();
     rotateWorld(rig.head, UP, S.head.turn * RAD);
     rotateWorld(rig.head, lat0, S.head.nod * RAD);
     rotateWorld(rig.head, fwd0.clone().negate(), S.head.tilt * RAD);
+    // regard : les yeux tournent dans le repère de la tête (eyeYaw : vers la gauche du personnage, eyePitch : vers le haut)
+    if (S.head.eyeYaw || S.head.eyePitch) {
+      const dq = worldQuat(rig.head).clone().multiply(hq0.invert()), yawAx = UP.clone().applyQuaternion(dq), pitAx = lat0.clone().applyQuaternion(dq);
+      eyesOf(rig, rig.head).forEach(e => { rotateWorld(e, yawAx, (S.head.eyeYaw || 0) * RAD); rotateWorld(e, pitAx, -(S.head.eyePitch || 0) * RAD); });
+    }
   }
 
   // bras : l'épaule vise une direction (écart puis balancement avant), le coude plie dans le sens choisi
@@ -310,7 +324,8 @@ export function applyPose(root, P) {
 }
 
 // Flexion des doigts (0 = ouverts, 100 = poing). curl règle tous les doigts, chaque doigt peut être précisé.
-const CURL = { Thumb: [22, 30, 42], Index: [62, 88, 60], Middle: [66, 90, 62], Ring: [68, 92, 64], Pinky: [70, 92, 64] };
+const THUMB_TILT = [75, 45, 20];   // inclinaison (°) de la pliure de chaque articulation du pouce, de la paume vers l'auriculaire
+const CURL = { Thumb: [75, 55, 55], Index: [62, 88, 60], Middle: [66, 90, 62], Ring: [68, 92, 64], Pinky: [70, 92, 64] };
 // Écartement des doigts (degrés pour 100 %) : positif = les doigts s'écartent, éventail autour du majeur.
 const SPREAD = { Thumb: 0, Index: 1, Middle: 0, Ring: -1, Pinky: -2 }, SPREAD_DEG = 9;
 // Plie un doigt à une valeur absolue (0 = ouvert, 100 = poing), à partir de sa pose de repos, avec l'écartement et les
@@ -321,7 +336,9 @@ export function setFingerCurl(rig, s, f, c) {
     if (!b) return;
     b.quaternion.copy(rig.rest.get(b) || b.quaternion);
     if (j === 0 && ex?.spread && SPREAD[f] && rig.fingerN?.[s]?.[f]) b.quaternion.multiply(q.setFromAxisAngle(rig.fingerN[s][f], SPREAD[f] * (ex.spread / 100) * SPREAD_DEG * RAD * (rig.handFrame?.[s]?.sgnSide || 1)));
-    const ax = rig.fingerAxis[s][f][j], cj = (c + (ex?.H?.[key + (j + 1)] || 0)) / 100;
+    let ax = rig.fingerAxis[s][f][j];
+    const cj = (c + (ex?.H?.[key + (j + 1)] || 0)) / 100;
+    if (f === 'Thumb' && ax && rig.thumbAcross?.[s]?.[j]) { const phi = (THUMB_TILT[j]) * RAD; ax = ax.clone().multiplyScalar(Math.cos(phi)).addScaledVector(rig.thumbAcross[s][j], Math.sin(phi)).normalize(); }
     if (ax && cj) b.quaternion.multiply(q.setFromAxisAngle(ax, CURL[f][j] * cj * RAD));
     b.updateMatrix();
   });

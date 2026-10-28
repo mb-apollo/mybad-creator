@@ -464,6 +464,7 @@ P.actions.applyKitPlayers = () => {
 };
 $('#btnKit').onclick = openKit;
 $('#btnPoseLab').onclick = openPoseLab;
+document.addEventListener('poselab:closed', () => { P.renderProps(); change(() => {}, { immediate: true, full: true }); P.scheduleThumbs(); });
 P.actions.openPoseLab = openPoseLab;
 P.actions.materialize = materialize;
 

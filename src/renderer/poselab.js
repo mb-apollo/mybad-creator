@@ -58,7 +58,7 @@ function poseControls(data) {
     section('Bras gauche', rows('armL', ARM, v), false), section('Bras droit', rows('armR', ARM, v), false),
     section('Épaules', section('Épaule gauche', rows('shL', SHOULDER, v), true) + section('Épaule droite', rows('shR', SHOULDER, v), true), false),
     section('Buste', rows('torso', [['bend', 'Penché en avant', -30, 45], ['lean', 'Penché sur le côté', -30, 30], ['twist', 'Rotation du buste', -60, 60]], v), false),
-    section('Tête', rows('head', [['turn', 'Rotation de la tête', -70, 70], ['nod', 'Tête vers le bas', -35, 35], ['tilt', 'Inclinaison de la tête', -35, 35]], v), false),
+    section('Tête', rows('head', [['turn', 'Rotation de la tête', -70, 70], ['nod', 'Tête vers le bas', -35, 35], ['tilt', 'Inclinaison de la tête', -35, 35]], v) + '<p class="hint">Regard : les yeux tournent dans le repère de la tête.</p>' + rows('head', [['eyeYaw', 'Regard vers la gauche du perso (+) / la droite (−)', -35, 35], ['eyePitch', 'Regard vers le haut (+) / le bas (−)', -20, 20]], v), false),
     hand('L', 'Main gauche — poignet et doigts'), hand('R', 'Main droite — poignet et doigts'),
     section('Jambes', section('Jambe gauche', rows('legL', LEG, v), true) + section('Jambe droite', rows('legR', LEG, v), true), false),
     section('Pieds', section('Pied gauche', rows('footL', FOOT, v), true) + section('Pied droit', rows('footR', FOOT, v), true), false),
@@ -81,7 +81,7 @@ function poseWeaponControls(d) {
   return h;
 }
 function placementControls(d, p = '') {
-  return rg(p + 'scale', 'Taille de l\'arme', d.scale ?? 1, 0.5, 1.6, '×', 0.01)
+  return rg(p + 'scale', 'Taille de l\'arme', d.scale ?? 1, 0.5, 2.4, '×', 0.01)
     + rg(p + 'x', 'Décalage avant / arrière', d.x ?? 0, -0.3, 0.3, ' m', 0.005) + rg(p + 'y', 'Décalage haut / bas', d.y ?? 0, -0.3, 0.3, ' m', 0.005) + rg(p + 'z', 'Décalage gauche / droite', d.z ?? 0, -0.3, 0.3, ' m', 0.005)
     + rg(p + 'rx', 'Roulis de l\'arme', d.rx ?? 0, -180, 180) + rg(p + 'ry', 'Cap de l\'arme', d.ry ?? 0, -180, 180) + rg(p + 'rz', 'Tangage de l\'arme', d.rz ?? 0, -180, 180);
 }
@@ -338,5 +338,6 @@ export async function closePoseLab() {
     else return;
   } else endDraft(false);
   root.hidden = true; ST.open = false;
+  document.dispatchEvent(new CustomEvent('poselab:closed'));   // les poses ont pu changer : l'application rafraîchit ses listes et ses affiches
 }
 void getPath;

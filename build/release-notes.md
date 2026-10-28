@@ -1,4 +1,4 @@
-- Roster et autres affiches : plus de coupure nette en bas, le cadre et le texte du pied ne sont plus recouverts par les dégradés
-- Les ombres des agents viennent maintenant droit vers nous, dans l'axe de la lumière de contre-jour
-- Thème Azur : coins du cadre, textes secondaires et panneaux plus clairs
-- Les réglages propres à une affiche ne suivent plus quand on change d'affiche (seuls les réglages globaux restent)
+- Studio de poses : le regard des agents se règle (yeux vers la gauche/droite et vers le haut/bas), dans la section Tête
+- Les pouces se plient maintenant en travers de la paume, bien plus loin, pour un vrai poing fermé
+- Les pistolets (Ghost, Classic, Sheriff) sont plus grands, et le curseur de taille d'arme monte jusqu'à ×2,4
+- Les poses personnalisées créées dans le Studio apparaissent tout de suite dans la liste des poses des affiches (la liste et les affiches se rafraîchissent à la fermeture du Studio)

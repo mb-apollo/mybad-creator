@@ -8,7 +8,7 @@ import { section, range, toggle, select as sel, seg, colorCtl, pct, deg, icon, e
 import { color, finOf } from './engine/scene.js';
 import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
-import { sceneDefaults } from './engine/templates.js';
+import { sceneDefaults, DEFAULT_POSE } from './engine/templates.js';
 import { addLayer } from './editor.js';
 import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf, agentRotY } from './posereg.js';
 import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, WEAPON_STANCES, FACES, applyFace, applyWrist, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams } from './pose3d.js';
@@ -322,6 +322,7 @@ export function newModelLayer() {
     rotY: isCar ? 35 : 15, camPitch: isCar ? 12 : 4, zoom3d: 1, target: 0.5, fov: 28, anim: 0, animTime: 0,
     key: { color: '#ffffff', intensity: 1.4, angle: -35 }, rim: { color: '$glow', intensity: 4, angle: 150 }, fill: { color: '$accent', intensity: 0.4 }, ambient: { color: '$glow', intensity: 0.6 },
     reflect: true, contact: true,
+    ...(isCar ? {} : { pose: DEFAULT_POSE(0) }),   // l'agent prend la pose réglée dans le Studio (ou la pose par défaut)
     fx: { glow: { on: true, color: '$glow', blur: 34, opacity: 0.45 } },
   };
 }

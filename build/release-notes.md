@@ -1,2 +1,1 @@
-- Nouveau curseur « Écartement entre les personnages » (onglet 3D, section Personnages) pour rapprocher ou écarter les agents d'une scène
-- Les pieds touchent maintenant le sol : le pied le plus bas de chaque agent est ramené au sol, même quand la pose lève une jambe ou plie les genoux
+- Un modèle 3D ajouté à la main prend maintenant la pose de son agent (celle réglée dans le Studio de poses, ou la pose par défaut) au lieu de la pose brute du fichier

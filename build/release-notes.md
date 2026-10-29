@@ -1,1 +1,2 @@
-- Un modèle 3D ajouté à la main prend maintenant la pose de son agent (celle réglée dans le Studio de poses, ou la pose par défaut) au lieu de la pose brute du fichier
+- Nouvelle arme « Logo MyBad » : le logo (ailes et étoile) en 3D, tenu à une main comme un pistolet, en métal brossé ou en néon lumineux, avec la couleur de ton choix
+- Rocket League : réglage des feux (allumés / éteints) sur Dominus et Fennec, et couleur des jantes au choix pour toutes les voitures

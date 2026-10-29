@@ -608,11 +608,11 @@ export function initTheme() {
 // ================================================================ BIBLIOTHÈQUE
 let libGame = null;
 function weaponsSection() {
-  const n = WEAPONS.filter(w => S.libraryModels.has('g:weapons:' + w.key)).length;
-  return `<div class="csec libweap"><div class="csec-head"><span>Armes 3D</span><span class="muted">${n} / ${WEAPONS.length}</span></div>
+  const n = WEAPONS.filter(w => !w.builtin && S.libraryModels.has('g:weapons:' + w.key)).length;
+  return `<div class="csec libweap"><div class="csec-head"><span>Armes 3D</span><span class="muted">${n} / ${WEAPONS.filter(w => !w.builtin).length}</span></div>
     <p class="hint">Importe tes modèles d'armes (.glb) : ils se placent ensuite dans la main d'un personnage (section Arme des propriétés).</p>
     <div class="btnrow"><button class="mini-btn" data-lib="folder" data-game="weapons">${icon('folder')} Importer les armes</button></div>
-    ${WEAPONS.map(w => `<div class="weaprow"><b>${esc(w.name)}</b><small>${w.kind === 'rifle' ? 'Fusil' : 'Pistolet'}</small>${S.libraryModels.has('g:weapons:' + w.key) ? '<em class="m3d">3D</em>' : ''}<button class="mini-btn" data-lib="glb" data-game="weapons" data-weapon="${w.key}">3D</button>${S.libraryModels.has('g:weapons:' + w.key) ? `<button class="mini-btn danger" data-lib="del" data-game="weapons" data-weapon="${w.key}">✕</button>` : ''}</div>`).join('')}</div>`;
+    ${WEAPONS.filter(w => !w.builtin).map(w => `<div class="weaprow"><b>${esc(w.name)}</b><small>${w.kind === 'rifle' ? 'Fusil' : 'Pistolet'}</small>${S.libraryModels.has('g:weapons:' + w.key) ? '<em class="m3d">3D</em>' : ''}<button class="mini-btn" data-lib="glb" data-game="weapons" data-weapon="${w.key}">3D</button>${S.libraryModels.has('g:weapons:' + w.key) ? `<button class="mini-btn danger" data-lib="del" data-game="weapons" data-weapon="${w.key}">✕</button>` : ''}</div>`).join('')}</div>`;
 }
 export function renderLibrary() {
   const box = $('#libraryBody'); if (!box || !S.doc) return;

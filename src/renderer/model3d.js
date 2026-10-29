@@ -9,6 +9,7 @@ import { color, finOf } from './engine/scene.js';
 import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
 import { sceneDefaults, DEFAULT_POSE } from './engine/templates.js';
+import { LOGO_URL, makeLogoGltf, setLogoLook } from './logo3d.js';
 import { addLayer } from './editor.js';
 import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf, agentRotY } from './posereg.js';
 import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, WEAPON_STANCES, FACES, applyFace, applyWrist, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams } from './pose3d.js';
@@ -80,9 +81,34 @@ function fixModel(url, gltf) {
     if (keep.length < idx.length) g.setIndex(keep);
   });
 }
+// Voitures : feux (allumés / éteints, pour les modèles dont les feux sont une matière à part : Dominus, Fennec) et couleur des jantes. Les réglages du fichier sont mémorisés dans chaque matière (userData.o0) puis rétablis.
+// L.lights : 'auto' / vide = comme dans le fichier, 'on' = allumés, 'off' = éteints ; L.rimColor : couleur des jantes (vide = d'origine).
+function applyCarLook(inst, L, theme) {
+  const rim = L.rimColor ? color(L.rimColor, theme) : null;
+  inst.root.traverse(o => {
+    if (!o.isMesh) return;
+    for (const m of [].concat(o.material || [])) {
+      const n = m.name || '';
+      const isLamp = /headlight/i.test(n), isChassis = /chassis/i.test(n), isRim = /rim|cristiano/i.test(n);
+      if (!isLamp && !isChassis && !isRim) continue;
+      const o0 = m.userData.o0 ||= { emissive: m.emissive?.clone(), ei: m.emissiveIntensity, color: m.color?.clone(), map: m.map, emissiveMap: m.emissiveMap, metalness: m.metalness, roughness: m.roughness, hex: m.emissive?.getHex() || 0 };
+      if (isLamp || isChassis) {
+                m.emissive.copy(o0.emissive); m.emissiveMap = o0.emissiveMap; m.emissiveIntensity = o0.ei; m.color.copy(o0.color);
+        if (L.lights === 'off') { m.emissiveIntensity = 0; if (isLamp) m.color.copy(o0.color).multiplyScalar(0.3); }
+        m.needsUpdate = true;
+      }
+      if (isRim) {
+        if (rim) { m.map = null; m.color.set(rim); m.metalness = 0.9; m.roughness = 0.28; }
+        else { m.map = o0.map; m.color.copy(o0.color); m.metalness = o0.metalness; m.roughness = o0.roughness; }
+        m.needsUpdate = true;
+      }
+    }
+  });
+}
 function load(url) {
   let m = MODELS.get(url);
   if (m) return m;
+  if (url === LOGO_URL) { m = { status: 'ready', gltf: makeLogoGltf(), promise: Promise.resolve() }; MODELS.set(url, m); return m; }
   m = { status: 'loading' };
   MODELS.set(url, m);
   m.promise = new Promise(res => {
@@ -152,7 +178,7 @@ export function dragPoseHandle(L, h, start, ndc) {
 }
 
 // ---------------------------------------------------------------- armes tenues en main
-const weaponUrl = (doc, def) => (def?.key ? S.libraryModels.get('g:weapons:' + def.key) || null : null);
+const weaponUrl = (doc, def) => (def?.key === 'mybad' ? LOGO_URL : def?.key ? S.libraryModels.get('g:weapons:' + def.key) || null : null);
 const weaponKind = key => WEAPONS.find(w => w.key === key)?.kind || 'rifle';
 function holdWeapon(doc, inst, def0, cacheKey, pz) {
   const def = def0 && { ...weaponDefaults(def0.key), ...def0 };   // placement du Studio de poses sous les réglages du calque
@@ -161,6 +187,7 @@ function holdWeapon(doc, inst, def0, cacheKey, pz) {
   const m = load(url);
   if (m.status !== 'ready') return null;
   const w = weaponInstance(cacheKey + ':' + def.key, m.gltf);
+  if (def.key === 'mybad') setLogoLook(w, def.mode, color(def.color || '$accent', doc.theme));
   const kind = weaponKind(def.key), { primary, both } = handsOf(def, kind), second = primary === 'R' ? 'L' : 'R';
   const V = poseValues(pz || {});
   if (def.aim) aimHand(inst, def.aim, V['hand' + primary], primary);
@@ -234,7 +261,7 @@ function renderModel(L, w, h, theme, exporting) {
   const wdoc = S.doc_override || S.doc, pzr = resolvePose(L.pose, agentKeyOf(wdoc, L.model)), wdef = weaponOf(L, pzr), wurl = weaponUrl(wdoc, wdef);
   if (wurl) load(wurl);
   const fin = finOf(wdoc), arot = agentRotY(agentKeyOf(wdoc, L.model));
-  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, theme.glow, theme.accent, theme.text]);
+  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, L.lights, L.rimColor, theme.glow, theme.accent, theme.text]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
@@ -246,6 +273,7 @@ function renderModel(L, w, h, theme, exporting) {
   scene.environment = envTex;
   scene.environmentIntensity = L.envLight ?? 0.45;
   scene.add(inst.pivot);
+  applyCarLook(inst, L, theme);
   inst.pivot.scale.setScalar(inst.baseScale);
   inst.pivot.rotation.set(0, 0, 0);
   inst.pivot.position.set(0, 0, 0);
@@ -351,7 +379,8 @@ export function modelProps(L) {
   h += section('Arme', weaponControls('weapon', wsel), !!wsel?.key);
   h += section('Pose', (clips.length ? `${sel('anim', 'Animation', L.anim ?? 0, [[-1, 'Pose du fichier'], ...clips.map((c, i) => [i, c.name || `Animation ${i + 1}`])])}${(L.anim ?? 0) >= 0 ? range('animTime', 'Moment de l\'animation', L.animTime || 0, 0, 1, 0.001, pct) : ''}` : '<p class="hint">Ce modèle n\'a pas d\'animation : il garde la pose de son fichier.</p>')
     + poseControls('pose', pz), clips.length > 0 || !!pz.on);
-  h += section('Visage', faceControls('face', L.face), !!(L.face && Object.keys(L.face).length));
+  if (doc.game === 'rl') h += section('Voiture', `${sel('lights', 'Feux', L.lights || 'auto', [['auto', 'Selon le modèle'], ['on', 'Allumés'], ['off', 'Éteints']], { raw: true })}<p class="hint">Les feux s'éteignent sur Dominus et Fennec. Ceux d'Octane sont dessinés dans la texture : ils restent tels quels.</p>${colorCtl('rimColor', 'Couleur des jantes', L.rimColor || '#9aa6c4', th)}<div class="btnrow"><button class="mini-btn" data-act="rimReset">Jantes d'origine</button></div>`, true);
+  else h += section('Visage', faceControls('face', L.face), !!(L.face && Object.keys(L.face).length));
   h += section('Éclairage', `
     ${colorCtl('rim.color', 'Contre-jour', L.rim?.color || '$glow', th)}${range('rim.intensity', 'Intensité du contre-jour', L.rim?.intensity ?? 4, 0, 12, 0.1, v => v.toFixed(1))}${range('rim.angle', 'Direction du contre-jour', L.rim?.angle ?? 150, 90, 270, 1, deg)}
     ${colorCtl('key.color', 'Lumière principale', L.key?.color || '#ffffff', th)}${range('key.intensity', 'Intensité principale', L.key?.intensity ?? 1.4, 0, 6, 0.05, v => v.toFixed(2))}${range('key.angle', 'Direction principale', L.key?.angle ?? -35, -90, 90, 1, deg)}
@@ -421,6 +450,7 @@ export function modelPropAction(act, L, btn) {
     change(() => { L.actors.splice(+btn.dataset.i, 1); }, { immediate: true });
     deps.actions?.renderProps?.();
   }
+  if (act === 'rimReset' && L) { change(() => { delete L.rimColor; }, { immediate: true }); deps.actions?.renderProps?.(); }
   if (act === 'lightPreset' && L) {
     change(() => { L.key = { color: '#cfd8ff', intensity: 0.9, angle: -30 }; L.rim = { color: '$glow', intensity: 6, angle: 160 }; L.fill = { color: '$glow', intensity: 0.8 }; L.ambient = { color: '$glow', intensity: 0.9 }; }, { immediate: true });
     deps.actions?.renderProps?.();
@@ -598,11 +628,12 @@ function poseControls(prefix, P) {
 export const HANDS = [['R', 'Main droite'], ['L', 'Main gauche'], ['RL', 'Deux mains (droite principale)'], ['LR', 'Deux mains (gauche principale)']];
 // Arme tenue : choix, taille, ajustements et pose adaptée.
 function weaponControls(prefix, w) {
-  const have = k => S.libraryModels.has('g:weapons:' + k);
+  const have = k => k === 'mybad' || S.libraryModels.has('g:weapons:' + k);
   let h = sel(`${prefix}.key`, 'Arme tenue', w?.key || '', [['', 'Aucune arme'], ...WEAPONS.map(x => [x.key, x.name + (have(x.key) ? '' : ' (à importer)')])], { raw: true });
   if (!w?.key) return h + '<p class="hint">Choisis une arme : la pose du personnage s\'adapte automatiquement.</p>';
   if (!have(w.key)) return h + '<p class="hint warn">Importe ce modèle dans Bibliothèque › Armes 3D.</p>';
   const hand = w.hand || ((w.both ?? weaponKind(w.key) === 'rifle') ? 'RL' : 'R');
+  if (w.key === 'mybad') h += sel(`${prefix}.mode`, 'Matière du logo', w.mode || 'metal', [['metal', 'Métal brossé'], ['neon', 'Néon lumineux']], { raw: true }) + colorCtl(`${prefix}.color`, 'Couleur du logo', w.color || '$accent', S.doc.theme);
   return h + sel(`${prefix}.hand`, 'Mains', hand, HANDS, { raw: true })
     + range(`${prefix}.scale`, 'Taille de l\'arme', w.scale || 1, 0.5, 1.6, 0.01, pct)
     + range(`${prefix}.x`, 'Décalage avant / arrière', w.x || 0, -0.3, 0.3, 0.005, v => Math.round(v * 100))

@@ -1,4 +1,4 @@
-- Nouveau « Créateur de livrées » pour les voitures Rocket League : couleurs, brillance, effet métallisé, lueur du bas de caisse, et des calques (logo MyBad, image importée, texte, étoile, bande) avec position, taille, rotation, couleur, opacité et lueur ; réglage possible par voiture, annuler / rétablir, export / import
-- Livrées MyBad « Nuit » (foncée, logo discret, étoile brillante sur le capot) et « Azur », modifiables ; les voitures des modèles d'affiche prennent la Nuit par défaut
-- Feux : Octane (phares et feux arrière) et Fennec (phares) s'allument avec leur vrai dessin au lieu d'un aplat de couleur
-- Carrosseries plus brillantes par défaut, jantes noires sur la Fennec
+- Créateur de livrées : on déplace le logo, le texte, les étoiles et les bandes directement sur la voiture (glisser), et la caméra tourne en glissant ailleurs
+- Nouvelles couleurs par zone : châssis / aileron / pare-chocs, jantes, vitres et pneus
+- Interrupteur des feux (allumés / éteints) dans l'aperçu du créateur
+- Correction : le dessin du flanc était inversé d'un côté de la voiture, il est maintenant dans le même sens des deux côtés

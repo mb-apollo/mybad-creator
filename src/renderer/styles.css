@@ -434,3 +434,6 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 #liverylab .ll-row .ll-name { flex: 1; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #liverylab .ll-thumb { max-width: 100%; max-height: 90px; margin: 6px 0; border: 1px solid var(--line); border-radius: 6px; background: #0a0d1c; }
 #liverylab .hint { font-size: 11px; color: var(--muted); margin: 4px 0 8px; line-height: 1.4; }
+#liverylab .llzone { display: flex; align-items: center; gap: 8px; }
+#liverylab .llzone .llcol { flex: 1; }
+#liverylab .pl-top .input { width: auto; max-width: 190px; }

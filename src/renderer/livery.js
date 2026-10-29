@@ -21,7 +21,7 @@ export const newLayer = (kind, o = {}) => {
   return { id: 'l' + Date.now().toString(36) + (++LN), kind, ...base, ...o };
 };
 const nuit = () => ({
-  name: 'MyBad — Nuit', base: ['#070e30', '#03060f'], gloss: 0.7, metal: 0.45, glow: { color: '#3c96ff', amount: 0.38 },
+  name: 'MyBad — Nuit', base: ['#070e30', '#03060f'], gloss: 0.7, metal: 0.45, glow: { color: '#3c96ff', amount: 0.38 }, zones: { chassis: '#0a1640' },
   layers: [
     newLayer('stripe', { x: 0.5, y: 0.55, rot: -18, len: 1.3, thick: 5, opacity: 0.75, glow: 0.6 }),
     newLayer('stripe', { x: 0.5, y: 0.66, rot: -18, len: 1.3, thick: 2.5, opacity: 0.5, glow: 0.4 }),
@@ -36,7 +36,7 @@ const nuit = () => ({
   ],
 });
 const azur = () => ({
-  name: 'MyBad — Azur', base: ['#2a6bff', '#0b3bc4'], gloss: 0.7, metal: 0.45, glow: { color: '#a8d4ff', amount: 0.3 },
+  name: 'MyBad — Azur', base: ['#2a6bff', '#0b3bc4'], gloss: 0.7, metal: 0.45, glow: { color: '#a8d4ff', amount: 0.3 }, zones: { chassis: '#164fd6' },
   layers: [
     newLayer('stripe', { x: 0.5, y: 0.5, rot: -16, len: 1.3, thick: 14, color: '#06143f', opacity: 0.85, glow: 0 }),
     newLayer('stripe', { x: 0.5, y: 0.42, rot: -16, len: 1.3, thick: 5, color: '#e9f6ff', opacity: 0.95, glow: 0.6 }),
@@ -71,6 +71,7 @@ export const cloneDef = id => cloneJ(getDef(id) || nuit());
 export const liveryKey = id => (id ? id + ':' + (REV.get(id) || 0) + ':' + REVALL : '');
 export const liveryGloss = id => getDef(id)?.gloss;
 export const liveryMetal = id => getDef(id)?.metal;
+export const liveryZone = (id, k) => getDef(id)?.zones?.[k] || null;
 export const allLiveries = () => [
   ...Object.keys(BUILTIN).map(id => ({ id, name: getDef(id).name, builtin: true, modified: hasOverride(id) })),
   ...STORE.user.map(u => ({ id: u.id, name: u.def.name, builtin: false })),
@@ -202,28 +203,34 @@ export function applyLivery(inst, id, car) {
       const order = [0, 1, 2].sort((a, b) => size.getComponent(b) - size.getComponent(a));
       const tx = textures(id, car, { len: size.getComponent(order[0]), wid: size.getComponent(order[1]), hei: size.getComponent(order[2]) });
       const unit = i => new THREE.Vector3().setComponent(i, 1);
-      const U = { uMin: { value: bb.min.clone() }, uSize: { value: size.clone() }, uLen: { value: unit(order[0]) }, uWid: { value: unit(order[1]) }, uHei: { value: unit(order[2]) }, uSide: { value: tx.side }, uTop: { value: tx.top } };
+      const U = { uMin: { value: bb.min.clone() }, uSize: { value: size.clone() }, uLen: { value: unit(order[0]) }, uWid: { value: unit(order[1]) }, uHei: { value: unit(order[2]) }, uSide: { value: tx.side }, uTop: { value: tx.top },
+        uB0: { value: new THREE.Color(def.base[0]) }, uB1: { value: new THREE.Color(def.base[1]) }, uCh: { value: new THREE.Color(def.zones?.chassis || def.base[1]) } };
       m.onBeforeCompile = sh => {
         Object.assign(sh.uniforms, U);
         sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vLvPos; varying vec3 vLvN;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLvPos = position; vLvN = normal;');
-        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vLvPos; varying vec3 vLvN; uniform vec3 uMin, uSize, uLen, uWid, uHei; uniform sampler2D uSide, uTop;')
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vLvPos; varying vec3 vLvN; uniform vec3 uMin, uSize, uLen, uWid, uHei, uB0, uB1, uCh; uniform sampler2D uSide, uTop;')
           .replace('#include <color_fragment>', `#include <color_fragment>
           {
             vec3 p = (vLvPos - uMin) / uSize; vec3 n = normalize(vLvN);
             float u = dot(p, uLen), w = dot(p, uWid), h = dot(p, uHei);
             float sd = dot(n, uWid), up = dot(n, uHei);
-            vec2 uvS = vec2(sd >= 0.0 ? u : 1.0 - u, h);
+            vec2 uvS = vec2(sd >= 0.0 ? 1.0 - u : u, h);
             vec4 s = texture2D(uSide, uvS);
             vec4 t = texture2D(uTop, vec2(w, u));
             float ws = smoothstep(0.30, 0.70, abs(sd));
             float wt = smoothstep(0.35, 0.80, up);
-            vec3 col = diffuseColor.rgb;
+            vec3 col = mix(uB1, uB0, h);
             col = mix(col, s.rgb, ws * s.a);
             col = mix(col, t.rgb, wt * t.a);
+            // pièces vues de face, de dos ou du dessous (arches, pare-chocs) et aileron : couleur de châssis
+            float nei = smoothstep(0.35, 0.2, abs(sd)) * smoothstep(0.35, 0.2, abs(up));
+            float under = smoothstep(-0.4, -0.7, up);
+            float wing = smoothstep(0.15, 0.10, u) * smoothstep(0.66, 0.74, h);
+            col = mix(col, uCh, max(max(nei, under), wing));
             diffuseColor.rgb = col;
           }`);
       };
-      m.customProgramCacheKey = () => 'livery-v2';
+      m.customProgramCacheKey = () => 'livery-v6';
       m.needsUpdate = true;
     }
   });
@@ -243,4 +250,31 @@ export function applyGloss(inst, gloss, metal) {
       m.envMapIntensity = THREE.MathUtils.lerp(o0.ei ?? 1, 2.2, g);
     }
   });
+}
+
+// Pneus et vitres : couleur de la livrée (vide = d'origine).
+export function applyZones(inst, id) {
+  const z = getDef(id)?.zones || {};
+  inst.root.traverse(o => {
+    if (!o.isMesh) return;
+    for (const m of [].concat(o.material || [])) {
+      const n = m.name || '', key = /tread/i.test(n) ? 'tires' : /window/i.test(n) ? 'glass' : null;
+      if (!key || !m.color) continue;
+      const o0 = m.userData.z0 ||= { c: m.color.clone() };
+      if (z[key]) m.color.set(z[key]); else m.color.copy(o0.c);
+    }
+  });
+}
+
+// Point d'une carrosserie touché par un rayon → position dans la texture du flanc ou du dessus (0..1) ; sert à déplacer les calques à la souris.
+export function surfaceAt(mesh, pointWorld, normalLocal) {
+  mesh.geometry.computeBoundingBox();
+  const bb = mesh.geometry.boundingBox, size = bb.getSize(new THREE.Vector3());
+  const order = [0, 1, 2].sort((a, b) => size.getComponent(b) - size.getComponent(a));
+  const p = mesh.worldToLocal(pointWorld.clone()).sub(bb.min).divide(size);
+  const [iL, iW, iH] = order, u = p.getComponent(iL), w = p.getComponent(iW), h = p.getComponent(iH);
+  const sd = normalLocal.getComponent(iW), up = normalLocal.getComponent(iH);
+  const len = size.getComponent(iL), wid = size.getComponent(iW), hei = size.getComponent(iH);
+  if (up > 0.55) return { face: 'top', x: w, y: 1 - u, ax: 1, ay: len / wid };
+  return { face: 'side', x: sd >= 0 ? 1 - u : u, y: 1 - h, ax: len / hei, ay: 1 };
 }

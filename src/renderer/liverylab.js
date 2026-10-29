@@ -2,12 +2,12 @@
 // Chaque modification est enregistrée tout de suite ; les livrées se choisissent ensuite dans l'onglet 3D (section Voiture) de chaque voiture.
 import { S } from './state.js';
 import { esc, setPath, getPath, section, range, select, toggle, textInput, syncRange, pct, deg } from './ui.js';
-import { renderModelPreview } from './model3d.js';
+import { renderModelPreview, pickBody } from './model3d.js';
 import { allLiveries, getDef, cloneDef, saveDef, createLivery, renameLivery, deleteLivery, resetLivery, isBuiltin, hasOverride, newLayer, exportLiveries, importLiveries, onLiveryChange, FONTS, CARS } from './livery.js';
 
 const API = window.studio;
 const $ = (s, r = document) => r.querySelector(s);
-const ST = { open: false, id: 'nuit', def: null, car: 'octane', cam: { rotY: 330, camPitch: 10, zoom3d: 0.95, target: 0.5, offsetX: 0 }, sel: null, perCar: false, rename: false, hist: [], hi: -1, raf: 0, tries: 0, t: 0 };
+const ST = { lights: 'on', drag: null, open: false, id: 'nuit', def: null, car: 'octane', cam: { rotY: 330, camPitch: 10, zoom3d: 0.95, target: 0.5, offsetX: 0 }, sel: null, perCar: false, rename: false, hist: [], hi: -1, raf: 0, tries: 0, t: 0 };
 let root = null;
 
 const KIND = { logo: 'Logo MyBad', star: 'Étoile', image: 'Image', text: 'Texte', stripe: 'Bande' };
@@ -23,6 +23,7 @@ function build() {
       <strong>Créateur de livrées</strong>
       <span class="pl-status" id="llStatus">Rocket League · tout est enregistré tout de suite</span>
       <span class="spacer"></span>
+      <select class="input" id="llLights" title="Feux de la voiture (aperçu seulement)"><option value="on">Feux allumés</option><option value="off">Feux éteints</option><option value="auto">Feux : selon le modèle</option></select>
       <select class="input" id="llCar" title="Voiture d'aperçu">${CARS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
       <button class="ghost-btn" id="llUndo" title="Annuler (Ctrl+Z)">↶ Annuler</button>
       <button class="ghost-btn" id="llRedo" title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
@@ -35,7 +36,7 @@ function build() {
       <div class="pl-view">
         <canvas id="llCanvas" width="640" height="520"></canvas>
         <div class="pl-cam" id="llCam"></div>
-        <div class="pl-hint">Glisse pour tourner autour de la voiture, molette pour zoomer. Le flanc est le même des deux côtés.</div>
+        <div class="pl-hint">Glisse un élément (logo, texte, étoile, bande) pour le déplacer sur la voiture ; glisse ailleurs pour tourner, molette pour zoomer. Le flanc est le même des deux côtés.</div>
       </div>
       <div class="pl-ctl"><div class="pl-ctl-head" id="llHead"></div><div id="llControls"></div></div>
     </div>
@@ -44,6 +45,7 @@ function build() {
   $('#llClose', root).onclick = closeLiveryLab;
   $('#llUndo', root).onclick = () => step(-1); $('#llRedo', root).onclick = () => step(1);
   $('#llExport', root).onclick = doExport; $('#llImport', root).onclick = doImport;
+  $('#llLights', root).onchange = e => { ST.lights = e.target.value; preview(); };
   $('#llCar', root).onchange = e => { ST.car = e.target.value; renderControls(); preview(); };
 
   $('#llList', root).onclick = e => {
@@ -54,9 +56,23 @@ function build() {
   $('#llList', root).onkeydown = e => { if (e.key === 'Enter' && e.target.id === 'llNewName') $('[data-new]', root).click(); };
 
   const cv = $('#llCanvas', root);
-  cv.onpointerdown = e => { try { cv.setPointerCapture(e.pointerId); } catch { /* pointeur synthétique */ } cv._x = e.clientX; };
-  cv.onpointermove = e => { if (cv._x == null) return; ST.cam.rotY = (ST.cam.rotY + (e.clientX - cv._x) * 0.6 + 360) % 360; cv._x = e.clientX; preview(); };
-  cv.onpointerup = () => { cv._x = null; };
+  const surface = e => { const r = cv.getBoundingClientRect(); return pickBody('livery-preview', (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); };
+  cv.onpointerdown = e => {
+    try { cv.setPointerCapture(e.pointerId); } catch { /* pointeur synthétique */ }
+    const sf = surface(e), h = sf && hitLayer(sf);
+    if (h) { ST.drag = { id: h.L.id, face: sf.face, ox: h.ox, oy: h.oy }; if (ST.sel !== h.L.id) { ST.sel = h.L.id; renderControls(); } cv.style.cursor = 'grabbing'; }
+    else cv._x = e.clientX;
+  };
+  cv.onpointermove = e => {
+    if (ST.drag) {
+      const sf = surface(e), L = ST.def.layers.find(l => l.id === ST.drag.id);
+      if (sf && L && sf.face === ST.drag.face) { setPos(L, Math.max(0, Math.min(1, sf.x - ST.drag.ox)), Math.max(0, Math.min(1, sf.y - ST.drag.oy))); }
+      return;
+    }
+    if (cv._x == null) { const sf = surface(e); cv.style.cursor = sf && hitLayer(sf) ? 'grab' : 'ew-resize'; return; }
+    ST.cam.rotY = (ST.cam.rotY + (e.clientX - cv._x) * 0.6 + 360) % 360; cv._x = e.clientX; preview();
+  };
+  cv.onpointerup = () => { cv._x = null; if (ST.drag) { ST.drag = null; cv.style.cursor = 'ew-resize'; clearTimeout(ST.t); commit(); } };
   cv.onwheel = e => { e.preventDefault(); ST.cam.zoom3d = Math.max(0.5, Math.min(3, ST.cam.zoom3d * (e.deltaY < 0 ? 1.08 : 0.92))); preview(); };
   $('#llCam', root).innerHTML = [['3/4', '330,10,0.95'], ['Profil', '0,6,0.95'], ['Autre flanc', '180,6,0.95'], ['Face', '270,10,1.05'], ['Dos', '90,10,1.05'], ['Dessus', '270,60,0.95']].map(([l, v]) => `<button class="mini-btn" data-v="${v}">${l}</button>`).join('');
   $('#llCam', root).onclick = e => { const b = e.target.closest('button[data-v]'); if (!b) return; const [rotY, camPitch, zoom3d] = b.dataset.v.split(',').map(Number); Object.assign(ST.cam, { rotY, camPitch, zoom3d }); preview(); };
@@ -69,6 +85,7 @@ function build() {
     const a = b.dataset.a, i = +b.dataset.i;
     const L = ST.def.layers;
     if (a.startsWith('add-')) { const k = a.slice(4); const nl = newLayer(k, k === 'text' ? { text: 'MYBAD' } : {}); L.push(nl); ST.sel = nl.id; if (k === 'image') { change(true); $('#llFile', root).click(); return; } change(true); return; }
+    if (a === 'zone-reset') { delete ST.def.zones?.[b.dataset.k]; change(true); return; }
     if (a === 'pick') { ST.sel = L[i].id; renderControls(); return; }
     if (a === 'vis') { L[i].visible = L[i].visible === false; change(true); return; }
     if (a === 'up' && i < L.length - 1) { [L[i], L[i + 1]] = [L[i + 1], L[i]]; change(true); return; }
@@ -106,6 +123,27 @@ function build() {
     else if (e.key === 'Escape' && !ST.rename) closeLiveryLab();
   }, true);
   onLiveryChange(() => { if (ST.open) preview(); });
+}
+
+// ------------------------------------------------------------------ déplacement à la souris
+function hitLayer(sf) {
+  const layers = ST.def.layers;
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const L = layers[i]; if (L.visible === false || (L.face || 'side') !== sf.face) continue;
+    const lx = lv(L, 'x'), ly = lv(L, 'y'), size = lv(L, 'size') || 0, a = (lv(L, 'rot') || 0) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+    const dx = (sf.x - lx) * sf.ax, dy = (sf.y - ly) * sf.ay, along = dx * c + dy * sn, perp = -dx * sn + dy * c;
+    let ok;
+    if (L.kind === 'stripe') { const mx = sf.face === 'side' ? Math.max(sf.ax, 1) : Math.max(1, sf.ay), unit = sf.face === 'side' ? 800 : 1024; ok = Math.abs(along) <= (L.len || 1) * mx / 2 && Math.abs(perp) <= Math.max((L.thick || 4) / unit / 2 + 0.01, 0.02); }
+    else if (L.kind === 'text') ok = along >= -size * 0.2 && along <= (L.text || '').length * size * 0.62 && Math.abs(perp) <= size * 0.6;
+    else ok = Math.hypot(dx, dy) <= Math.max(size * 0.55, 0.03);
+    if (ok) return { L, ox: sf.x - lx, oy: sf.y - ly };
+  }
+  return null;
+}
+function setPos(L, x, y) {
+  if (ST.perCar) { const o = ((L.ov ||= {})[ST.car] ||= {}); o.x = x; o.y = y; } else { L.x = x; L.y = y; if (L.ov?.[ST.car]) { delete L.ov[ST.car].x; delete L.ov[ST.car].y; } }
+  for (const k of ['x', 'y']) { const el = $('#llControls input[data-p="l:' + k + '"]', root); if (el) { el.value = lv(L, k); syncRange(el, pct(lv(L, k))); } }
+  change(false);
 }
 
 // ------------------------------------------------------------------ édition
@@ -172,6 +210,11 @@ async function delLivery() {
 // ------------------------------------------------------------------ panneau de réglages
 const colorRow = (p, label, v) => `<label class="llcol"><span>${esc(label)}</span><input type="color" data-p="${p}" value="${/^#[0-9a-f]{6}$/i.test(v || '') ? v : '#ffffff'}"></label>`;
 const rg = (p, label, v, min, max, step, o = {}) => range(p, label, v, min, max, step, o.deg ? deg : o.px ? (x => Math.round(x) + ' px') : pct).replace('<input type="range"', `<input type="range" data-p="${p}" ${o.deg ? 'data-deg="1"' : ''} ${o.px ? 'data-px="1"' : ''}`);
+const ZONE_ORIGIN = { rim: true, glass: true, tires: true };
+function zoneRow(k, label, fallback) {
+  const v = ST.def.zones?.[k];
+  return `<div class="llzone">${colorRow('d:zones.' + k, label, v || fallback)}${v && (ZONE_ORIGIN[k] || k === 'chassis') ? `<button class="mini-btn" data-a="zone-reset" data-k="${k}">${k === 'chassis' ? 'Comme la carrosserie' : 'Origine'}</button>` : ''}</div>`;
+}
 function renderHead() {
   const user = !isBuiltin(ST.id), mod = hasOverride(ST.id);
   $('#llHead', root).innerHTML = ST.rename
@@ -203,6 +246,8 @@ function renderControls() {
   let h = section('Carrosserie', colorRow('d:base.0', 'Couleur du haut', d.base[0]) + colorRow('d:base.1', 'Couleur du bas', d.base[1])
     + rg('d:gloss', 'Brillance (vernis)', d.gloss ?? 0.7, 0, 1, 0.01) + rg('d:metal', 'Effet métallisé', d.metal ?? 0.45, 0, 1, 0.01)
     + colorRow('d:glow.color', 'Lueur du bas de caisse', d.glow?.color) + rg('d:glow.amount', 'Intensité de la lueur', d.glow?.amount ?? 0, 0, 1, 0.01), true);
+  h += section('Châssis, jantes, vitres, pneus', zoneRow('chassis', 'Châssis, aileron, pare-chocs', d.base[1]) + zoneRow('rim', 'Jantes', '#0b0c12') + zoneRow('glass', 'Vitres', '#05070e') + zoneRow('tires', 'Pneus', '#050505')
+    + '<div class="hint">Châssis : les pièces vues de face, de dos ou du dessous (arches de pare-chocs…) et l\'aileron. « Origine » rend la couleur du modèle.</div>', true);
   const rows = d.layers.map((L, i) => `<div class="ll-row ${L.id === ST.sel ? 'on' : ''} ${L.visible === false ? 'off' : ''}">
       <button data-a="vis" data-i="${i}" title="Afficher / masquer">${L.visible === false ? '○' : '●'}</button>
       <button class="ll-name" data-a="pick" data-i="${i}">${esc(layerName(L))}</button>
@@ -217,7 +262,7 @@ function renderControls() {
 
 // ------------------------------------------------------------------ aperçu
 function previewLayer() {
-  return { id: 'livery-preview', type: 'model', model: 'g:rl:' + ST.car, x: 0, y: 0, w: 640, h: 520, rot: 0, ...ST.cam, fov: 30, anim: 0, animTime: 0, livery: ST.id, envLight: 0.9,
+  return { id: 'livery-preview', type: 'model', model: 'g:rl:' + ST.car, x: 0, y: 0, w: 640, h: 520, rot: 0, ...ST.cam, fov: 30, anim: 0, animTime: 0, livery: ST.id, lights: ST.lights, envLight: 0.9,
     key: { color: '#eef2ff', intensity: 1.7, angle: -45 }, rim: { color: '#7ab8ff', intensity: 2, angle: 160 }, fill: { color: '#c9d4ff', intensity: 0.6 }, ambient: { color: '#8ea3e8', intensity: 0.7 } };
 }
 function preview() {

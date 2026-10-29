@@ -10,7 +10,7 @@ import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
 import { sceneDefaults, DEFAULT_POSE } from './engine/templates.js';
 import { LOGO_URL, makeLogoGltf, setLogoLook } from './logo3d.js';
-import { applyLivery, applyGloss, liveriesList, liveryKey, liveryGloss, liveryMetal } from './livery.js';
+import { applyLivery, applyGloss, applyZones, surfaceAt, liveriesList, liveryKey, liveryGloss, liveryMetal, liveryZone } from './livery.js';
 import { addLayer } from './editor.js';
 import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf, agentRotY } from './posereg.js';
 import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, WEAPON_STANCES, FACES, applyFace, applyWrist, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams } from './pose3d.js';
@@ -106,8 +106,9 @@ function lampGlow(m, car, on) {
 }
 const DEFAULT_RIM = { fennec: '#0b0c12' };   // jantes d'origine trop voyantes : noires par défaut
 function applyCarLook(inst, L, theme, car) {
-  const rim = L.rimColor ? color(L.rimColor, theme) : (DEFAULT_RIM[car] || null);
+  const rim = L.rimColor ? color(L.rimColor, theme) : (liveryZone(L.livery, 'rim') || DEFAULT_RIM[car] || null);
   applyLivery(inst, L.livery, car);
+  applyZones(inst, L.livery);
   applyGloss(inst, L.gloss ?? liveryGloss(L.livery) ?? 0.7, liveryMetal(L.livery));
   // les verres des phares (matière « Headlights ») réutilisent le dessin des phares de l'atlas du châssis : anneaux et segments au lieu d'un disque blanc uni
   let chassisMap = null;
@@ -353,8 +354,19 @@ function renderModel(L, w, h, theme, exporting) {
   const out = cached?.canvas || document.createElement('canvas');
   out.width = pw; out.height = ph;
   const c = out.getContext('2d'); c.clearRect(0, 0, pw, ph); c.drawImage(r.domElement, 0, 0);
-  RENDERS.set(L.id, { key: params, canvas: out });
+  RENDERS.set(L.id, { key: params, canvas: out, cam, inst });
   return out;
+}
+
+// Point de la carrosserie sous un point de l'aperçu (nx, ny entre 0 et 1) : face (flanc / dessus) et position dans sa texture, ou null.
+export function pickBody(layerId, nx, ny) {
+  const rec = RENDERS.get(layerId); if (!rec?.cam || !rec.inst) return null;
+  const { cam, inst } = rec;
+  cam.updateMatrixWorld(true); inst.pivot.updateMatrixWorld(true);
+  const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(nx * 2 - 1, -(ny * 2 - 1)), cam);
+  const meshes = []; inst.root.traverse(o => { if (o.isMesh && [].concat(o.material || []).some(m => /body/i.test(m.name || ''))) meshes.push(o); });
+  const hit = rc.intersectObjects(meshes, false)[0]; if (!hit || !hit.face) return null;
+  return surfaceAt(hit.object, hit.point, hit.face.normal);
 }
 
 // Fournit au moteur 2D la fonction de rendu des calques 3D.

@@ -1,4 +1,1 @@
-- Préréglages de réglages par affiche (onglet Réglages › Cette affiche) : enregistrer, appliquer, mettre à jour et supprimer les tiens ; chaque affiche a un préréglage fourni « MyBad Esport » et un bouton « Réinitialiser » qui y revient
-- L'affiche Roster arrive avec ses réglages MyBad Esport (ambiance, caméra, écartement, personnages 3D)
-- Créateur de livrées : les modifications du panneau de droite (logo, couleurs, bandes…) s'appliquent maintenant bien à la voiture
-- Feux des voitures Rocket League : les halos ne finissent plus en carré sur les bords
+- Scènes 3D : les personnages sont mieux posés au sol (chevilles et orteils pris en compte, même avec une jambe pliée ou un pied pointé) et chaque pied a une ombre de contact douce qui s'efface quand le pied se lève

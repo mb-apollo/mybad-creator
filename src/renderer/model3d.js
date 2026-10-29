@@ -222,17 +222,20 @@ function holdWeapon(doc, inst, def0, cacheKey, pz) {
 }
 const dropWeapons = list => list.forEach(w => w && w.holder.parent && w.holder.parent.remove(w.holder));
 
-// Hauteur (monde) de la cheville la plus basse ; sert à reposer le personnage sur le sol quand une pose lève une jambe ou fléchit les genoux.
-function ankleY(rig) {
+// Hauteurs (monde) des chevilles et des orteils (gauche, droite) ; servent à reposer le personnage sur le sol quand une pose lève une jambe, fléchit les genoux ou pointe le pied.
+function footYs(rig) {
   if (!rig?.footL || !rig?.footR) return null;
-  return Math.min(worldPos(rig.footL).y, worldPos(rig.footR).y);
+  return ['footL', 'footR', 'toeL', 'toeR'].map(k => (rig[k] ? worldPos(rig[k]).y : null));
 }
-// Décalage vertical (monde) à appliquer au pivot pour que le pied le plus bas touche le sol. Le pivot doit être à y = 0, à son échelle finale.
+// Décalage vertical (monde) du pivot : la partie du pied qui est le plus descendue par rapport à sa hauteur de repos revient à cette hauteur (le pied d'appui touche le sol).
 function groundDrop(inst) {
-  const rig = inst.root.userData.rig; if (inst.footRest == null || !rig) return 0;
+  const rig = inst.root.userData.rig; if (!inst.footRest || !rig) return 0;
   inst.pivot.position.y = 0; inst.pivot.updateMatrixWorld(true);
-  const y = ankleY(rig); if (y == null) return 0;
-  return -(y - inst.footRest * (inst.pivot.scale.x / inst.baseScale));
+  const ys = footYs(rig); if (!ys) return 0;
+  const k = inst.pivot.scale.x / inst.baseScale;
+  let low = Infinity;
+  ys.forEach((y, i) => { if (y != null && inst.footRest[i] != null) low = Math.min(low, y - inst.footRest[i] * k); });
+  return Number.isFinite(low) ? -low : 0;
 }
 function instance(url, L, gltf) {
   // une seule instance par fichier : les rendus sont séquentiels, la pose est réappliquée à chaque fois
@@ -265,7 +268,7 @@ function instance(url, L, gltf) {
   pivot.scale.setScalar(scale);
   pivot.updateMatrixWorld(true);
   const face = facingOf(root);
-  inst = { footRest: ankleY(rig0), pivot, root, face, baseScale: scale, baseYaw: face ? Math.atan2(face.x, face.z) : 0, size: size.clone().multiplyScalar(scale), mixer: gltf.animations?.length ? new THREE.AnimationMixer(root) : null, clips: gltf.animations || [] };
+  inst = { footRest: footYs(rig0), pivot, root, face, baseScale: scale, baseYaw: face ? Math.atan2(face.x, face.z) : 0, size: size.clone().multiplyScalar(scale), mixer: gltf.animations?.length ? new THREE.AnimationMixer(root) : null, clips: gltf.animations || [] };
   INSTANCES.set(key, inst);
   return inst;
 }
@@ -534,7 +537,7 @@ function renderStage(L, w, h, theme, exporting) {
   const group = new THREE.Group(); scene.add(group);
 
   let maxX = 0.4, maxH = 1;
-  const used = [], heldAll = [], handleEntries = [];
+  const used = [], heldAll = [], handleEntries = [], contacts = [];
   ready.forEach(({ a, url, pr, wd, arot }, ai) => {
     const inst = instance(url, L, MODELS.get(url).gltf);
     if (used.includes(inst)) return; // un même fichier ne peut apparaître qu'une fois dans la scène
@@ -554,6 +557,14 @@ function renderStage(L, w, h, theme, exporting) {
     inst.pivot.position.y = groundDrop(inst); inst.pivot.updateMatrixWorld(true);
     inst.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
     group.add(inst.pivot);
+    { // appuis : cheville + orteil de chaque pied, avec sa hauteur au-dessus du sol (l'ombre de contact s'efface quand le pied se lève)
+      const rg = inst.root.userData.rig, k = inst.pivot.scale.x / inst.baseScale, ys = footYs(rg);
+      if (ys) for (const [fi, ti] of [[0, 2], [1, 3]]) {
+        const fb = rg[fi === 0 ? 'footL' : 'footR'], tb = rg[ti === 2 ? 'toeL' : 'toeR']; if (!fb) continue;
+        const f = worldPos(fb), t = tb ? worldPos(tb) : f.clone().add(new THREE.Vector3(0, 0, 0.04 * k));
+        contacts.push({ f, t, lift: Math.max(0, ys[fi] - inst.footRest[fi] * k), scale: a.scale || 1 });
+      }
+    }
     maxX = Math.max(maxX, Math.abs((a.x || 0) * (L.spread ?? 1)) + 0.32 * (a.scale || 1)); maxH = Math.max(maxH, a.scale || 1);
   });
 
@@ -586,6 +597,18 @@ function renderStage(L, w, h, theme, exporting) {
   shadow.receiveShadow = true; shadow.position.y = 0.002;
   floor.add(dark, glow, shadow);
   floor.rotation.order = 'YXZ'; floor.rotation.set((fl.tilt || 0) * Math.PI / 180, (fl.rot || 0) * Math.PI / 180, 0);
+  // ombres de contact : tache douce sous chaque pied, qui s'estompe quand le pied se lève (ancre les personnages au sol, quel que soit l'angle de la lumière)
+  const blobs = new THREE.Group(); floor.add(blobs); floor.updateMatrixWorld(true);
+  const blobGeo = new THREE.PlaneGeometry(1, 1); blobGeo.rotateX(-Math.PI / 2);
+  for (const c of contacts) {
+    const mid = floor.worldToLocal(c.f.clone().add(c.t).multiplyScalar(0.5)), dx = c.t.x - c.f.x, dz = c.t.z - c.f.z;
+    const len = (Math.hypot(dx, dz) * 2.0 + 0.16) * c.scale, wid = len * 0.62;
+    const o = Math.min(0.9, (fl.shadow ?? 0.55) * 2.0) * Math.exp(-c.lift / (0.035 * c.scale));
+    if (o < 0.02) continue;
+    const m = new THREE.Mesh(blobGeo, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: o, alphaMap: (_glowTex ||= radialTex(0)), depthWrite: false }));
+    m.position.set(mid.x, 0.004, mid.z); m.rotation.y = Math.atan2(dx, dz); m.scale.set(wid, 1, len);
+    blobs.add(m);
+  }
 
   const fov = L.fov || 26, t = Math.tan(fov * Math.PI / 360);
   const fitH = maxH / 2 / t, fitW = maxX / t / (pw / ph);
@@ -595,7 +618,7 @@ function renderStage(L, w, h, theme, exporting) {
   cam.position.set(cx, targetY + Math.sin(pitch) * dist, Math.cos(pitch) * dist);
   cam.lookAt(cx, targetY, 0);
 
-  const show = (f, s, a) => { dark.visible = glow.visible = f; shadow.visible = s; group.visible = a; };
+  const show = (f, s, a) => { dark.visible = glow.visible = f; shadow.visible = blobs.visible = s; group.visible = a; };
   r.autoClear = false; r.setClearColor(0x000000, 0); r.clear(true, true, true);
   if (fl.on && (fl.reflect ?? 0.3) > 0) {
     show(false, false, true);
@@ -610,7 +633,7 @@ function renderStage(L, w, h, theme, exporting) {
   dropWeapons(heldAll);
 
   used.forEach(inst => { group.remove(inst.pivot); inst.pivot.scale.setScalar(inst.baseScale); inst.pivot.position.set(0, 0, 0); });
-  geo.dispose(); dark.material.dispose(); glow.material.dispose(); shadow.material.dispose();
+  geo.dispose(); blobGeo.dispose(); blobs.children.forEach(m => m.material.dispose()); dark.material.dispose(); glow.material.dispose(); shadow.material.dispose();
 
   const out = cached?.canvas || document.createElement('canvas');
   out.width = pw; out.height = ph;

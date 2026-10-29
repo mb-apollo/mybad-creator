@@ -3,6 +3,7 @@ import { S, API, on, emit, change, select, toggleSelect, layerById, selected, to
 import { $, $$, esc, getPath, setPath, section, num, range, toggle, select as sel, seg, textInput, colorCtl, syncRange, pct, px, deg, icon } from './ui.js';
 import { THEMES, THEME_TOKENS, FORMATS, applyTemplate, setScriptMode, renderDoc, FONT_ROLES, FONT_LIST, setGameDefaults } from './engine/render.js';
 import { TEMPLATES } from './engine/templates.js';
+import { listPresets, findPreset, savePreset, updatePreset, deletePreset, matchPreset, BASE_ID, BASE_NAME } from './lookpresets.js';
 import * as Custom from './custom.js';
 import { BLENDS, layerText, textLayout, uid, LOOK_OPTS, setGlobalLook, getGlobalLook, finOf } from './engine/scene.js';
 import { GAMES, gameItems, WEAPONS } from './engine/games.js';
@@ -529,6 +530,7 @@ export function renderTheme() {
 // ---------------------------------------------------------------- RÉGLAGES D'AMBIANCE (onglet à côté de Propriétés)
 // Deux niveaux : toutes les affiches (réglages globaux, mémorisés sur l'ordinateur) et cette affiche (prime sur les globaux).
 let lookScope = 'global';
+const LOOK_SEL = { tpl: null, id: null };
 const LOOK_GROUPS = [
   ['Image', ['grain', 'vignette', 'bright', 'bloom', 'grade', 'sat', 'contrast']],
   ['Lumière et décor', ['glow', 'beam', 'stars', 'smoke', 'floor']],
@@ -543,8 +545,18 @@ export function renderLook() {
     <p class="hint">${g ? 'Ces réglages valent pour toutes tes affiches, tout de suite. 100 % = valeur d\'origine.' : (nOwn ? nOwn + ' réglage(s) propre(s) à cette affiche (repérés par •) : ils priment sur les réglages globaux.' : 'Cette affiche suit les réglages globaux. Bouge un curseur pour la régler seule.')}</p></div>`;
   const body = LOOK_GROUPS.map(([title, keys]) => section(title, keys.map(k => { const [, l, a, b] = opt[k]; return range((g ? 'gfin.' : 'fin.') + k, l + (!g && own[k] != null ? ' •' : ''), val(k), a, b, 0.01, pct); }).join(''), true)).join('');
   const foot = g ? '<div class="pad btnrow"><button class="mini-btn" data-act="globalLookReset">Revenir aux valeurs d\'origine</button></div>'
-    : `<div class="pad btnrow"><button class="mini-btn" data-act="ownLookReset" ${nOwn ? '' : 'disabled'}>Suivre les réglages globaux</button></div>`;
-  setHTML(box, head + body + foot);
+    : `<div class="pad btnrow"><button class="mini-btn" data-act="ownLookBase">Réinitialiser (${BASE_NAME})</button><button class="mini-btn" data-act="ownLookReset" ${nOwn ? '' : 'disabled'}>Suivre les réglages globaux</button></div>`;
+  let presets = '';
+  if (!g) {
+    const tpl = S.doc.tpl, list = listPresets(tpl, S.doc), cur = matchPreset(tpl, S.doc), sel = LOOK_SEL.tpl === tpl && list.find(p => p.id === LOOK_SEL.id) ? LOOK_SEL.id : (cur || BASE_ID), p = list.find(x => x.id === sel);
+    presets = section('Préréglages de cette affiche', `<p class="hint">${esc(TEMPLATES[tpl]?.name || '')} · ${cur ? 'les réglages correspondent à « ' + esc(list.find(x => x.id === cur).name) + ' »' : 'réglages modifiés'}</p>
+      <div class="field full"><select class="input" data-lookpreset>${list.map(x => `<option value="${esc(x.id)}" ${x.id === sel ? 'selected' : ''}>${esc(x.name)}${x.id === cur ? ' ✓' : ''}</option>`).join('')}</select></div>
+      <div class="btnrow"><button class="mini-btn" data-act="presetApply">Appliquer</button>${p && !p.builtin ? '<button class="mini-btn" data-act="presetUpdate">Mettre à jour avec les réglages actuels</button><button class="mini-btn danger" data-act="presetDel">Supprimer</button>' : ''}</div>
+      <div class="field full" style="margin-top:8px"><input class="input" id="lookPresetName" placeholder="Nom du nouveau préréglage" maxlength="30" spellcheck="false"></div>
+      <div class="btnrow"><button class="mini-btn" data-act="presetSave">+ Enregistrer les réglages actuels</button></div>
+      <p class="hint">${BASE_NAME} = les réglages d'origine de cette affiche, ceux du premier lancement.</p>`, true);
+  }
+  setHTML(box, head + presets + body + foot);
 }
 const seg_btn = (v, label, on) => `<button type="button" data-v="${v}" class="${on ? 'on' : ''}">${label}</button>`;
 export function initLook() {
@@ -555,6 +567,7 @@ export function initLook() {
     else if (path.startsWith('gfin.')) { getGlobalLook()[path.slice(5)] = +el.value; saveGlobalLook(); syncRange(el, pct(+el.value)); requestRender(); scheduleThumbs(); }
   });
   box.addEventListener('change', e => {
+    if (e.target.matches('[data-lookpreset]')) { LOOK_SEL.tpl = S.doc.tpl; LOOK_SEL.id = e.target.value; renderLook(); return; }
     const path = e.target.dataset.path; if (!path) return;
     if (path.startsWith('fin.')) { change(() => {}, { immediate: true }); renderLook(); }
     else if (path.startsWith('gfin.')) { change(() => {}, { immediate: true }); }
@@ -563,6 +576,12 @@ export function initLook() {
     const sc = e.target.closest('[data-lookscope] button');
     if (sc) { lookScope = sc.dataset.v; renderLook(); return; }
     if (e.target.closest('[data-act="globalLookReset"]')) { setGlobalLook({}); saveGlobalLook(); requestRender(); change(() => {}, { immediate: true }); renderLook(); return; }
+    const act = e.target.closest('[data-act]')?.dataset.act, tpl = S.doc?.tpl;
+    if (act === 'ownLookBase') { change(d => { d.finish = { ...findPreset(d.tpl, BASE_ID, d).look }; d.finishFor = d.tpl; }, { immediate: true }); LOOK_SEL.tpl = tpl; LOOK_SEL.id = BASE_ID; renderLook(); return; }
+    if (act === 'presetApply') { const id = $('[data-lookpreset]', box).value, p = findPreset(tpl, id, S.doc); if (p) { change(d => { d.finish = { ...p.look }; d.finishFor = d.tpl; }, { immediate: true }); LOOK_SEL.tpl = tpl; LOOK_SEL.id = id; renderLook(); } return; }
+    if (act === 'presetSave') { const name = ($('#lookPresetName', box).value || '').trim() || 'Mon préréglage'; const id = savePreset(tpl, name, S.doc.finish || {}); LOOK_SEL.tpl = tpl; LOOK_SEL.id = id; toast('Préréglage « ' + name + ' » enregistré'); renderLook(); return; }
+    if (act === 'presetUpdate') { const id = $('[data-lookpreset]', box).value; if (updatePreset(tpl, id, S.doc.finish || {})) toast('Préréglage mis à jour'); renderLook(); return; }
+    if (act === 'presetDel') { const id = $('[data-lookpreset]', box).value; deletePreset(tpl, id); LOOK_SEL.id = BASE_ID; renderLook(); return; }
     if (e.target.closest('[data-act="ownLookReset"]')) { change(d => { d.finish = {}; }, { immediate: true }); renderLook(); }
   });
 }

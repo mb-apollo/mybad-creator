@@ -197,21 +197,24 @@ export function applyLivery(inst, id, car) {
       const tag = def ? liveryKey(id) + ':' + car : null;
       if (st.tag === tag) continue;
       st.tag = tag;
-      if (!def) { m.onBeforeCompile = () => {}; delete m.customProgramCacheKey; m.needsUpdate = true; continue; }
+      if (!def) { if (m.userData.livU) m.userData.livU.uLiv.value = 0; continue; }
       o.geometry.computeBoundingBox();
       const bb = o.geometry.boundingBox, size = bb.getSize(new THREE.Vector3());
       // axes de la carrosserie : le plus long = longueur, le plus court = hauteur
       const order = [0, 1, 2].sort((a, b) => size.getComponent(b) - size.getComponent(a));
       const tx = textures(id, car, { len: size.getComponent(order[0]), wid: size.getComponent(order[1]), hei: size.getComponent(order[2]) });
       const unit = i => new THREE.Vector3().setComponent(i, 1);
-      const U = { uMin: { value: bb.min.clone() }, uSize: { value: size.clone() }, uLen: { value: unit(order[0]) }, uWid: { value: unit(order[1]) }, uHei: { value: unit(order[2]) }, uSide: { value: tx.side }, uTop: { value: tx.top },
+      const first = !m.userData.livU;
+      const U = m.userData.livU ||= { uLiv: { value: 1 }, uMin: { value: bb.min.clone() }, uSize: { value: size.clone() }, uLen: { value: unit(order[0]) }, uWid: { value: unit(order[1]) }, uHei: { value: unit(order[2]) }, uSide: { value: tx.side }, uTop: { value: tx.top },
         uB0: { value: new THREE.Color(def.base[0]) }, uB1: { value: new THREE.Color(def.base[1]) }, uCh: { value: new THREE.Color(def.zones?.chassis || def.base[1]) } };
+      U.uLiv.value = 1; U.uSide.value = tx.side; U.uTop.value = tx.top; U.uB0.value.set(def.base[0]); U.uB1.value.set(def.base[1]); U.uCh.value.set(def.zones?.chassis || def.base[1]);
+      if (!first) continue;
       m.onBeforeCompile = sh => {
         Object.assign(sh.uniforms, U);
         sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vLvPos; varying vec3 vLvN;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLvPos = position; vLvN = normal;');
-        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vLvPos; varying vec3 vLvN; uniform vec3 uMin, uSize, uLen, uWid, uHei, uB0, uB1, uCh; uniform sampler2D uSide, uTop;')
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vLvPos; varying vec3 vLvN; uniform float uLiv; uniform vec3 uMin, uSize, uLen, uWid, uHei, uB0, uB1, uCh; uniform sampler2D uSide, uTop;')
           .replace('#include <color_fragment>', `#include <color_fragment>
-          {
+          if (uLiv > 0.5) {
             vec3 p = (vLvPos - uMin) / uSize; vec3 n = normalize(vLvN);
             float u = dot(p, uLen), w = dot(p, uWid), h = dot(p, uHei);
             float sd = dot(n, uWid), up = dot(n, uHei);
@@ -231,7 +234,7 @@ export function applyLivery(inst, id, car) {
             diffuseColor.rgb = col;
           }`);
       };
-      m.customProgramCacheKey = () => 'livery-v6';
+      m.customProgramCacheKey = () => 'livery-v7';
       m.needsUpdate = true;
     }
   });

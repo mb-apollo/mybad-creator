@@ -118,6 +118,14 @@ function applyCarLook(inst, L, theme, car) {
     }
   });
 }
+// Estompe les bords du rendu (la lumière d'un halo qui touche le bord s'éteint doucement au lieu d'être coupée net).
+function feather(c, w, h) {
+  const m = Math.max(8, Math.round(Math.min(w, h) * 0.08));
+  c.save(); c.globalCompositeOperation = 'destination-in';
+  let g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(m / w, '#000'); g.addColorStop(1 - m / w, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(m / h, '#000'); g.addColorStop(1 - m / h, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.restore();
+}
 function load(url) {
   let m = MODELS.get(url);
   if (m) return m;
@@ -324,7 +332,7 @@ function renderModel(L, w, h, theme, exporting) {
   const fitH = sz.y / 2 / Math.tan(fov * Math.PI / 360);
   const fitW = Math.max(sz.x, sz.z) / 2 / Math.tan(fov * Math.PI / 360) / (pw / ph);
   const frameAll = L.frame ? L.frame === 'all' : (S.doc_override || S.doc).game === 'rl';
-  const dist = (frameAll ? Math.max(fitH, fitW) : fitH) * 1.08 / (L.zoom3d || 1);
+  const dist = (frameAll ? Math.max(fitH, fitW) : fitH) * 1.08 * (L.lights === 'on' && (S.doc_override || S.doc).game === 'rl' ? 1.14 : 1) / (L.zoom3d || 1);   // marge pour que les halos des feux tiennent dans le cadre
   const pitch = (L.camPitch ?? 6) * Math.PI / 180;
   const cam = new THREE.PerspectiveCamera(fov, pw / ph, 0.01, 100);
   cam.position.set((L.offsetX || 0) * sz.y, targetY + Math.sin(pitch) * dist, Math.cos(pitch) * dist);
@@ -337,6 +345,7 @@ function renderModel(L, w, h, theme, exporting) {
   const out = cached?.canvas || document.createElement('canvas');
   out.width = pw; out.height = ph;
   const c = out.getContext('2d'); c.clearRect(0, 0, pw, ph); c.drawImage(r.domElement, 0, 0);
+  if (L.lights === 'on' && wdoc.game === 'rl') feather(c, pw, ph);   // les halos dépassent du cadre du rendu : fondu des bords pour qu'ils ne finissent pas en carré
   RENDERS.set(L.id, { key: params, canvas: out, cam, inst });
   return out;
 }

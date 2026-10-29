@@ -75,7 +75,7 @@ function buildHalos(chassis, car) {
   };
   for (const d of HALOS[car] || []) for (const sy of d.mirror ? [1, -1] : [1]) {
     const p = [d.p[0], d.p[1] * sy, d.p[2]];
-    const bloom = sp(T.halo, d.k, p, d.s * 3.4, d.s * 3.4); bloom.userData.base = 0.2;
+    const bloom = sp(T.halo, d.k, p, d.s * 2.8, d.s * 2.8); bloom.userData.base = 0.18;
     const halo = sp(T.halo, d.k, p, d.s, d.s); halo.userData.base = 0.55;
     if (d.core) { const c = sp(T.halo, d.k, p, d.core, d.core); c.userData.base = 1; c.userData.white = 0.7; }
     if (d.streak) { const t = sp(T.streak, d.k, p, d.streak, d.streak * (d.wide ? 0.07 : 0.12)); t.userData.base = d.wide ? 0.5 : 0.35; }

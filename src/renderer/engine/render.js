@@ -109,6 +109,11 @@ export function applyTemplate(doc, key, opts = {}) {
   const oldH = doc.H;
   doc.W = F.w; doc.H = F.h; doc.tpl = key;
   const tpl = TEMPLATES[key];
+  // réglages d'ambiance propres au modèle : posés quand on arrive sur ce modèle ; un projet déjà réglé à la main les garde
+  if (doc.finishFor !== key) {
+    if (doc.finishFor === undefined && doc.finish && Object.keys(doc.finish).length) doc.finishFor = key;
+    else { doc.finishFor = key; doc.finish = tpl.look ? tpl.look(doc) : {}; }
+  }
   const ctx = {
     W: doc.W, H: doc.H, u: Math.min(doc.W, doc.H * 0.8) / 1080, T: doc.T, game: doc.game,
     nPlayers: Math.max(1, Math.min(GAMES[doc.game]?.players || 5, doc.counts?.players ?? 99)), script: doc.script, use3d: !!doc.use3d,

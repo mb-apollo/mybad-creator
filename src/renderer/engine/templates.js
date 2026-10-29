@@ -147,7 +147,7 @@ function playerRow(ctx, base0, o = {}) {
   let base = base0;
   const { W, H, u } = ctx, n = ctx.nPlayers;
   // Valorant en 3D : un seul calque « Scène 3D » (sol, ombres et reflets communs)
-  if (ctx.use3d && ctx.game !== 'rl') return [{ type: 'model', name: 'Scène 3D', model: '@a1', ...sceneDefaults(n), zoom3d: 1.2 * sceneHalfWidth(n) / sceneHalfWidth(5), x: 0, y: H * 0.19, w: W, h: base0 - H * 0.19 + H * 0.09, rot: 0, fx: { fade: { on: true, dir: 'bottom', amount: 0.14 } } }]; // fondu en bas : le sol 3D ne s'arrête pas net
+  if (ctx.use3d && ctx.game !== 'rl') { const sc = o.scene || {}; return [{ type: 'model', name: 'Scène 3D', model: '@a1', ...sceneDefaults(n), zoom3d: (sc.zoom || 1.2) * sceneHalfWidth(n) / sceneHalfWidth(5), x: 0, y: sc.y ?? H * 0.19, w: W, h: sc.h ?? (base0 - H * 0.19 + H * 0.09), rot: 0, ...(sc.camPitch !== undefined ? { camPitch: sc.camPitch } : {}), ...(sc.target !== undefined ? { target: sc.target } : {}), ...(sc.fov !== undefined ? { fov: sc.fov } : {}), ...(sc.spread !== undefined ? { spread: sc.spread } : {}), fx: { fade: { on: true, dir: 'bottom', amount: 0.14 } } }]; } // fondu en bas : le sol 3D ne s'arrête pas net
   const big = Math.min(H, W * 1.25) * (o.h || 0.44);
   const spread = (o.spread || 0.168) * (n === 3 ? 1.45 : 1);
   const order = [...Array(n).keys()].sort((a, b) => Math.abs(b - (n - 1) / 2) - Math.abs(a - (n - 1) / 2) || a - b);
@@ -181,7 +181,7 @@ function roster(ctx) {
     text({ name: 'Titre gras', variant: 'script', tpl: '{rosW2}', upper: true, x: W * 0.08, y: H * 0.335, w: W * 0.84, size: 150 * u, fx: glowFx('$glow', 30, 0.6) }),
     text({ name: 'Titre', variant: 'plain', tpl: '{rosPlain}', upper: true, x: W * 0.08, y: H * 0.2, w: W * 0.84, size: 230 * u, fx: glowFx('$glow', 36, 0.7) }),
     text({ name: 'Titre (écho)', variant: 'plain', tpl: '{rosPlain}', upper: true, x: W * 0.08, y: H * 0.2 + 200 * u, w: W * 0.84, size: 230 * u, style: 'outline', strokeWidth: 1.4, strokeColor: '$text', opacity: 0.55 }),
-    ...playerRow(ctx, H * 0.83, { h: ctx.use3d ? 0.5 : 0.44 }),
+    ...playerRow(ctx, H * 0.83, { h: ctx.use3d ? 0.5 : 0.44, scene: { camPitch: -2, zoom: 1.17, target: 0.43, fov: 34, spread: 1.25, y: H * 0.26, h: H * 0.73 } }),
     frontSmoke(ctx, H * 0.72, 0.25),
     shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.8, w: W, h: H * 0.2, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     ...Array.from({ length: ctx.nPlayers }, (_, i) => {
@@ -384,7 +384,7 @@ function live(ctx) {
 export const blankLayers = ctx => [...base(ctx, { glowY: 0.3 }), ...finish(ctx)];
 
 export const TEMPLATES = {
-  roster: { name: 'Roster', desc: 'Annonce du line-up', build: roster, fields: ['rosTitle', 'org', 'event', 'stage', 'players'] },
+  roster: { name: 'Roster', desc: 'Annonce du line-up', look: doc => ({ grain: 1.75, vignette: 0.68, bright: 0.49, bloom: 1.1, grade: 1.15, sat: 1, contrast: 1, glow: 2, beam: 0, stars: 1.62, smoke: 1.46, floor: 0.4, ...(doc.game === 'rl' ? {} : { exposure: 0.61, key: 0.99, rim: 0.53, ambient: 1.58 }) }), build: roster, fields: ['rosTitle', 'org', 'event', 'stage', 'players'] },
   resultat: { name: 'Résultat', desc: 'Victoire ou défaite', build: resultat, fields: ['resMode', 'resTitle', 's1', 's2', 'event', 'stage', 'bo', 'org', 'adv', 'mvp', 'mvpStat'] },
   gameday: { name: 'Game Day', desc: 'Render plein cadre', build: gameday, fields: ['gdTitle', 'featAgent', 'gdSide', 'org', 'adv', 'event', 'date', 'hour'] },
   annonce: { name: 'Bienvenue / Merci', desc: 'Arrivée ou départ', build: annonce, fields: ['anTitle', 'anNames', 'anAgent1', 'anAgent2', 'anSide', 'org', 'event'] },

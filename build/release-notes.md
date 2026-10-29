@@ -1,3 +1,4 @@
-- Rocket League : les feux des voitures émettent une vraie lumière avec halo (cœur, halo, voile diffus, trait de lumière sur les phares avant), sur Octane, Fennec et Dominus
-- Couleur des feux avant et arrière réglable séparément pour chaque voiture (onglet 3D) et par défaut dans chaque livrée (créateur de livrées), avec la force du halo
-- Les voitures des modèles d'affiche ont maintenant les feux allumés par défaut
+- Préréglages de réglages par affiche (onglet Réglages › Cette affiche) : enregistrer, appliquer, mettre à jour et supprimer les tiens ; chaque affiche a un préréglage fourni « MyBad Esport » et un bouton « Réinitialiser » qui y revient
+- L'affiche Roster arrive avec ses réglages MyBad Esport (ambiance, caméra, écartement, personnages 3D)
+- Créateur de livrées : les modifications du panneau de droite (logo, couleurs, bandes…) s'appliquent maintenant bien à la voiture
+- Feux des voitures Rocket League : les halos ne finissent plus en carré sur les bords

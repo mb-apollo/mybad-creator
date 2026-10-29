@@ -341,6 +341,7 @@ function renderModel(L, w, h, theme, exporting) {
   const cam = new THREE.PerspectiveCamera(fov, pw / ph, 0.01, 100);
   cam.position.set((L.offsetX || 0) * sz.y, targetY + Math.sin(pitch) * dist, Math.cos(pitch) * dist);
   cam.lookAt((L.offsetX || 0) * sz.y, targetY, 0);
+  if (!r.warmModel) { r.warmModel = true; r.render(scene, cam); }   // premier rendu de ce personnage : le premier passage sort décalé et trop zoomé, on le rejoue
   r.render(scene, cam);
   recordHandles(L, cam, [{ inst, actor: null }]);
   dropWeapons([held]);
@@ -676,6 +677,7 @@ function renderStage(L, w, h, theme, exporting) {
   const out = cached?.canvas || document.createElement('canvas');
   out.width = pw; out.height = ph;
   const c = out.getContext('2d'); c.clearRect(0, 0, pw, ph);
+  if (!r.warmStage) { r.warmStage = true; r.render(scene, cam); }   // premier rendu de ces personnages : voir renderModel
   r.autoClear = false; r.setClearColor(0x000000, 0);
   if (fl.on && (fl.reflect ?? 0.3) > 0) {
     r.clear(true, true, true); show(false, false, true);

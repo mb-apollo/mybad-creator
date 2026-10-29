@@ -407,6 +407,7 @@ export function renderContent() {
   const T = S.doc.T, tpl = TEMPLATES[S.doc.tpl], game = GAMES[S.doc.game], items = itemOptions(S.doc.game);
   const field = (k, label, half) => `<div class="field ${half ? '' : 'full'}"><label>${esc(label)}</label><input class="input" data-t="${k}" value="${esc(T[k] ?? '')}" spellcheck="false"></div>`;
   let h = `<div class="content-head"><div><b>${esc(tpl.name)}</b><span class="muted">${esc(tpl.desc)}</span></div><button class="mini-btn" data-act="reapply" title="Recrée les calques du modèle avec le contenu actuel (tes calques ajoutés sont gardés)">${icon('refresh')} Réinitialiser</button></div>`;
+  h += `<div class="pad"><button class="mini-btn wide" data-act="kitRefresh" title="Reprend dans cette affiche la structure, les joueurs, rôles et agents du Kit de marque">${icon('refresh')} Actualiser avec le Kit de marque</button></div>`;
   const hasTitle = tpl.fields.some(f => TITLES[f] || f === 'resTitle');
   const hasRenders = tpl.fields.some(f => f === 'players' || AGENT_FIELDS[f] != null);
   if (hasTitle || hasRenders) h += `<div class="pad">${hasTitle ? toggleRaw('script', 'Titre manuscrit + gras', S.doc.script) : ''}${hasRenders ? toggleRaw('use3d', 'Personnages en 3D (modèles .glb)', S.doc.use3d) : ''}</div>`;
@@ -492,6 +493,7 @@ export function initContent() {
     }
     if (b.dataset.act === 'reapply') { change(d => applyTemplate(d, d.tpl), { immediate: true }); select([]); toast('Mise en page du modèle réinitialisée'); }
     if (b.dataset.act === 'kitPlayers') actions.applyKitPlayers?.();
+    if (b.dataset.act === 'kitRefresh') actions.applyKitAll?.();
   });
 }
 function planningRows() { return [1, 2, 3, 4, 5].map(i => (S.doc.T[`pl${i}d`] || S.doc.T[`pl${i}t`] ? 1 : 0)).join(''); }
@@ -669,7 +671,7 @@ export function initLibrary() {
 // ================================================================ MODÈLES (galerie)
 export function renderGallery() {
   const box = $('#thumbs'); if (!box) return;
-  const card = ([k, t]) => `<button class="thumb ${S.doc.tpl === k ? 'on' : ''}" data-key="${esc(k)}" title="${esc(t.desc)}"><canvas data-key="${esc(k)}"></canvas><span>${esc(t.name)}</span>${t.custom ? `<em class="tact"><i data-cact="rename" title="Renommer">✎</i><i data-cact="dup" title="Dupliquer">⧉</i><i data-cact="del" title="Supprimer">×</i></em>` : ''}</button>`;
+  const card = ([k, t]) => `<button class="thumb ${S.doc.tpl === k ? 'on' : ''}" data-key="${esc(k)}" title="${esc(t.desc)}"><canvas data-key="${esc(k)}"></canvas><span>${esc(t.name)}</span>${t.custom ? '' : '<em class="tact"><i data-cact="dupT" title="Dupliquer ce modèle dans mes modèles personnalisés">⧉</i></em>'}${t.custom ? `<em class="tact"><i data-cact="rename" title="Renommer">✎</i><i data-cact="dup" title="Dupliquer">⧉</i><i data-cact="del" title="Supprimer">×</i></em>` : ''}</button>`;
   const all = Object.entries(TEMPLATES);
   box.innerHTML = all.filter(([, t]) => !t.custom).map(card).join('')
     + '<div class="gal-head">Modèles personnalisés</div>'
@@ -698,6 +700,7 @@ function newCustom(kind) {
 }
 function customAction(act, key) {
   if (act === 'rename') actions.askName?.('Renommer le modèle', TEMPLATES[key]?.name || '', name => { Custom.renameCustom(key, name); renderGallery(); });
+  if (act === 'dupT') { const k2 = Custom.duplicateTemplate(key); if (k2) { renderGallery(); actions.switchTemplate?.(k2); toast('Modèle dupliqué dans « Modèles personnalisés » (mise en page et réglages gardés)'); } return; }
   if (act === 'dup') { if (Custom.duplicateCustom(key)) { renderGallery(); toast('Modèle dupliqué'); } }
   if (act === 'del' && confirm(`Supprimer le modèle « ${TEMPLATES[key]?.name} » ? Les affiches déjà créées avec ce modèle sont gardées.`)) {
     if (S.doc.tpl === key) change(d => { d.tpl = 'roster'; }, { immediate: true, full: true });

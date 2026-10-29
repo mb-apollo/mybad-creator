@@ -3,6 +3,7 @@
 import { TEMPLATES, blankLayers } from './engine/templates.js';
 import { S, toast } from './state.js';
 import { uid } from './engine/scene.js';
+import { applyTemplate } from './engine/render.js';
 
 const STORE = 'mbc.customTemplates';
 let list = [];
@@ -22,6 +23,7 @@ const unitOf = (W, H) => Math.min(W, H * 0.8) / 1080;
 function register(e) {
   TEMPLATES[customKey(e.id)] = {
     name: e.name, desc: 'Modèle personnalisé', custom: true, fields: e.fields, assets: e.assets,
+    ...(e.finish ? { look: () => JSON.parse(JSON.stringify(e.finish)) } : {}),
     build: ctx => {
       const kx = ctx.W / e.W, ky = ctx.H / e.H, ku = ctx.u / unitOf(e.W, e.H);
       return e.layers.map(L => {
@@ -37,8 +39,8 @@ function register(e) {
 export function initCustom() { list = read(); list.forEach(register); }
 
 // Copie les calques du document (sans identifiants) et les images qu'ils utilisent.
-function snapshot() {
-  const doc = S.doc, layers = JSON.parse(JSON.stringify(doc.layers)), assets = {};
+function snapshot(doc = S.doc) {
+  const layers = JSON.parse(JSON.stringify(doc.layers)), assets = {};
   layers.forEach(L => {
     delete L.id; delete L.fromTpl;
     if (L.asset?.startsWith('u:') && L.asset !== 'u:logo' && doc.assets[L.asset]) assets[L.asset] = doc.assets[L.asset];
@@ -61,7 +63,16 @@ export function createBlank() {
 // Enregistre l'affiche en cours comme nouveau modèle.
 export function saveCurrent() {
   const doc = S.doc, src = TEMPLATES[doc.tpl], { layers, assets } = snapshot();
-  return add({ id: uid(), name: `${src?.name || 'Affiche'} (perso)`, W: doc.W, H: doc.H, fields: src?.fields?.length ? src.fields : ['org', 'event'], layers, assets });
+  return add({ id: uid(), name: `${src?.name || 'Affiche'} (perso)`, W: doc.W, H: doc.H, fields: src?.fields?.length ? src.fields : ['org', 'event'], layers, assets, finish: JSON.parse(JSON.stringify(doc.finish || {})) });
+}
+// Duplique n'importe quel modèle (fourni ou perso) en modèle personnalisé : mise en page actuelle de ce modèle + ses réglages d'ambiance.
+export function duplicateTemplate(key) {
+  const src = TEMPLATES[key]; if (!src) return null;
+  const d = JSON.parse(JSON.stringify(S.doc)); d.layers = []; d.assets = S.doc.assets;
+  d.finishFor = undefined; d.finish = {};
+  applyTemplate(d, key, { keepUser: false });
+  const { layers, assets } = snapshot(d);
+  return add({ id: uid(), name: `${src.name} (copie)`, W: d.W, H: d.H, fields: src.fields?.length ? src.fields : ['org', 'event'], layers, assets, finish: JSON.parse(JSON.stringify(d.finish || {})) });
 }
 export function duplicateCustom(key) {
   const e = list.find(x => customKey(x.id) === key); if (!e) return null;

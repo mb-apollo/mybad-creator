@@ -13,6 +13,7 @@ initCustom();
 import { initModels, materialize, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels, poseHandles, startPoseDrag, dragPoseHandle } from './model3d.js';
 import { openPoseLab } from './poselab.js';
 import { openLiveryLab } from './liverylab.js';
+import { initContextMenu } from './ctxmenu.js';
 import { onLiveryChange } from './livery.js';
 
 // ---------------------------------------------------------------- environnement de rendu
@@ -126,6 +127,13 @@ window.addEventListener('paste', e => {
   const file = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'))?.getAsFile();
   if (file) { e.preventDefault(); imageLayerFromFile(file); return; }
   if (pasteLayers()) e.preventDefault();
+});
+// « Coller » du menu clic droit quand aucun calque n'a été copié : image du presse-papiers
+document.addEventListener('ctx:paste-image', async () => {
+  try {
+    for (const it of await navigator.clipboard.read()) { const t = it.types.find(x => x.startsWith('image/')); if (t) { imageLayerFromFile(new File([await it.getType(t)], 'collage.png', { type: t })); return; } }
+    toast('Rien à coller');
+  } catch { toast('Rien à coller'); }
 });
 // glisser-déposer
 let dragDepth = 0;
@@ -464,7 +472,15 @@ P.actions.applyKitPlayers = () => {
   if (!r || !Object.keys(r).length) { toast('Aucun roster dans le kit pour ce jeu. Ouvre « Kit de marque » pour le remplir.', true); return; }
   change(d => Object.assign(d.T, r), { immediate: true }); P.renderContent();
 };
+// Reprend dans l'affiche ouverte tout le contenu du Kit de marque (structure, logo, joueurs, rôles, agents), sans toucher au thème ni aux réglages.
+P.actions.applyKitAll = async () => {
+  const k = S.kit;
+  if (!k || (!Object.keys(k.T || {}).length && !Object.keys(k.rosters?.[S.doc.game] || {}).length)) { toast('Le Kit de marque est vide. Ouvre « Kit de marque » pour le remplir.', true); return; }
+  change(d => { Object.assign(d.T, k.T || {}, (k.rosters || {})[d.game] || {}); if (k.logo) d.assets.logo = k.logo; }, { immediate: true, full: true });
+  await prepare(S.doc); requestRender(); refreshTab(); toast('Affiche actualisée avec le Kit de marque (Ctrl+Z pour annuler)');
+};
 $('#btnKit').onclick = openKit;
+initContextMenu($('#stage'));
 $('#btnPoseLab').onclick = openPoseLab;
 $('#btnLiveryLab').onclick = () => openLiveryLab();
 P.actions.openLiveryLab = id => openLiveryLab(id);
@@ -620,6 +636,28 @@ $('#toolsResize').addEventListener('pointerdown', e => {
   const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); setToolsWidth(parseFloat(getComputedStyle(workEl).getPropertyValue('--toolw'))); };
   window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
 });
+// colonne des modèles, panneau de droite et zone des calques : redimensionnables, tailles mémorisées, « Réinitialiser la disposition » dans le menu clic droit de la barre du haut
+const LAYOUT = { galw: [120, 340, 196, 'x'], sidew: [300, 640, 360, 'x', true], layersh: [110, 520, 280, 'y', true] };
+function setLayout(k, v, save = true) {
+  const [lo, hi, def] = LAYOUT[k]; v = Math.round(Math.max(lo, Math.min(hi, v ?? def)));
+  workEl.style.setProperty('--' + k, v + 'px');
+  if (save) try { localStorage.setItem('mbc.' + k, String(v)); } catch { /* sans stockage */ }
+  if (k !== 'layersh') window.dispatchEvent(new Event('resize'));
+  return v;
+}
+for (const k of Object.keys(LAYOUT)) { let v = null; try { v = +localStorage.getItem('mbc.' + k) || null; } catch { /* sans stockage */ } setLayout(k, v, false); }
+function dragLayout(el, k) {
+  $(el).addEventListener('pointerdown', e => {
+    e.preventDefault(); const [, , def, axis, rev] = LAYOUT[k], r = workEl.getBoundingClientRect(), rr = $('.side').getBoundingClientRect();
+    const move = ev => setLayout(k, axis === 'x' ? (rev ? r.right - ev.clientX : ev.clientX - r.left - parseFloat(getComputedStyle(workEl).getPropertyValue('--toolw'))) : rr.bottom - ev.clientY, false);
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); setLayout(k, parseFloat(getComputedStyle(workEl).getPropertyValue('--' + k))); fit(); requestRender(); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  });
+  $(el).addEventListener('dblclick', () => { setLayout(k, LAYOUT[k][2]); fit(); requestRender(); });
+}
+dragLayout('#galResize', 'galw'); dragLayout('#sideResize', 'sidew'); dragLayout('#layersResize', 'layersh');
+export function resetLayout() { Object.keys(LAYOUT).forEach(k => setLayout(k, LAYOUT[k][2])); setToolsWidth(48); fit(); requestRender(); toast('Disposition réinitialisée'); }
+$('.toolbar').addEventListener('contextmenu', e => { if (e.target.closest('button, select, input')) return; e.preventDefault(); if (confirm("Réinitialiser la disposition de l'interface ?")) resetLayout(); });
 // pipette : prend une couleur n'importe où à l'écran
 async function eyedrop() {
   if (!window.EyeDropper) { toast("La pipette n'est pas disponible sur cette version.", true); return; }

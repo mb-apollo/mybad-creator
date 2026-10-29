@@ -1,1 +1,7 @@
-- Affiche Roster : nouvelle caméra par défaut des personnages 3D (plus basse et plus large : angle -8°, zoom 112 %, hauteur 45 %, focale 61°)
+- Correction : le premier rendu d'un personnage (Jett sur Game Day notamment) n'est plus décalé ni trop zoomé
+- Game Day : l'agent est centré et placé devant les chevrons ; Bienvenue : les deux personnages ont la même taille et le même fondu ; Roster Rocket League : fumée désactivée ; Roster Valorant : nouveau sol par défaut
+- Menu clic droit sur l'affiche (copier, couper, coller, dupliquer, supprimer, ordre des calques, verrouiller, masquer, centrer)
+- Interface redimensionnable : poignées entre les modèles, l'affiche, le panneau de droite et les calques (tailles mémorisées, double-clic pour revenir à la valeur d'origine)
+- Barre du haut : les boutons passent en icônes quand la fenêtre est étroite, plus de chevauchement avec le choix du format
+- Contenu : bouton « Actualiser avec le Kit de marque » (joueurs, rôles, agents, structure, logo)
+- Modèles : on peut dupliquer n'importe quel modèle (fourni ou perso) dans « Modèles personnalisés », avec sa mise en page et ses réglages d'ambiance

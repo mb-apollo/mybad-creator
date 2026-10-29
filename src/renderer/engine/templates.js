@@ -55,7 +55,7 @@ const finish = ctx => [
 // Scène : sol réfléchissant et fumée sur les côtés (derrière les personnages)
 const stage = (ctx, floorY, o = {}) => [
   effect({ name: 'Sol', effect: 'floor', color: '$glow', amount: o.floor ?? 0.8, themed: true, x: 0, y: floorY, w: ctx.W, h: ctx.H - floorY }),
-  effect({ name: 'Fumée', effect: 'smoke', color: '$glow', amount: o.smoke ?? 0.4, themed: true, sides: 0.75, seed: 5, x: -ctx.W * 0.05, y: floorY - ctx.H * 0.32, w: ctx.W * 1.1, h: ctx.H * 0.42 }),
+  effect({ name: 'Fumée', ...(o.noSmoke ? { visible: false } : {}), effect: 'smoke', color: '$glow', amount: o.smoke ?? 0.4, themed: true, sides: 0.75, seed: 5, x: -ctx.W * 0.05, y: floorY - ctx.H * 0.32, w: ctx.W * 1.1, h: ctx.H * 0.42 }),
 ];
 const frontSmoke = (ctx, y, a = 0.2) => effect({ name: 'Fumée (premier plan)', effect: 'smoke', color: '$glow', amount: a, themed: true, sides: 0.3, seed: 9, x: -ctx.W * 0.05, y, w: ctx.W * 1.1, h: ctx.H - y });
 const gameName = ctx => (ctx.game === 'rl' ? 'ROCKET LEAGUE' : 'VALORANT');
@@ -147,7 +147,7 @@ function playerRow(ctx, base0, o = {}) {
   let base = base0;
   const { W, H, u } = ctx, n = ctx.nPlayers;
   // Valorant en 3D : un seul calque « Scène 3D » (sol, ombres et reflets communs)
-  if (ctx.use3d && ctx.game !== 'rl') { const sc = o.scene || {}; return [{ type: 'model', name: 'Scène 3D', model: '@a1', ...sceneDefaults(n), zoom3d: (sc.zoom || 1.2) * sceneHalfWidth(n) / sceneHalfWidth(5), x: 0, y: sc.y ?? H * 0.19, w: W, h: sc.h ?? (base0 - H * 0.19 + H * 0.09), rot: 0, ...(sc.camPitch !== undefined ? { camPitch: sc.camPitch } : {}), ...(sc.target !== undefined ? { target: sc.target } : {}), ...(sc.fov !== undefined ? { fov: sc.fov } : {}), ...(sc.spread !== undefined ? { spread: sc.spread } : {}), fx: { fade: { on: true, dir: 'bottom', amount: 0.14 } } }]; } // fondu en bas : le sol 3D ne s'arrête pas net
+  if (ctx.use3d && ctx.game !== 'rl') { const sc = o.scene || {}; return [{ type: 'model', name: 'Scène 3D', model: '@a1', ...sceneDefaults(n), zoom3d: (sc.zoom || 1.2) * sceneHalfWidth(n) / sceneHalfWidth(5), x: 0, y: sc.y ?? H * 0.19, w: W, h: sc.h ?? (base0 - H * 0.19 + H * 0.09), rot: 0, ...(sc.camPitch !== undefined ? { camPitch: sc.camPitch } : {}), ...(sc.target !== undefined ? { target: sc.target } : {}), ...(sc.fov !== undefined ? { fov: sc.fov } : {}), ...(sc.spread !== undefined ? { spread: sc.spread } : {}), ...(sc.floor ? { floor: { ...sceneDefaults(n).floor, ...sc.floor } } : {}), fx: { fade: { on: true, dir: 'bottom', amount: 0.14 } } }]; } // fondu en bas : le sol 3D ne s'arrête pas net
   const big = Math.min(H, W * 1.25) * (o.h || 0.44);
   const spread = (o.spread || 0.168) * (n === 3 ? 1.45 : 1);
   const order = [...Array(n).keys()].sort((a, b) => Math.abs(b - (n - 1) / 2) - Math.abs(a - (n - 1) / 2) || a - b);
@@ -172,7 +172,7 @@ function roster(ctx) {
     effect({ name: 'Faisceau', effect: 'beam', color: '$glow', amount: 0.7, themed: true, x: W * 0.05, y: 0, w: W * 0.9, h: H * 0.8 }),
     effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: ctx.use3d ? 0.3 : 0.5, themed: true, x: W * 0.2, y: H * 0.17, w: W * 0.6, h: H * 0.52 }),
     effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.2, themed: true, seed: 11, x: 0, y: H * 0.52, w: W, h: H * 0.32 }),
-    ...stage(ctx, H * 0.8),
+    ...stage(ctx, H * 0.8, { noSmoke: ctx.game === 'rl' }),
     text({ name: 'Structure', tpl: '{org}', upper: true, align: 'left', size: 40 * u, weight: 700, spacing: 0.04, x: W * 0.12, y: H * 0.105, w: W * 0.6 }),
     shape({ name: 'Flèches', shape: 'arrows', fill: '$accent', count: 2, x: W * 0.12, y: H * 0.152, w: 40 * u, h: 18 * u }),
     shape({ name: 'Trait', shape: 'line', stroke: '$text', strokeWidth: 1.6, x: W * 0.12 + 56 * u, y: H * 0.152 + 7 * u, w: W * 0.12, h: 4 * u }),
@@ -181,7 +181,7 @@ function roster(ctx) {
     text({ name: 'Titre gras', variant: 'script', tpl: '{rosW2}', upper: true, x: W * 0.08, y: H * 0.335, w: W * 0.84, size: 150 * u, fx: glowFx('$glow', 30, 0.6) }),
     text({ name: 'Titre', variant: 'plain', tpl: '{rosPlain}', upper: true, x: W * 0.08, y: H * 0.2, w: W * 0.84, size: 230 * u, fx: glowFx('$glow', 36, 0.7) }),
     text({ name: 'Titre (écho)', variant: 'plain', tpl: '{rosPlain}', upper: true, x: W * 0.08, y: H * 0.2 + 200 * u, w: W * 0.84, size: 230 * u, style: 'outline', strokeWidth: 1.4, strokeColor: '$text', opacity: 0.55 }),
-    ...playerRow(ctx, H * 0.83, { h: ctx.use3d ? 0.5 : 0.44, scene: { camPitch: -8, zoom: 1.12, target: 0.45, fov: 61, spread: 1.25, y: H * 0.26, h: H * 0.74 } }),
+    ...playerRow(ctx, H * 0.83, { h: ctx.use3d ? 0.5 : 0.44, scene: { camPitch: -8, zoom: 1.12, target: 0.45, fov: 61, spread: 1.25, y: H * 0.26, h: H * 0.74, floor: { shape: 'disc', opacity: 0.84, blur: 0.53, reflect: 0.72, glow: 0.25, shadow: 0.94 } } }),
     frontSmoke(ctx, H * 0.72, 0.25),
     shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.865, w: W, h: H * 0.135, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     ...Array.from({ length: ctx.nPlayers }, (_, i) => {
@@ -225,9 +225,9 @@ function gameday(ctx) {
   return [
     ...base(ctx, { glowY: 0.35, glow: 0.7, bottomGlow: false }),
     effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: 0.4, themed: true, x: W * 0.38, y: H * 0.06, w: W * 0.56, h: H * 0.46 }),
-    agentImage(ctx, 'featAgent', { x: -W * 0.05, y: H * 0.04, w: W * 1.0, h: H * 0.8 }, { name: 'Render principal', fx: { smear: 0.55, smearCut: 0.78, glow: { on: true, color: '$glow', blur: 40, opacity: 0.5 } } }),
-    shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.48, w: W, h: H * 0.52, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     shape({ name: 'Chevrons', shape: 'chevrons', stroke: '$text', strokeWidth: 2.5, count: 3, x: W * 0.62, y: H * 0.33, w: 170 * u, h: 86 * u, opacity: 0.4 }),
+    agentImage(ctx, 'featAgent', { x: 0, y: H * 0.04, w: W, h: H * 0.8 }, { name: 'Render principal', fx: { smear: 0.55, smearCut: 0.78, glow: { on: true, color: '$glow', blur: 40, opacity: 0.5 } } }),
+    shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.48, w: W, h: H * 0.52, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     text({ name: 'Texte vertical', tpl: '{gdSide}', upper: true, style: 'outline', strokeColor: '$text', strokeWidth: 1.4, opacity: 0.3, size: 150 * u, x: W * 0.91 - H * 0.36, y: H * 0.42 - 75 * u, w: H * 0.72, rot: 90 }), // centré à 91 % de la largeur : la hauteur des lettres (tournées) reste dans l'affiche
     text({ name: 'Infos', tpl: '{date} · {hour}', upper: true, align: 'left', size: 20 * u, weight: 500, spacing: 0.14, color: '$muted', x: W * 0.07, y: H * 0.565, w: W * 0.5, fontRole: 'body' }),
     text({ name: 'Affiche', tpl: '{org} vs {adv}', upper: true, align: 'left', size: 20 * u, weight: 600, spacing: 0.14, color: '$accent', x: W * 0.07, y: H * 0.59, w: W * 0.6, fontRole: 'body' }),
@@ -250,8 +250,8 @@ function annonce(ctx) {
     effect({ name: 'Constellation', effect: 'constellation', color: '$white', amount: 0.5, seed: 3, x: 0, y: 0, w: W, h: H * 0.7 }),
     text({ name: 'Texte vertical', tpl: '{anSide}', upper: true, style: 'outline', strokeColor: '$text', strokeWidth: 1.4, opacity: 0.22, size: 170 * u, x: W * 0.9 - H * 0.38, y: H * 0.42 - 85 * u, w: H * 0.76, rot: 90 }),
     emblemAt(W / 2, H * 0.08, 46 * u, { glow: false }),
-    agentImage(ctx, 'anAgent1', { x: W * 0.06, y: H * 0.12, w: W * 0.5, h: H * 0.6 }, { name: 'Render 1', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
-    agentImage(ctx, 'anAgent2', { x: W * 0.44, y: H * 0.12, w: W * 0.5, h: H * 0.6 }, { name: 'Render 2', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
+    agentImage(ctx, 'anAgent1', { x: W * 0.002, y: H * 0.12, w: W * 0.57, h: H * 0.68 }, { name: 'Render 1', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
+    agentImage(ctx, 'anAgent2', { x: W * 0.43, y: H * 0.12, w: W * 0.57, h: H * 0.68 }, { name: 'Render 2', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
     effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.2, themed: true, seed: 14, x: 0, y: H * 0.25, w: W, h: H * 0.4 }),
     shape({ name: 'Flèches', shape: 'arrows', fill: '$accent', count: 3, x: W * 0.1, y: H * 0.728, w: 60 * u, h: 20 * u, variant: 'plain' }),
     text({ name: 'Mot d\'annonce', variant: 'plain', tpl: '{anW1}', upper: true, italic: true, weight: 300, fontRole: 'italic', font: 'Montserrat', align: 'left', size: 96 * u, x: W * 0.1 + 80 * u, y: H * 0.695, w: W * 0.75 }),

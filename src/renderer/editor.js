@@ -96,6 +96,13 @@ function hitTest(p) {
   }
   return null;
 }
+// Calque sous un point de l'écran (clic droit) : sélectionne ce calque s'il n'est pas déjà dans la sélection.
+export function pickAt(e) {
+  const L = hitTest(toDoc(e));
+  if (L && !S.sel.includes(L.id)) select([L.id]);
+  else if (!L && !e.shiftKey) select([]);
+  return L;
+}
 function toDoc(e) {
   const r = stage.getBoundingClientRect();
   return [(e.clientX - r.left - view.ox) / view.s, (e.clientY - r.top - view.oy) / view.s];

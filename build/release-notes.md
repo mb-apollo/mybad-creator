@@ -1,2 +1,4 @@
-- Nouvelle arme « Logo MyBad » : le logo (ailes et étoile) en 3D, tenu à une main comme un pistolet, en métal brossé ou en néon lumineux, avec la couleur de ton choix
-- Rocket League : réglage des feux (allumés / éteints) sur Dominus et Fennec, et couleur des jantes au choix pour toutes les voitures
+- Nouveau « Créateur de livrées » pour les voitures Rocket League : couleurs, brillance, effet métallisé, lueur du bas de caisse, et des calques (logo MyBad, image importée, texte, étoile, bande) avec position, taille, rotation, couleur, opacité et lueur ; réglage possible par voiture, annuler / rétablir, export / import
+- Livrées MyBad « Nuit » (foncée, logo discret, étoile brillante sur le capot) et « Azur », modifiables ; les voitures des modèles d'affiche prennent la Nuit par défaut
+- Feux : Octane (phares et feux arrière) et Fennec (phares) s'allument avec leur vrai dessin au lieu d'un aplat de couleur
+- Carrosseries plus brillantes par défaut, jantes noires sur la Fennec

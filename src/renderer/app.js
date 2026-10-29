@@ -12,6 +12,8 @@ import { initCustom, isCustom, scheduleSave as saveCustomModel } from './custom.
 initCustom();
 import { initModels, materialize, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels, poseHandles, startPoseDrag, dragPoseHandle } from './model3d.js';
 import { openPoseLab } from './poselab.js';
+import { openLiveryLab } from './liverylab.js';
+import { onLiveryChange } from './livery.js';
 
 // ---------------------------------------------------------------- environnement de rendu
 function env(doc = S.doc, exporting = false, thumb = false) {
@@ -464,6 +466,9 @@ P.actions.applyKitPlayers = () => {
 };
 $('#btnKit').onclick = openKit;
 $('#btnPoseLab').onclick = openPoseLab;
+$('#btnLiveryLab').onclick = () => openLiveryLab();
+P.actions.openLiveryLab = id => openLiveryLab(id);
+onLiveryChange(() => { requestRender(); P.scheduleThumbs(); });
 document.addEventListener('poselab:closed', () => { P.renderProps(); change(() => {}, { immediate: true, full: true }); P.scheduleThumbs(); });
 P.actions.openPoseLab = openPoseLab;
 P.actions.materialize = materialize;

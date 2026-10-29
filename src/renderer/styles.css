@@ -391,3 +391,46 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 #poselab .pl-ctl-head .btnrow { display: flex; gap: 6px; flex-wrap: wrap; }
 #poselab .pl-status.warn { color: #ffb84d; }
 #poselab .pl-top button:disabled { opacity: .4; cursor: default; }
+
+/* ---- Créateur de livrées (réutilise les styles du Studio de poses) ---- */
+#liverylab { position: fixed; inset: 0; z-index: 70; background: var(--bg, #090b17); display: flex; flex-direction: column; }
+#liverylab[hidden] { display: none; }
+#liverylab .pl-top { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+#liverylab .pl-top strong { font-size: 15px; }
+#liverylab .pl-status { font-size: 11.5px; color: var(--muted); }
+#liverylab .pl-top .input { width: 150px; }
+#liverylab .pl-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 250px 1fr 380px; }
+#liverylab .pl-list { overflow-y: auto; border-right: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 3px; }
+#liverylab .pl-group { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 12px 6px 4px; }
+#liverylab .pl-list button { text-align: left; background: transparent; border: 1px solid transparent; color: var(--text); padding: 7px 10px; border-radius: 6px; font-size: 12.5px; }
+#liverylab .pl-list button:hover { background: var(--panel-2); }
+#liverylab .pl-list button.on { border-color: var(--cyan); background: var(--panel-2); }
+#liverylab .pl-list button.mod::after { content: ' ●'; color: var(--cyan); font-size: 9px; }
+#liverylab .pl-view { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; padding: 10px; gap: 8px; background: radial-gradient(circle at 50% 35%, #12204a, #070914 70%); }
+#liverylab .pl-view canvas { max-height: calc(100% - 70px); max-width: 100%; aspect-ratio: 640 / 800; cursor: ew-resize; touch-action: none; }
+#liverylab .pl-cam { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+#liverylab .pl-hint { font-size: 11px; color: var(--muted); }
+#liverylab .pl-ctl { overflow-y: auto; border-left: 1px solid var(--line); padding: 10px 12px 30px; }
+#liverylab .pl-ctl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; }
+#liverylab .pl-ctl-head small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+#liverylab .pl-new { display: flex; gap: 6px; padding: 4px 4px 6px; }
+#liverylab .pl-new .input { flex: 1; min-width: 0; }
+#liverylab .pl-list button small { color: var(--muted); font-size: 10.5px; }
+#liverylab .pl-ren { display: flex; gap: 6px; flex: 1; }
+#liverylab .pl-ren .input { flex: 1; min-width: 0; }
+#liverylab .pl-ctl-head { flex-wrap: wrap; }
+#liverylab .pl-ctl-head .btnrow { display: flex; gap: 6px; flex-wrap: wrap; }
+#liverylab .pl-status.warn { color: #ffb84d; }
+#liverylab .pl-top button:disabled { opacity: .4; cursor: default; }
+#liverylab .pl-view canvas { aspect-ratio: 640 / 520; cursor: ew-resize; }
+#liverylab .llcol { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 12.5px; }
+#liverylab .llcol input[type=color] { width: 44px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: transparent; }
+#liverylab .ll-add { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
+#liverylab .ll-row { display: flex; align-items: center; gap: 2px; border: 1px solid transparent; border-radius: 6px; }
+#liverylab .ll-row.on { border-color: var(--cyan); background: var(--panel-2); }
+#liverylab .ll-row.off .ll-name { opacity: .45; }
+#liverylab .ll-row button { background: transparent; border: 0; color: var(--text); padding: 5px 7px; font-size: 12px; border-radius: 5px; cursor: pointer; }
+#liverylab .ll-row button:hover { background: var(--panel-2); }
+#liverylab .ll-row .ll-name { flex: 1; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#liverylab .ll-thumb { max-width: 100%; max-height: 90px; margin: 6px 0; border: 1px solid var(--line); border-radius: 6px; background: #0a0d1c; }
+#liverylab .hint { font-size: 11px; color: var(--muted); margin: 4px 0 8px; line-height: 1.4; }

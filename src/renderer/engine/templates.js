@@ -98,7 +98,7 @@ export const sceneHalfWidth = n => ((n - 1) / 2) * (0.3 + (5 - Math.min(5, n)) *
 const NIGHT_LIGHT = { key: { color: '#eef2ff', intensity: 1.9, angle: -55 }, rim: { color: '$glow', intensity: 7, angle: 165 }, fill: { color: '#c9d4ff', intensity: 0.15 }, ambient: { color: '#8ea3e8', intensity: 0.28 }, envLight: 0.25, exposure: 1.05 };
 export const sceneDefaults = n => ({
   actors: sceneActors(n),
-  floor: { on: true, color: '$bg2', opacity: 0.75, reflect: 0.3, glow: 0.35, shadow: 0.55, rot: 0, tilt: 0, size: 7 },
+  floor: { on: true, shape: 'platform', color: '$bg2', opacity: 0.7, reflect: 0.55, blur: 0.45, glow: 0.35, shadow: 0.55, rot: 0, tilt: 0, size: 7 },
   camPitch: 5, zoom3d: 1, target: 0.5, fov: 26, offsetX: 0, frame: 'all',
   ...NIGHT_LIGHT,
 });
@@ -183,7 +183,7 @@ function roster(ctx) {
     text({ name: 'Titre (écho)', variant: 'plain', tpl: '{rosPlain}', upper: true, x: W * 0.08, y: H * 0.2 + 200 * u, w: W * 0.84, size: 230 * u, style: 'outline', strokeWidth: 1.4, strokeColor: '$text', opacity: 0.55 }),
     ...playerRow(ctx, H * 0.83, { h: ctx.use3d ? 0.5 : 0.44, scene: { camPitch: -2, zoom: 1.17, target: 0.43, fov: 34, spread: 1.25, y: H * 0.26, h: H * 0.73 } }),
     frontSmoke(ctx, H * 0.72, 0.25),
-    shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.8, w: W, h: H * 0.2, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
+    shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.865, w: W, h: H * 0.135, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     ...Array.from({ length: ctx.nPlayers }, (_, i) => {
       const n = ctx.nPlayers, cell = W * 0.84 / n, cx = W * 0.08 + cell * (i + 0.5);
       return [

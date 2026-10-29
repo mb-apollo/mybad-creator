@@ -1,1 +1,3 @@
-- Scènes 3D : les personnages sont mieux posés au sol (chevilles et orteils pris en compte, même avec une jambe pliée ou un pied pointé) et chaque pied a une ombre de contact douce qui s'efface quand le pied se lève
+- Scènes 3D : nouveau sol en plateforme texturée (béton) à bord arrière net, avec liseré de lumière ; choix « Plateforme » ou « Disque diffus » et interrupteur de texture dans l'onglet 3D › Sol
+- Les pieds sont replantés au sol (jambe recalculée) et chaque pied a une ombre de contact collée sous lui
+- Reflets du sol flous et qui s'estompent en s'éloignant des pieds, avec un curseur « Flou du reflet » ; reflet plus marqué par défaut

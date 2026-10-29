@@ -14,7 +14,7 @@ import { applyLivery, applyGloss, applyZones, surfaceAt, liveriesList, liveryKey
 import { applyLamps, LAMP_DEFAULT } from './carlamps.js';
 import { addLayer } from './editor.js';
 import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf, agentRotY } from './posereg.js';
-import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, WEAPON_STANCES, FACES, applyFace, applyWrist, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams } from './pose3d.js';
+import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, WEAPON_STANCES, FACES, applyFace, applyWrist, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams, plantFeet } from './pose3d.js';
 
 let deps = {};
 let renderer = null, loader = null, envTex = null;
@@ -317,6 +317,7 @@ function renderModel(L, w, h, theme, exporting) {
   inst.pivot.rotation.set(0, -inst.baseYaw + ((L.rotY || 0) + arot) * Math.PI / 180, 0);
   inst.pivot.updateMatrixWorld(true);
   inst.pivot.position.y = groundDrop(inst); inst.pivot.updateMatrixWorld(true);
+  plantFeet(inst.root, inst.footRest, inst.pivot.scale.x / inst.baseScale); inst.pivot.updateMatrixWorld(true);
   const col = c => new THREE.Color(color(c, theme) || '#ffffff');
   const lit = (o, def, k) => ({ ...(o || {}), intensity: (o?.intensity ?? def) * (k ?? 1) });
   const amb = lit(L.ambient, 0.7, fin.ambient), key = lit(L.key, 1.6, fin.key), rim = lit(L.rim, 4, fin.rim), fill = lit(L.fill, 0.4, fin.ambient);
@@ -503,6 +504,44 @@ function radialTex(solidUntil) {
   c.fillStyle = g; c.fillRect(0, 0, 256, 256);
   return new THREE.CanvasTexture(cv);
 }
+// Béton / résine : grain fin, taches larges et quelques rayures, en niveaux de gris clairs (teinté ensuite par la couleur du sol).
+let _concrete = null, _platAlpha = null, _lineAlpha = null;
+function concreteTex() {
+  if (_concrete) return _concrete;
+  const N = 512, cv = document.createElement('canvas'); cv.width = cv.height = N; const c = cv.getContext('2d');
+  c.fillStyle = '#d4d4d4'; c.fillRect(0, 0, N, N);
+  let seed = 7; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 260; i++) { // taches larges, qui se raccordent d'un bord à l'autre
+    const x = R() * N, y = R() * N, r = 20 + R() * 90, v = R() < 0.5 ? 255 : 90, a = 0.04 + R() * 0.07;
+    for (const [ox, oy] of [[0, 0], [N, 0], [-N, 0], [0, N], [0, -N]]) { const g = c.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r); g.addColorStop(0, 'rgba(' + v + ',' + v + ',' + v + ',' + a + ')'); g.addColorStop(1, 'rgba(' + v + ',' + v + ',' + v + ',0)'); c.fillStyle = g; c.fillRect(x + ox - r, y + oy - r, r * 2, r * 2); }
+  }
+  c.strokeStyle = 'rgba(255,255,255,0.10)'; c.lineWidth = 1; // rayures
+  for (let i = 0; i < 70; i++) { const x = R() * N, y = R() * N, a = (R() - 0.5) * 0.5, l = 20 + R() * 120; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); c.stroke(); }
+  const im = c.getImageData(0, 0, N, N), d = im.data; // grain fin
+  for (let i = 0; i < d.length; i += 4) { const n = (R() - 0.5) * 26; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+  c.putImageData(im, 0, 0);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  return (_concrete = t);
+}
+// Forme de la plateforme : bords et avant qui s'estompent, bord arrière net (v = 1 au fond).
+function platformAlpha() {
+  if (_platAlpha) return _platAlpha;
+  const W = 256, H = 256, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const c = cv.getContext('2d'), im = c.createImageData(W, H);
+  const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const u = x / (W - 1), v = 1 - y / (H - 1);   // v = 1 : fond de la plateforme
+    const side = sm(0, 0.16, u) * sm(0, 0.16, 1 - u), front = sm(0.02, 0.62, v), back = 0.82 + 0.18 * sm(0.6, 1, v);
+    const a = Math.round(255 * side * front * back); const k = (y * W + x) * 4; im.data[k] = im.data[k + 1] = im.data[k + 2] = a; im.data[k + 3] = 255;
+  }
+  c.putImageData(im, 0, 0);
+  const t = new THREE.CanvasTexture(cv); return (_platAlpha = t);
+}
+function lineAlphaTex() {
+  if (_lineAlpha) return _lineAlpha;
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 4; const c = cv.getContext('2d'), g = c.createLinearGradient(0, 0, 256, 0);
+  g.addColorStop(0, '#000'); g.addColorStop(0.5, '#fff'); g.addColorStop(1, '#000'); c.fillStyle = g; c.fillRect(0, 0, 256, 4);
+  return (_lineAlpha = new THREE.CanvasTexture(cv));
+}
 // Opacité des matières d'un groupe (reflet) puis restauration.
 function fadeMaterials(group, k, on) {
   group.traverse(o => {
@@ -555,6 +594,7 @@ function renderStage(L, w, h, theme, exporting) {
     inst.pivot.position.set((a.x || 0) * (L.spread ?? 1), 0, a.z || 0);
     inst.pivot.updateMatrixWorld(true);
     inst.pivot.position.y = groundDrop(inst); inst.pivot.updateMatrixWorld(true);
+    plantFeet(inst.root, inst.footRest, inst.pivot.scale.x / inst.baseScale); inst.pivot.updateMatrixWorld(true);
     inst.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
     group.add(inst.pivot);
     { // appuis : cheville + orteil de chaque pied, avec sa hauteur au-dessus du sol (l'ombre de contact s'efface quand le pied se lève)
@@ -587,15 +627,29 @@ function renderStage(L, w, h, theme, exporting) {
   rl2.position.set(-Math.sin(ra) * 3, 1.8, Math.cos(ra) * 3); scene.add(rl2);
   if ((fill.intensity ?? 0.4) > 0) { const fli = new THREE.DirectionalLight(col(fill.color || '$accent'), fill.intensity ?? 0.4); fli.position.set(0, 0.3, 3); scene.add(fli); }
 
-  // sol : disque sombre à bord fondu, lueur de la lumière, et plan récepteur d'ombres
+  // sol : plateforme texturée à bord arrière net (ou disque diffus pour les anciennes affiches), lueur de la lumière, plan récepteur d'ombres
   const floor = new THREE.Group(); scene.add(floor);
-  const geo = new THREE.CircleGeometry(fl.size ?? 7, 64); geo.rotateX(-Math.PI / 2);
-  const dark = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: col(fl.color || '$bg2'), transparent: true, opacity: fl.opacity ?? 0.75, alphaMap: (_floorTex ||= radialTex(0.5)), depthWrite: false }));
-  const glow = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: col('$glow'), transparent: true, opacity: fl.glow ?? 0.5, alphaMap: (_glowTex ||= radialTex(0)), blending: THREE.AdditiveBlending, depthWrite: false }));
-  glow.scale.set(0.45, 1, 0.45); glow.position.y = 0.001;
+  const platform = fl.shape === 'platform', zs = (L.actors || []).map(a => a.z || 0), zBack = Math.min(0, ...zs) - 0.5, zFront = 7, zMid = zs.length ? zs.reduce((p, q) => p + q, 0) / zs.length : 0;
+  const platW = Math.max(maxX + 1.6, 3);
+  let geo;
+  if (platform) { geo = new THREE.PlaneGeometry(platW * 2, zFront - zBack); geo.rotateX(-Math.PI / 2); geo.translate(0, 0, (zBack + zFront) / 2); }
+  else { geo = new THREE.CircleGeometry(fl.size ?? 7, 64); geo.rotateX(-Math.PI / 2); }
+  const glowGeo = new THREE.CircleGeometry(fl.size ?? 7, 64); glowGeo.rotateX(-Math.PI / 2);
+  const darkMat = new THREE.MeshBasicMaterial({ color: col(fl.color || '$bg2'), transparent: true, opacity: fl.opacity ?? 0.75, alphaMap: platform ? platformAlpha() : (_floorTex ||= radialTex(0.5)), depthWrite: false });
+  let planeTex = null;
+  if (platform && fl.tex !== false) { planeTex = concreteTex().clone(); planeTex.needsUpdate = true; planeTex.repeat.set(platW * 2 / 1.6, (zFront - zBack) / 1.6); darkMat.map = planeTex; }
+  const dark = new THREE.Mesh(geo, darkMat);
+  const glow = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({ color: col('$glow'), transparent: true, opacity: fl.glow ?? 0.5, alphaMap: (_glowTex ||= radialTex(0)), blending: THREE.AdditiveBlending, depthWrite: false }));
+  glow.scale.set(0.45, 1, 0.45); glow.position.set(0, 0.001, zMid);
   const shadow = new THREE.Mesh(geo, new THREE.ShadowMaterial({ opacity: fl.shadow ?? 0.55 }));
   shadow.receiveShadow = true; shadow.position.y = 0.002;
   floor.add(dark, glow, shadow);
+  let edge = null;
+  if (platform) { // liseré de lumière sur le bord arrière : la plateforme est bien découpée
+    const rg = new THREE.PlaneGeometry(platW * 1.7, 0.035); rg.rotateX(-Math.PI / 2);
+    edge = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: col('$accent'), transparent: true, opacity: Math.min(1, 0.55 * (fl.glow ?? 0.35) / 0.35), alphaMap: lineAlphaTex(), blending: THREE.AdditiveBlending, depthWrite: false }));
+    edge.position.set(0, 0.003, zBack + 0.02); floor.add(edge);
+  }
   floor.rotation.order = 'YXZ'; floor.rotation.set((fl.tilt || 0) * Math.PI / 180, (fl.rot || 0) * Math.PI / 180, 0);
   // ombres de contact : tache douce sous chaque pied, qui s'estompe quand le pied se lève (ancre les personnages au sol, quel que soit l'angle de la lumière)
   const blobs = new THREE.Group(); floor.add(blobs); floor.updateMatrixWorld(true);
@@ -618,26 +672,34 @@ function renderStage(L, w, h, theme, exporting) {
   cam.position.set(cx, targetY + Math.sin(pitch) * dist, Math.cos(pitch) * dist);
   cam.lookAt(cx, targetY, 0);
 
-  const show = (f, s, a) => { dark.visible = glow.visible = f; shadow.visible = blobs.visible = s; group.visible = a; };
-  r.autoClear = false; r.setClearColor(0x000000, 0); r.clear(true, true, true);
+  const show = (f, s, a) => { dark.visible = glow.visible = f; if (edge) edge.visible = f; shadow.visible = blobs.visible = s; group.visible = a; };
+  const out = cached?.canvas || document.createElement('canvas');
+  out.width = pw; out.height = ph;
+  const c = out.getContext('2d'); c.clearRect(0, 0, pw, ph);
+  r.autoClear = false; r.setClearColor(0x000000, 0);
   if (fl.on && (fl.reflect ?? 0.3) > 0) {
-    show(false, false, true);
+    r.clear(true, true, true); show(false, false, true);
     group.scale.y = -1; fadeMaterials(group, fl.reflect ?? 0.3, true);
     r.render(scene, cam);
-    fadeMaterials(group, 0, false); group.scale.y = 1; r.clearDepth();
+    fadeMaterials(group, 0, false); group.scale.y = 1;
+    // reflet : flou, et qui s'estompe en s'éloignant des pieds (sol ciré)
+    const tmp = document.createElement('canvas'); tmp.width = pw; tmp.height = ph; const tc = tmp.getContext('2d');
+    const bl = (fl.blur ?? 0.5) * 9 * (pw / 1000);
+    if (bl > 0.3) tc.filter = `blur(${bl.toFixed(1)}px)`;
+    tc.drawImage(r.domElement, 0, 0); tc.filter = 'none';
+    const y0 = (1 - new THREE.Vector3(0, 0, zMid).project(cam).y) / 2 * ph;
+    const gr = tc.createLinearGradient(0, y0 - 0.04 * ph, 0, y0 + 0.42 * ph); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    tc.globalCompositeOperation = 'destination-in'; tc.fillStyle = gr; tc.fillRect(0, 0, pw, ph);
+    c.drawImage(tmp, 0, 0);
   }
-  if (fl.on) { show(true, false, false); r.render(scene, cam); r.clearDepth(); }
-  show(false, !!fl.on, true); r.render(scene, cam);
+  if (fl.on) { r.clear(true, true, true); show(true, false, false); r.render(scene, cam); c.drawImage(r.domElement, 0, 0); }
+  r.clear(true, true, true); show(false, !!fl.on, true); r.render(scene, cam); c.drawImage(r.domElement, 0, 0);
   r.autoClear = true;
   recordHandles(L, cam, handleEntries);
   dropWeapons(heldAll);
 
   used.forEach(inst => { group.remove(inst.pivot); inst.pivot.scale.setScalar(inst.baseScale); inst.pivot.position.set(0, 0, 0); });
-  geo.dispose(); blobGeo.dispose(); blobs.children.forEach(m => m.material.dispose()); dark.material.dispose(); glow.material.dispose(); shadow.material.dispose();
-
-  const out = cached?.canvas || document.createElement('canvas');
-  out.width = pw; out.height = ph;
-  const c = out.getContext('2d'); c.clearRect(0, 0, pw, ph); c.drawImage(r.domElement, 0, 0);
+  geo.dispose(); glowGeo.dispose(); blobGeo.dispose(); blobs.children.forEach(m => m.material.dispose()); dark.material.dispose(); glow.material.dispose(); shadow.material.dispose(); planeTex?.dispose(); if (edge) { edge.geometry.dispose(); edge.material.dispose(); }
   RENDERS.set(L.id, { key: params, canvas: out });
   return out;
 }
@@ -750,7 +812,8 @@ function sceneProps(L) {
   }
   h += section('Sol', `${toggle('floor.on', 'Afficher le sol (ombres et reflets)', fl.on)}${fl.on ? `
     ${colorCtl('floor.color', 'Couleur du sol', fl.color || '$bg2', th)}
-    ${range('floor.opacity', 'Opacité du sol', fl.opacity ?? 0.75, 0, 1, 0.01, pct)}
+    ${sel('floor.shape', 'Forme du sol', fl.shape || 'disc', [['platform', 'Plateforme (bord arrière net)'], ['disc', 'Disque diffus']], { raw: true })}${fl.shape === 'platform' ? toggle('floor.tex', 'Texture du sol (béton)', fl.tex !== false) : ''}
+    ${range('floor.opacity', 'Opacité du sol', fl.opacity ?? 0.75, 0, 1, 0.01, pct)}${range('floor.blur', 'Flou du reflet', fl.blur ?? 0.5, 0, 1, 0.01, pct)}
     ${range('floor.reflect', 'Reflet du sol', fl.reflect ?? 0.3, 0, 1, 0.01, pct)}
     ${range('floor.glow', 'Lueur du sol', fl.glow ?? 0.5, 0, 1.5, 0.01, pct)}
     ${range('floor.shadow', 'Force des ombres', fl.shadow ?? 0.55, 0, 1, 0.01, pct)}

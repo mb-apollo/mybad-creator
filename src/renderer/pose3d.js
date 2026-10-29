@@ -412,6 +412,32 @@ export function solveLegParams(rig, s, T) {
   const knee = Math.atan2(new THREE.Vector3().crossVectors(r.ud, r.fd).dot(lat), r.ud.dot(r.fd)) / RAD;
   return { out: clampN(r.out, 0, 45), fwd: clampN(r.fwd, -45, 90), knee: clampN(knee, 0, 120) };
 }
+// Plante les pieds au sol : un pied un peu levé (jambe en avant, genou plié) descend jusqu'à la hauteur de repos de sa cheville, par une cinématique inverse de la jambe
+// (hanche → genou → cheville) ; l'orientation du pied est conservée. rest : hauteurs de repos [footL, footR, …] ; k : échelle du personnage par rapport à son échelle de base ; un pied levé de plus de maxLift (en hauteurs de personnage) reste levé exprès.
+export function plantFeet(root, rest, k, maxLift = 0.12) {
+  const rig = rigOf(root); if (!rig || !rest) return;
+  [['L', 0], ['R', 1]].forEach(([s, i]) => {
+    const thigh = rig['thigh' + s], knee = rig['knee' + s], foot = rig['foot' + s];
+    if (!thigh || !knee || !foot || rest[i] == null) return;
+    const F = worldPos(foot), lift = F.y - rest[i] * k;
+    if (lift < 0.003 * k || lift > maxLift * k) return;
+    const H = worldPos(thigh), K0 = worldPos(knee), l1 = H.distanceTo(K0), l2 = K0.distanceTo(F), q0 = worldQuat(foot).clone();
+    const T = new THREE.Vector3(F.x, rest[i] * k, F.z);
+    // jambe trop courte pour atteindre le sol à cet endroit : le pied glisse un peu vers la hanche (quelques millimètres) plutôt que de rester en l'air
+    const hv = H.y - T.y, reach = Math.sqrt(Math.max(0, (l1 + l2) * (l1 + l2) * 0.9995 - hv * hv)), hx = T.x - H.x, hz = T.z - H.z, hl = Math.hypot(hx, hz);
+    if (hl > reach && hl > 1e-6) { T.x = H.x + hx * reach / hl; T.z = H.z + hz * reach / hl; }
+    const to = T.clone().sub(H), dir = to.clone().normalize();
+    const d = Math.min(Math.max(to.length(), Math.abs(l1 - l2) + 1e-4), l1 + l2 - 1e-4);
+    const a = (d * d + l1 * l1 - l2 * l2) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+    const kv = K0.clone().sub(H), pole = kv.addScaledVector(dir, -kv.dot(dir));
+    if (pole.lengthSq() < 1e-10) return;
+    pole.normalize();
+    const E = H.clone().addScaledVector(dir, a).addScaledVector(pole, h);
+    aim(thigh, knee, E.clone().sub(H));
+    aim(knee, foot, H.clone().addScaledVector(dir, d).sub(worldPos(knee)));
+    setWorldQuat(foot, q0);
+  });
+}
 export { worldPos, worldQuat, aim, lateral };
 
 // ---------------------------------------------------------------- visage

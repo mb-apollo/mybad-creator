@@ -72,6 +72,7 @@ export const liveryKey = id => (id ? id + ':' + (REV.get(id) || 0) + ':' + REVAL
 export const liveryGloss = id => getDef(id)?.gloss;
 export const liveryMetal = id => getDef(id)?.metal;
 export const liveryZone = (id, k) => getDef(id)?.zones?.[k] || null;
+export const liveryLamp = (id, k) => getDef(id)?.lamps?.[k] ?? null;
 export const allLiveries = () => [
   ...Object.keys(BUILTIN).map(id => ({ id, name: getDef(id).name, builtin: true, modified: hasOverride(id) })),
   ...STORE.user.map(u => ({ id: u.id, name: u.def.name, builtin: false })),

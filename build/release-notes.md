@@ -1,4 +1,3 @@
-- Créateur de livrées : on déplace le logo, le texte, les étoiles et les bandes directement sur la voiture (glisser), et la caméra tourne en glissant ailleurs
-- Nouvelles couleurs par zone : châssis / aileron / pare-chocs, jantes, vitres et pneus
-- Interrupteur des feux (allumés / éteints) dans l'aperçu du créateur
-- Correction : le dessin du flanc était inversé d'un côté de la voiture, il est maintenant dans le même sens des deux côtés
+- Rocket League : les feux des voitures émettent une vraie lumière avec halo (cœur, halo, voile diffus, trait de lumière sur les phares avant), sur Octane, Fennec et Dominus
+- Couleur des feux avant et arrière réglable séparément pour chaque voiture (onglet 3D) et par défaut dans chaque livrée (créateur de livrées), avec la force du halo
+- Les voitures des modèles d'affiche ont maintenant les feux allumés par défaut

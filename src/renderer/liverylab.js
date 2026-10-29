@@ -246,6 +246,7 @@ function renderControls() {
   let h = section('Carrosserie', colorRow('d:base.0', 'Couleur du haut', d.base[0]) + colorRow('d:base.1', 'Couleur du bas', d.base[1])
     + rg('d:gloss', 'Brillance (vernis)', d.gloss ?? 0.7, 0, 1, 0.01) + rg('d:metal', 'Effet métallisé', d.metal ?? 0.45, 0, 1, 0.01)
     + colorRow('d:glow.color', 'Lueur du bas de caisse', d.glow?.color) + rg('d:glow.amount', 'Intensité de la lueur', d.glow?.amount ?? 0, 0, 1, 0.01), true);
+  h += section('Feux', colorRow('d:lamps.front', 'Couleur des feux avant', d.lamps?.front || '#e8f4ff') + colorRow('d:lamps.rear', 'Couleur des feux arrière', d.lamps?.rear || '#ff1a12') + rg('d:lamps.glow', 'Force du halo', d.lamps?.glow ?? 1, 0, 2, 0.01) + '<div class="hint">Réglages par défaut de cette livrée ; chaque voiture peut les changer dans l\'onglet 3D. Allume les feux avec le sélecteur en haut pour voir le rendu.</div>', true);
   h += section('Châssis, jantes, vitres, pneus', zoneRow('chassis', 'Châssis, aileron, pare-chocs', d.base[1]) + zoneRow('rim', 'Jantes', '#0b0c12') + zoneRow('glass', 'Vitres', '#05070e') + zoneRow('tires', 'Pneus', '#050505')
     + '<div class="hint">Châssis : les pièces vues de face, de dos ou du dessous (arches de pare-chocs…) et l\'aileron. « Origine » rend la couleur du modèle.</div>', true);
   const rows = d.layers.map((L, i) => `<div class="ll-row ${L.id === ST.sel ? 'on' : ''} ${L.visible === false ? 'off' : ''}">

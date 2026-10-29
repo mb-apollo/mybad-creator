@@ -10,7 +10,8 @@ import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
 import { sceneDefaults, DEFAULT_POSE } from './engine/templates.js';
 import { LOGO_URL, makeLogoGltf, setLogoLook } from './logo3d.js';
-import { applyLivery, applyGloss, applyZones, surfaceAt, liveriesList, liveryKey, liveryGloss, liveryMetal, liveryZone } from './livery.js';
+import { applyLivery, applyGloss, applyZones, surfaceAt, liveriesList, liveryKey, liveryGloss, liveryMetal, liveryZone, liveryLamp } from './livery.js';
+import { applyLamps, LAMP_DEFAULT } from './carlamps.js';
 import { addLayer } from './editor.js';
 import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf, agentRotY } from './posereg.js';
 import { rigOf, applyPose, facingOf, cleanSkinWeights, recordRestShape, cullStretched, WEAPON_STANCES, FACES, applyFace, applyWrist, poseValues, worldPos, solveArmParams, solveUpperArm, solveLegParams } from './pose3d.js';
@@ -84,33 +85,16 @@ function fixModel(url, gltf) {
 }
 // Voitures : feux (allumés / éteints, pour les modèles dont les feux sont une matière à part : Dominus, Fennec) et couleur des jantes. Les réglages du fichier sont mémorisés dans chaque matière (userData.o0) puis rétablis.
 // L.lights : 'auto' / vide = comme dans le fichier, 'on' = allumés, 'off' = éteints ; L.rimColor : couleur des jantes (vide = d'origine).
-// Octane : ses feux sont peints dans la texture du châssis (anneaux et points clairs), mais éteints. On les allume en renforçant la lumière de la texture dans des disques
-// (centre et rayon en pixels de la texture 2048, tels que le modèle les utilise), teintés : phares blancs chauds, feux arrière rouges.
-const LAMPS = {
-  octane: { tex: 2048, discs: [
-    [482, 313, 48, [1, 0.95, 0.85], 9], [1859, 966, 30, [1, 0.95, 0.85], 9], [976, 1407, 40, [1, 0.95, 0.85], 9], [1586, 1545, 14, [1, 0.95, 0.85], 9], [1634, 1526, 14, [1, 0.95, 0.85], 9],
-    [1209, 1074, 50, [1, 0.1, 0.08], 3.4], [1290, 1056, 35, [1, 0.1, 0.08], 3.4], [1408, 1913, 35, [1, 0.1, 0.08], 3.4], [1516, 1913, 35, [1, 0.1, 0.08], 3.4],
-  ] },
-};
-function lampGlow(m, car, on) {
-  const st = m.userData.lampOn ?? false; if (st === on) return;
-  m.userData.lampOn = on;
-  if (!on) { m.onBeforeCompile = () => {}; delete m.customProgramCacheKey; m.needsUpdate = true; return; }
-  const { tex, discs } = LAMPS[car], f = v => v.toFixed(3);
-  const code = discs.map(([cx, cy, r, c, k]) => `{ float d = length(tpx - vec2(${cx}.0, ${cy}.0)); float mk = 1.0 - smoothstep(${f(r * 0.85)}, ${f(r)}, d); float l = dot(texture2D(map, vMapUv).rgb, vec3(0.3333)); totalEmissiveRadiance += vec3(${c.map(f).join(',')}) * pow(l, 1.3) * mk * ${f(k)}; }`).join('\n');
-  m.onBeforeCompile = sh => {
-    sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n{ vec2 tpx = vMapUv * ' + tex + '.0;\n' + code + '\n}');
-  };
-  m.customProgramCacheKey = () => 'lamps2-' + car;
-  m.needsUpdate = true;
-}
 const DEFAULT_RIM = { fennec: '#0b0c12' };   // jantes d'origine trop voyantes : noires par défaut
+const lampCols = L => ({ front: L.lampF || liveryLamp(L.livery, 'front') || LAMP_DEFAULT.front, rear: L.lampR || liveryLamp(L.livery, 'rear') || LAMP_DEFAULT.rear, glow: L.lampGlow ?? liveryLamp(L.livery, 'glow') ?? LAMP_DEFAULT.glow });
 function applyCarLook(inst, L, theme, car) {
   const rim = L.rimColor ? color(L.rimColor, theme) : (liveryZone(L.livery, 'rim') || DEFAULT_RIM[car] || null);
   applyLivery(inst, L.livery, car);
   applyZones(inst, L.livery);
+  applyLamps(inst, car, L.lights === 'on', lampCols(L));
   applyGloss(inst, L.gloss ?? liveryGloss(L.livery) ?? 0.7, liveryMetal(L.livery));
   // les verres des phares (matière « Headlights ») réutilisent le dessin des phares de l'atlas du châssis : anneaux et segments au lieu d'un disque blanc uni
+  const cols = lampCols(L);
   let chassisMap = null;
   inst.root.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material || [])) if (/chassis/i.test(m.name || '') && m.map && !chassisMap) chassisMap = m.map; });
   inst.root.traverse(o => {
@@ -122,9 +106,8 @@ function applyCarLook(inst, L, theme, car) {
       const o0 = m.userData.o0 ||= { emissive: m.emissive?.clone(), ei: m.emissiveIntensity, color: m.color?.clone(), map: m.map, emissiveMap: m.emissiveMap, metalness: m.metalness, roughness: m.roughness, hex: m.emissive?.getHex() || 0 };
       if (isLamp || isChassis) {
                 m.emissive.copy(o0.emissive); m.emissiveMap = o0.emissiveMap; m.emissiveIntensity = o0.ei; m.color.copy(o0.color);
-        if (isLamp && chassisMap) { m.map = chassisMap; m.emissiveMap = chassisMap; m.emissive.set('#ffffff'); m.emissiveIntensity = 1.5; m.color.set('#ffffff'); }
+        if (isLamp && chassisMap) { m.map = chassisMap; m.emissiveMap = chassisMap; m.emissive.set(cols.front); m.emissiveIntensity = 1.5; m.color.set('#ffffff'); }
         if (L.lights === 'off') { m.emissiveIntensity = 0; if (isLamp) m.color.copy(o0.color).multiplyScalar(0.3); }
-        if (isChassis && LAMPS[car]) lampGlow(m, car, L.lights === 'on');
         m.needsUpdate = true;
       }
       if (isRim) {
@@ -291,7 +274,7 @@ function renderModel(L, w, h, theme, exporting) {
   const wdoc = S.doc_override || S.doc, pzr = resolvePose(L.pose, agentKeyOf(wdoc, L.model)), wdef = weaponOf(L, pzr), wurl = weaponUrl(wdoc, wdef);
   if (wurl) load(wurl);
   const fin = finOf(wdoc), arot = agentRotY(agentKeyOf(wdoc, L.model));
-  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, L.lights, L.rimColor, liveryKey(L.livery), L.gloss, theme.glow, theme.accent, theme.text]);
+  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, L.lights, L.rimColor, liveryKey(L.livery), L.gloss, L.lampF, L.lampR, L.lampGlow, theme.glow, theme.accent, theme.text]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
@@ -420,7 +403,7 @@ export function modelProps(L) {
   h += section('Arme', weaponControls('weapon', wsel), !!wsel?.key);
   h += section('Pose', (clips.length ? `${sel('anim', 'Animation', L.anim ?? 0, [[-1, 'Pose du fichier'], ...clips.map((c, i) => [i, c.name || `Animation ${i + 1}`])])}${(L.anim ?? 0) >= 0 ? range('animTime', 'Moment de l\'animation', L.animTime || 0, 0, 1, 0.001, pct) : ''}` : '<p class="hint">Ce modèle n\'a pas d\'animation : il garde la pose de son fichier.</p>')
     + poseControls('pose', pz), clips.length > 0 || !!pz.on);
-  if (doc.game === 'rl') h += section('Voiture', `${sel('lights', 'Feux', L.lights || 'auto', [['auto', 'Selon le modèle'], ['on', 'Allumés'], ['off', 'Éteints']], { raw: true })}<p class="hint">« Allumés » éclaire les phares et les feux arrière (Octane : phares blancs, feux rouges). « Éteints » les coupe sur Dominus et Fennec.</p>${sel('livery', 'Livrée', L.livery || '', liveriesList(), { raw: true })}<div class="btnrow"><button class="mini-btn" data-act="openLiveryLab" data-id="${esc(L.livery || '')}">Créateur de livrées</button></div>${range('gloss', 'Brillance de la carrosserie', L.gloss ?? liveryGloss(L.livery) ?? 0.7, 0, 1, 0.01, pct)}${colorCtl('rimColor', 'Couleur des jantes', L.rimColor || '#9aa6c4', th)}<div class="btnrow"><button class="mini-btn" data-act="rimReset">Jantes d'origine</button></div>`, true);
+  if (doc.game === 'rl') h += section('Voiture', `${sel('lights', 'Feux', L.lights || 'auto', [['auto', 'Selon le modèle'], ['on', 'Allumés'], ['off', 'Éteints']], { raw: true })}<p class="hint">« Allumés » éclaire les phares et les feux arrière avec un halo de lumière. « Éteints » les coupe.</p>${colorCtl('lampF', 'Couleur des feux avant', L.lampF || liveryLamp(L.livery, 'front') || LAMP_DEFAULT.front, th)}${colorCtl('lampR', 'Couleur des feux arrière', L.lampR || liveryLamp(L.livery, 'rear') || LAMP_DEFAULT.rear, th)}${range('lampGlow', 'Force du halo', L.lampGlow ?? liveryLamp(L.livery, 'glow') ?? LAMP_DEFAULT.glow, 0, 2, 0.01, pct)}${sel('livery', 'Livrée', L.livery || '', liveriesList(), { raw: true })}<div class="btnrow"><button class="mini-btn" data-act="openLiveryLab" data-id="${esc(L.livery || '')}">Créateur de livrées</button></div>${range('gloss', 'Brillance de la carrosserie', L.gloss ?? liveryGloss(L.livery) ?? 0.7, 0, 1, 0.01, pct)}${colorCtl('rimColor', 'Couleur des jantes', L.rimColor || '#9aa6c4', th)}<div class="btnrow"><button class="mini-btn" data-act="rimReset">Jantes d'origine</button></div>`, true);
   else h += section('Visage', faceControls('face', L.face), !!(L.face && Object.keys(L.face).length));
   h += section('Éclairage', `
     ${colorCtl('rim.color', 'Contre-jour', L.rim?.color || '$glow', th)}${range('rim.intensity', 'Intensité du contre-jour', L.rim?.intensity ?? 4, 0, 12, 0.1, v => v.toFixed(1))}${range('rim.angle', 'Direction du contre-jour', L.rim?.angle ?? 150, 90, 270, 1, deg)}

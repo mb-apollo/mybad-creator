@@ -1,3 +1,1 @@
-- Scènes 3D : nouveau sol en plateforme texturée (béton) à bord arrière net, avec liseré de lumière ; choix « Plateforme » ou « Disque diffus » et interrupteur de texture dans l'onglet 3D › Sol
-- Les pieds sont replantés au sol (jambe recalculée) et chaque pied a une ombre de contact collée sous lui
-- Reflets du sol flous et qui s'estompent en s'éloignant des pieds, avec un curseur « Flou du reflet » ; reflet plus marqué par défaut
+- Affiche Roster : nouvelle caméra par défaut des personnages 3D (plus basse et plus large : angle -8°, zoom 112 %, hauteur 45 %, focale 61°)

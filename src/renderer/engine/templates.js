@@ -181,7 +181,7 @@ function roster(ctx) {
     text({ name: 'Titre gras', variant: 'script', tpl: '{rosW2}', upper: true, x: W * 0.08, y: H * 0.335, w: W * 0.84, size: 150 * u, fx: glowFx('$glow', 30, 0.6) }),
     text({ name: 'Titre', variant: 'plain', tpl: '{rosPlain}', upper: true, x: W * 0.08, y: H * 0.2, w: W * 0.84, size: 230 * u, fx: glowFx('$glow', 36, 0.7) }),
     text({ name: 'Titre (écho)', variant: 'plain', tpl: '{rosPlain}', upper: true, x: W * 0.08, y: H * 0.2 + 200 * u, w: W * 0.84, size: 230 * u, style: 'outline', strokeWidth: 1.4, strokeColor: '$text', opacity: 0.55 }),
-    ...playerRow(ctx, H * 0.83, { h: ctx.use3d ? 0.5 : 0.44, scene: { camPitch: -2, zoom: 1.17, target: 0.43, fov: 34, spread: 1.25, y: H * 0.26, h: H * 0.73 } }),
+    ...playerRow(ctx, H * 0.83, { h: ctx.use3d ? 0.5 : 0.44, scene: { camPitch: -8, zoom: 1.12, target: 0.45, fov: 61, spread: 1.25, y: H * 0.26, h: H * 0.74 } }),
     frontSmoke(ctx, H * 0.72, 0.25),
     shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.865, w: W, h: H * 0.135, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     ...Array.from({ length: ctx.nPlayers }, (_, i) => {

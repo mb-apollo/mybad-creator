@@ -8,7 +8,7 @@ export const VALORANT_AGENTS = [
   A('astra', 'Astra', 'controller'), A('breach', 'Breach', 'initiator'), A('brimstone', 'Brimstone', 'controller'),
   A('chamber', 'Chamber', 'sentinel'), A('clove', 'Clove', 'controller'), A('cypher', 'Cypher', 'sentinel'),
   A('deadlock', 'Deadlock', 'sentinel'), A('fade', 'Fade', 'initiator'), A('gekko', 'Gekko', 'initiator'),
-  A('harbor', 'Harbor', 'controller'), A('iso', 'Iso', 'duelist'), A('jett', 'Jett', 'duelist'),
+  A('harbor', 'Harbor', 'controller'), A('hush', 'Hush', 'duelist'), A('iso', 'Iso', 'duelist'), A('jett', 'Jett', 'duelist'),
   A('kayo', 'KAY/O', 'initiator'), A('killjoy', 'Killjoy', 'sentinel'), A('miks', 'Miks', 'controller'),
   A('neon', 'Neon', 'duelist'), A('omen', 'Omen', 'controller'), A('phoenix', 'Phoenix', 'duelist'),
   A('raze', 'Raze', 'duelist'), A('reyna', 'Reyna', 'duelist'), A('sage', 'Sage', 'sentinel'),

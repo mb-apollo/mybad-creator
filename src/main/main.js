@@ -179,6 +179,7 @@ ipcMain.handle('export:writeInFolder', (_e, { folder, name, base64 }) => { const
 ipcMain.handle('shell:show', (_e, p) => { shell.showItemInFolder(p); return true; });
 ipcMain.handle('clipboard:image', (_e, dataUrl) => { clipboard.writeImage(nativeImage.createFromDataURL(dataUrl)); return true; });
 ipcMain.handle('confirm', async (_e, { message, detail, ok }) => {
+  if (process.env.MBC_AUTOCONFIRM) return true;   // tests automatiques seulement
   const r = await dialog.showMessageBox(win, { type: 'question', buttons: [ok || 'Continuer', 'Annuler'], defaultId: 0, cancelId: 1, message, detail });
   return r.response === 0;
 });

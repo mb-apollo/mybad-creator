@@ -51,7 +51,7 @@ const azur = () => ({
 const BUILTIN = { nuit, azur };
 
 // ------------------------------------------------------------------ enregistrement
-let STORE = (() => { try { return { user: [], over: {}, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { user: [], over: {} }; } })();
+let STORE = (() => { try { return { user: [], over: {}, hidden: [], ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { user: [], over: {}, hidden: [] }; } })();
 const write = () => { try { localStorage.setItem(KEY, JSON.stringify(STORE)); } catch (e) { console.error('Livrées : enregistrement impossible', e); } };
 const REV = new Map(); let REVALL = 0;
 const LISTEN = []; export const onLiveryChange = fn => LISTEN.push(fn);
@@ -64,6 +64,7 @@ export const hasOverride = id => !!STORE.over[id];
 export function getDef(id) {
   if (!id) return null;
   const u = STORE.user.find(x => x.id === id); if (u) return u.def;
+  if (STORE.hidden.includes(id)) return null;
   if (STORE.over[id]) return STORE.over[id];
   return BUILTIN[id] ? (BUILTIN[id]._c ||= BUILTIN[id]()) : null;
 }
@@ -74,9 +75,16 @@ export const liveryMetal = id => getDef(id)?.metal;
 export const liveryZone = (id, k) => getDef(id)?.zones?.[k] || null;
 export const liveryLamp = (id, k) => getDef(id)?.lamps?.[k] ?? null;
 export const allLiveries = () => [
-  ...Object.keys(BUILTIN).map(id => ({ id, name: getDef(id).name, builtin: true, modified: hasOverride(id) })),
+  ...Object.keys(BUILTIN).filter(id => !STORE.hidden.includes(id)).map(id => ({ id, name: getDef(id).name, builtin: true, modified: hasOverride(id) })),
   ...STORE.user.map(u => ({ id: u.id, name: u.def.name, builtin: false })),
 ];
+export const hiddenCount = () => STORE.hidden.length;
+export function restoreBuiltins() { STORE.hidden = []; write(); REVALL++; notify(); }
+// Livrée posée d'office sur les voitures des nouvelles affiches (celle qu'on a « enregistrée »), « nuit » tant qu'on n'a rien choisi.
+export const defaultLivery = () => { const a = STORE.active; return a === '' ? '' : (a && getDef(a) && !STORE.hidden.includes(a) ? a : (STORE.hidden.includes('nuit') ? '' : 'nuit')); };
+export function setDefaultLivery(id) { STORE.active = id; write(); }
+// Livrée réservée à une voiture (« Octane uniquement ») : sur les autres voitures, la peinture d'origine reste.
+export const liveryOnly = id => getDef(id)?.only || '';
 export const liveriesList = () => [['', 'Peinture d\'origine'], ...allLiveries().map(l => [l.id, l.name])];
 
 function dropTextures(id) { for (const k of [...CACHE.keys()]) if (k.startsWith(id + '|')) { const t = CACHE.get(k); t.side.dispose(); t.top.dispose(); CACHE.delete(k); } }
@@ -91,10 +99,15 @@ export function createLivery(name, from) {
   STORE.user.push({ id, def }); write(); bump(id); return id;
 }
 export function renameLivery(id, name) { const d = cloneJ(getDef(id)); d.name = name; saveDef(id, d); }
-export function deleteLivery(id) { STORE.user = STORE.user.filter(x => x.id !== id); write(); dropTextures(id); notify(); }
+export function deleteLivery(id) {
+  if (BUILTIN[id]) { if (!STORE.hidden.includes(id)) STORE.hidden.push(id); delete STORE.over[id]; delete BUILTIN[id]._c; } else STORE.user = STORE.user.filter(x => x.id !== id);
+  if (STORE.active === id) delete STORE.active;
+  write(); dropTextures(id); REVALL++; notify();
+}
 export function resetLivery(id) { delete STORE.over[id]; if (BUILTIN[id]) delete BUILTIN[id]._c; write(); bump(id); }
 export const exportLiveries = () => JSON.stringify({ app: 'MyBad Creator', kind: 'liveries', version: 1, data: STORE }, null, 2);
 export function importLiveries(text) {
+  const j0 = (() => { try { return JSON.parse(text); } catch { return null; } })(); if (j0?.data?.hidden) STORE.hidden = STORE.hidden.filter(h => j0.data.hidden.includes(h));
   const j = JSON.parse(text);
   if (j?.kind !== 'liveries' || !j.data) throw new Error('Ce fichier n\'est pas une collection de livrées MyBad Creator.');
   (j.data.user || []).forEach(u => { STORE.user = STORE.user.filter(x => x.id !== u.id); STORE.user.push(u); });

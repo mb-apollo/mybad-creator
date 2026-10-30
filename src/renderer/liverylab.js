@@ -1,9 +1,9 @@
 // Créateur de livrées (plein écran) pour les voitures Rocket League : couleurs, brillance, lueur, logo MyBad, images, textes, étoiles et bandes.
 // Chaque modification est enregistrée tout de suite ; les livrées se choisissent ensuite dans l'onglet 3D (section Voiture) de chaque voiture.
-import { S } from './state.js';
+import { S, change as docChange, toast } from './state.js';
 import { esc, setPath, getPath, section, range, select, toggle, textInput, syncRange, pct, deg } from './ui.js';
-import { renderModelPreview, pickBody } from './model3d.js';
-import { allLiveries, getDef, cloneDef, saveDef, createLivery, renameLivery, deleteLivery, resetLivery, isBuiltin, hasOverride, newLayer, exportLiveries, importLiveries, onLiveryChange, FONTS, CARS } from './livery.js';
+import { renderModelPreview, pickBody, agentKeyOf } from './model3d.js';
+import { hiddenCount, restoreBuiltins, setDefaultLivery, allLiveries, getDef, cloneDef, saveDef, createLivery, renameLivery, deleteLivery, resetLivery, isBuiltin, hasOverride, newLayer, exportLiveries, importLiveries, onLiveryChange, FONTS, CARS } from './livery.js';
 
 const API = window.studio;
 const $ = (s, r = document) => r.querySelector(s);
@@ -80,9 +80,11 @@ function build() {
   const ctl = $('#llControls', root);
   ctl.oninput = e => { const el = e.target; if (!el.dataset.p) return; if (el.type === 'range' || el.type === 'color' || el.type === 'text') apply(el, false); };
   ctl.onchange = e => { const el = e.target; if (!el.dataset.p || el.type === 'range' || el.type === 'color') return; apply(el, true); };
-  ctl.onclick = e => {
-    const b = e.target.closest('[data-a]'); if (!b) return;
+  const onAction = e => {
+    const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a, i = +b.dataset.i;
+    if (a === 'restoreB') { restoreBuiltins(); refreshList(); status_('Livrées fournies restaurées'); return; }
+    if (!ST.def) return;
     const L = ST.def.layers;
     if (a.startsWith('add-')) { const k = a.slice(4); const nl = newLayer(k, k === 'text' ? { text: 'MYBAD' } : {}); L.push(nl); ST.sel = nl.id; if (k === 'image') { change(true); $('#llFile', root).click(); return; } change(true); return; }
     if (a === 'zone-reset') { delete ST.def.zones?.[b.dataset.k]; change(true); return; }
@@ -97,8 +99,12 @@ function build() {
     if (a === 'renameOk') { const v = ($('#llRename', root).value || '').trim(); if (v) { ST.def.name = v; renameLivery(ST.id, v); } ST.rename = false; refreshList(); renderHead(); return; }
     if (a === 'reset') { resetLivery(ST.id); loadDef(); change(false, true); return; }
     if (a === 'delete') delLivery();
+    if (a === 'save') saveAndApply();
     if (a === 'dupLivery') { const id = createLivery(ST.def.name + ' (copie)', ST.def); refreshList(); select_(id); }
   };
+  ctl.onclick = onAction;
+  $('#llHead', root).onclick = onAction;
+  $('#llList', root).addEventListener('click', e => { if (e.target.closest('[data-a="restoreB"]')) onAction(e); });
   $('#llFile', root).onchange = e => {
     const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
     const r = new FileReader();
@@ -194,17 +200,29 @@ function refreshList() {
     <div class="pl-group">Mes livrées</div>
     <div class="pl-new"><input class="input" id="llNewName" placeholder="Nom de la nouvelle livrée" maxlength="30" spellcheck="false"><button class="mini-btn" data-new>+ Créer</button></div>
     <p class="hint" style="padding:0 6px 6px">La nouvelle livrée est une copie de celle qui est ouverte.</p>
-    ${all.filter(l => !l.builtin).map(row).join('') || '<p class="hint" style="padding:0 6px">Aucune pour l\'instant.</p>'}`;
+    ${all.filter(l => !l.builtin).map(row).join('') || '<p class="hint" style="padding:0 6px">Aucune pour l\'instant.</p>'}${hiddenCount() ? '<div class="btnrow" style="padding:8px 6px"><button class="mini-btn" data-a="restoreB">Restaurer les livrées fournies</button></div>' : ''}`;
   list.scrollTop = keep;
 }
 function loadDef() { ST.def = cloneDef(ST.id); ST.hist = [JSON.stringify(ST.def)]; ST.hi = 0; if (!ST.def.layers.find(l => l.id === ST.sel)) ST.sel = null; }
 function select_(id) {
-  if (!getDef(id)) id = 'nuit';
+  if (!getDef(id)) id = allLiveries()[0]?.id || 'nuit';
   ST.id = id; ST.rename = false; loadDef(); refreshList(); renderHead(); renderControls(); status(); preview();
 }
+const status_ = msg => { const st = $('#llStatus', root); if (st) st.textContent = msg; toast(msg); };
+// Enregistre la livrée, en fait la livrée des nouvelles affiches et la pose sur les voitures de l'affiche ouverte (« Octane uniquement » : sur les Octane seulement).
+function saveAndApply() {
+  clearTimeout(ST.t); commit(); saveDef(ST.id, ST.def); setDefaultLivery(ST.id);
+  const only = ST.def.only || '', doc = S.doc;
+  const hit = doc && doc.game === 'rl' ? doc.layers.filter(L => L.type === 'model' && !L.actors && (!only || agentKeyOf(doc, L.model) === only)) : [];
+  if (hit.length) docChange(d => { for (const L of d.layers) if (hit.some(h => h.id === L.id)) L.livery = ST.id; }, { immediate: true });
+  const car = only ? (CARS.find(c => c[0] === only) || [])[1] : '';
+  status_(hit.length ? `Livrée enregistrée et posée sur ${hit.length} voiture(s) de l'affiche${car ? ' (' + car + ' uniquement)' : ''}` : `Livrée enregistrée${car ? ' pour ' + car : ''} ; elle sera posée sur les nouvelles affiches Rocket League`);
+}
 async function delLivery() {
-  const ok = API?.confirm ? await API.confirm({ message: `Supprimer la livrée « ${ST.def.name} » ?`, detail: 'Les voitures qui l\'utilisent reviennent à la peinture d\'origine.', ok: 'Supprimer' }) : confirm('Supprimer cette livrée ?');
-  if (ok) { deleteLivery(ST.id); refreshList(); select_('nuit'); }
+  const ok = API?.confirm ? await API.confirm({ message: `Supprimer la livrée « ${ST.def.name} » ?`, detail: (isBuiltin(ST.id) ? 'Elle disparaît de la liste (un bouton permet de restaurer les livrées fournies). ' : '') + 'Les voitures qui l\'utilisent reviennent à la peinture d\'origine.', ok: 'Supprimer' }) : confirm('Supprimer cette livrée ?');
+  if (!ok) return;
+  deleteLivery(ST.id); const rest = allLiveries()[0]; refreshList();
+  if (rest) select_(rest.id); else { ST.id = ''; ST.def = null; ST.sel = null; $('#llHead', root).innerHTML = ''; $('#llControls', root).innerHTML = '<p class="hint" style="padding:12px">Plus aucune livrée. Crée-en une avec « + Créer », ou restaure les livrées fournies.</p>'; preview(); }
 }
 
 // ------------------------------------------------------------------ panneau de réglages
@@ -220,7 +238,7 @@ function renderHead() {
   $('#llHead', root).innerHTML = ST.rename
     ? `<div class="pl-ren"><input class="input" id="llRename" value="${esc(ST.def.name)}" maxlength="30" spellcheck="false"><button class="mini-btn" data-a="renameOk">OK</button></div>`
     : `<div><strong>${esc(ST.def.name)}</strong><small>${user ? 'Ta livrée' : 'Livrée fournie' + (mod ? ' · modifiée' : ' · modifiable')}</small></div>
-       <div class="btnrow">${user ? '<button class="mini-btn" data-a="rename">Renommer</button>' : ''}<button class="mini-btn" data-a="dupLivery">Dupliquer</button>${user ? '<button class="mini-btn danger" data-a="delete">Supprimer</button>' : `<button class="mini-btn" data-a="reset" ${mod ? '' : 'disabled'}>Revenir à l'origine</button>`}</div>`;
+       <div class="btnrow"><button class="mini-btn" data-a="rename">Renommer</button><button class="mini-btn" data-a="dupLivery">Dupliquer</button><button class="mini-btn danger" data-a="delete">Supprimer</button>${user ? '' : `<button class="mini-btn" data-a="reset" ${mod ? '' : 'disabled'}>Revenir à l'origine</button>`}</div>`;
 }
 function layerPanel(L) {
   const car = CARS.find(c => c[0] === ST.car)[1], side = (L.face || 'side') === 'side', big = L.kind === 'text' ? [0.02, 0.3] : [0.02, 1.2];
@@ -243,7 +261,8 @@ function layerPanel(L) {
 function renderControls() {
   const d = ST.def; if (!d) return;
   const sel = d.layers.find(l => l.id === ST.sel);
-  let h = section('Carrosserie', colorRow('d:base.0', 'Couleur du haut', d.base[0]) + colorRow('d:base.1', 'Couleur du bas', d.base[1])
+  let h = `<div class="pad llsave">${select('d:only', 'Appliquer à', d.only || '', [['', 'Toutes les voitures'], ...CARS.map(([k, n]) => [k, n + ' uniquement'])], { raw: true }).replace('<select', '<select data-p="d:only"')}<button class="primary-btn solo" data-a="save" title="Enregistre la livrée et la pose sur les voitures de l'affiche ouverte et des nouvelles affiches">Enregistrer et appliquer aux affiches</button></div>`;
+  h += section('Carrosserie', colorRow('d:base.0', 'Couleur du haut', d.base[0]) + colorRow('d:base.1', 'Couleur du bas', d.base[1])
     + rg('d:gloss', 'Brillance (vernis)', d.gloss ?? 0.7, 0, 1, 0.01) + rg('d:metal', 'Effet métallisé', d.metal ?? 0.45, 0, 1, 0.01)
     + colorRow('d:glow.color', 'Lueur du bas de caisse', d.glow?.color) + rg('d:glow.amount', 'Intensité de la lueur', d.glow?.amount ?? 0, 0, 1, 0.01), true);
   h += section('Feux', colorRow('d:lamps.front', 'Couleur des feux avant', d.lamps?.front || '#e8f4ff') + colorRow('d:lamps.rear', 'Couleur des feux arrière', d.lamps?.rear || '#ff1a12') + rg('d:lamps.glow', 'Force du halo', d.lamps?.glow ?? 1, 0, 2, 0.01) + '<div class="hint">Réglages par défaut de cette livrée ; chaque voiture peut les changer dans l\'onglet 3D. Allume les feux avec le sélecteur en haut pour voir le rendu.</div>', true);

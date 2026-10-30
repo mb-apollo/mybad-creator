@@ -458,3 +458,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 .tabs { grid-template-columns: repeat(6, auto); }
 .tabs button { min-width: 0; white-space: nowrap; }
 .ctxmenu kbd:empty { display: none; }
+
+/* Créateur de livrées : bloc « Appliquer à » + enregistrement */
+.llsave { display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 4px; }
+.llsave .primary-btn { width: 100%; justify-content: center; height: 36px; border-radius: 8px; }

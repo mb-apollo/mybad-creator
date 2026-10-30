@@ -1,6 +1,7 @@
 // Modèles d'affiches MyBad Creator. Chaque modèle génère des calques éditables,
 // reliés aux champs du contenu ({event}, {p1}…) pour rester modifiables depuis le panneau Contenu.
 import { EMBLEM_RATIO } from './scene.js';
+import { defaultLivery } from '../livery.js';
 
 // ---------------------------------------------------------------- fabriques de calques
 const text = o => ({ type: 'text', name: o.name || 'Texte', fontRole: 'display', font: 'Space Grotesk', weight: 700, size: 40, color: '$text', align: 'center', spacing: 0, upper: false, autoFit: true, lineHeight: 1.1, x: 0, y: 0, w: 400, rot: 0, ...o });
@@ -114,7 +115,7 @@ function agentImage(ctx, field, box, o = {}) {
     if (fx && fx.smear) { delete fx.smear; delete fx.smearCut; if (!car) fx.fade = { on: true, dir: 'bottom', amount: 0.25 }; }
     if (fx && fx.glow) fx.glow = { ...fx.glow, opacity: Math.min(fx.glow.opacity ?? 0.5, 0.4) };
     const light = car
-      ? { key: { color: '#eef2ff', intensity: 1.7, angle: -45 }, rim: { color: '$glow', intensity: 6.5, angle: 160 }, fill: { color: '#c9d4ff', intensity: 0.2 }, ambient: { color: '#8ea3e8', intensity: 0.35 }, envLight: 0.9, exposure: 1.05, livery: 'nuit', lights: 'on' }
+      ? { key: { color: '#eef2ff', intensity: 1.7, angle: -45 }, rim: { color: '$glow', intensity: 6.5, angle: 160 }, fill: { color: '#c9d4ff', intensity: 0.2 }, ambient: { color: '#8ea3e8', intensity: 0.35 }, envLight: 0.9, exposure: 1.05, livery: defaultLivery(), lights: 'on' }
       : JSON.parse(JSON.stringify(NIGHT_LIGHT));
     return {
       type: 'model', name: (o.name || 'Render').replace('Render', 'Modèle 3D'), model: '@' + field, ...box, rot: 0,

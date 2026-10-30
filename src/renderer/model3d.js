@@ -10,7 +10,7 @@ import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
 import { sceneDefaults, DEFAULT_POSE } from './engine/templates.js';
 import { LOGO_URL, makeLogoGltf, setLogoLook } from './logo3d.js';
-import { applyLivery, applyGloss, applyZones, surfaceAt, liveriesList, liveryKey, liveryGloss, liveryMetal, liveryZone, liveryLamp } from './livery.js';
+import { applyLivery, applyGloss, applyZones, surfaceAt, liveriesList, liveryKey, liveryGloss, liveryMetal, liveryZone, liveryLamp, liveryOnly } from './livery.js';
 import { applyLamps, LAMP_DEFAULT } from './carlamps.js';
 import { addLayer } from './editor.js';
 import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf, agentRotY } from './posereg.js';
@@ -88,6 +88,7 @@ function fixModel(url, gltf) {
 const DEFAULT_RIM = { fennec: '#0b0c12' };   // jantes d'origine trop voyantes : noires par défaut
 const lampCols = L => ({ front: L.lampF || liveryLamp(L.livery, 'front') || LAMP_DEFAULT.front, rear: L.lampR || liveryLamp(L.livery, 'rear') || LAMP_DEFAULT.rear, glow: L.lampGlow ?? liveryLamp(L.livery, 'glow') ?? LAMP_DEFAULT.glow });
 function applyCarLook(inst, L, theme, car) {
+  L = { ...L, livery: L.livery && (!liveryOnly(L.livery) || liveryOnly(L.livery) === car) ? L.livery : '' };   // livrée réservée à une autre voiture : peinture d'origine
   const rim = L.rimColor ? color(L.rimColor, theme) : (liveryZone(L.livery, 'rim') || DEFAULT_RIM[car] || null);
   applyLivery(inst, L.livery, car);
   applyZones(inst, L.livery);
@@ -237,6 +238,18 @@ function groundDrop(inst) {
   ys.forEach((y, i) => { if (y != null && inst.footRest[i] != null) low = Math.min(low, y - inst.footRest[i] * k); });
   return Number.isFinite(low) ? -low : 0;
 }
+// Roulis et tangage d'une voiture : rotation autour de son centre, après le cap (rotY). Renvoie l'encombrement du modèle incliné (monde), ou null s'il n'est pas incliné.
+function tiltCar(inst, L, yaw) {
+  const roll = (L.roll || 0) * Math.PI / 180, pitch = (L.pitch || 0) * Math.PI / 180;
+  if (!roll && !pitch) return null;
+  const lenX = inst.size.x >= inst.size.z, qy = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+  const ax = lenX ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1), lat = lenX ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+  const q = qy.clone().multiply(new THREE.Quaternion().setFromAxisAngle(ax, roll)).multiply(new THREE.Quaternion().setFromAxisAngle(lat, pitch));
+  const c = new THREE.Vector3(0, inst.size.y / 2, 0);
+  inst.pivot.quaternion.copy(q); inst.pivot.position.copy(c.clone().sub(c.clone().applyQuaternion(q))); inst.pivot.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(inst.pivot);
+  return { x: b.max.x - b.min.x, y: b.max.y - b.min.y, z: b.max.z - b.min.z, cy: (b.min.y + b.max.y) / 2 };
+}
 function instance(url, L, gltf) {
   // une seule instance par fichier : les rendus sont séquentiels, la pose est réappliquée à chaque fois
   const key = url;
@@ -285,7 +298,7 @@ function renderModel(L, w, h, theme, exporting) {
   const wdoc = S.doc_override || S.doc, pzr = resolvePose(L.pose, agentKeyOf(wdoc, L.model)), wdef = weaponOf(L, pzr), wurl = weaponUrl(wdoc, wdef);
   if (wurl) load(wurl);
   const fin = finOf(wdoc), arot = agentRotY(agentKeyOf(wdoc, L.model));
-  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, L.lights, L.rimColor, liveryKey(L.livery), L.gloss, L.lampF, L.lampR, L.lampGlow, theme.glow, theme.accent, theme.text]);
+  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, L.roll, L.pitch, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, L.lights, L.rimColor, liveryKey(L.livery && (!liveryOnly(L.livery) || liveryOnly(L.livery) === agentKeyOf(wdoc, L.model)) ? L.livery : ''), L.gloss, L.lampF, L.lampR, L.lampGlow, theme.glow, theme.accent, theme.text]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
@@ -318,6 +331,7 @@ function renderModel(L, w, h, theme, exporting) {
   inst.pivot.updateMatrixWorld(true);
   inst.pivot.position.y = groundDrop(inst); inst.pivot.updateMatrixWorld(true);
   plantFeet(inst.root, inst.footRest, inst.pivot.scale.x / inst.baseScale); inst.pivot.updateMatrixWorld(true);
+  const tilt = (S.doc_override || S.doc).game === 'rl' ? tiltCar(inst, L, -inst.baseYaw + ((L.rotY || 0) + arot) * Math.PI / 180) : null;
   const col = c => new THREE.Color(color(c, theme) || '#ffffff');
   const lit = (o, def, k) => ({ ...(o || {}), intensity: (o?.intensity ?? def) * (k ?? 1) });
   const amb = lit(L.ambient, 0.7, fin.ambient), key = lit(L.key, 1.6, fin.key), rim = lit(L.rim, 4, fin.rim), fill = lit(L.fill, 0.4, fin.ambient);
@@ -331,8 +345,8 @@ function renderModel(L, w, h, theme, exporting) {
   if ((fill.intensity ?? 0.4) > 0) { const fl = new THREE.DirectionalLight(col(fill.color || '$accent'), fill.intensity ?? 0.4); fl.position.set(0, 0.3, 3); scene.add(fl); }
 
   const fov = L.fov || 28;
-  const sz = inst.size;
-  const targetY = sz.y * (L.target ?? 0.5);
+  const sz = tilt || inst.size;
+  const targetY = tilt ? tilt.cy + (L.target ?? 0.5) * tilt.y - tilt.y / 2 : sz.y * (L.target ?? 0.5);
   const fitH = sz.y / 2 / Math.tan(fov * Math.PI / 360);
   const fitW = Math.max(sz.x, sz.z) / 2 / Math.tan(fov * Math.PI / 360) / (pw / ph);
   const frameAll = L.frame ? L.frame === 'all' : (S.doc_override || S.doc).game === 'rl';
@@ -407,8 +421,9 @@ export function modelProps(L) {
   const status = !url ? '<p class="hint warn">Aucun modèle 3D pour ce choix. Importe un .glb dans la Bibliothèque.</p>' : m?.status === 'loading' ? '<p class="hint">Chargement du modèle…</p>' : m?.status === 'error' ? '<p class="hint warn">Ce fichier n\'a pas pu être lu.</p>' : '';
   let h = section('Modèle 3D', `${sel('model', 'Modèle', L.model, opts, { raw: true })}${status}
     ${seg('frame', L.frame || (doc.game === 'rl' ? 'all' : 'height'), [['height', 'Cadrer la hauteur'], ['all', 'Tout le modèle']], { small: true })}
-    ${range('rotY', 'Rotation du modèle', L.rotY || 0, -180, 180, 1, deg)}
-    ${range('camPitch', 'Angle de caméra', L.camPitch ?? 6, -20, 60, 1, deg)}
+    ${range('rotY', 'Rotation du modèle', L.rotY || 0, -360, 360, 1, deg)}
+    ${doc.game === 'rl' ? range('roll', 'Roulis (sur le côté)', L.roll || 0, -360, 360, 1, deg) + range('pitch', 'Tangage (nez haut / bas)', L.pitch || 0, -360, 360, 1, deg) : ''}
+    ${range('camPitch', 'Angle de caméra', L.camPitch ?? 6, -90, 90, 1, deg)}
     ${range('zoom3d', 'Zoom', L.zoom3d || 1, 0.3, 4, 0.01, pct)}
     ${range('target', 'Hauteur visée', L.target ?? 0.5, 0, 1, 0.01, pct)}
     ${range('offsetX', 'Décalage caméra', L.offsetX || 0, -0.6, 0.6, 0.01, v => Math.round(v * 100))}
@@ -417,7 +432,7 @@ export function modelProps(L) {
   h += section('Arme', weaponControls('weapon', wsel), !!wsel?.key);
   h += section('Pose', (clips.length ? `${sel('anim', 'Animation', L.anim ?? 0, [[-1, 'Pose du fichier'], ...clips.map((c, i) => [i, c.name || `Animation ${i + 1}`])])}${(L.anim ?? 0) >= 0 ? range('animTime', 'Moment de l\'animation', L.animTime || 0, 0, 1, 0.001, pct) : ''}` : '<p class="hint">Ce modèle n\'a pas d\'animation : il garde la pose de son fichier.</p>')
     + poseControls('pose', pz), clips.length > 0 || !!pz.on);
-  if (doc.game === 'rl') h += section('Voiture', `${sel('lights', 'Feux', L.lights || 'auto', [['auto', 'Selon le modèle'], ['on', 'Allumés'], ['off', 'Éteints']], { raw: true })}<p class="hint">« Allumés » éclaire les phares et les feux arrière avec un halo de lumière. « Éteints » les coupe.</p>${colorCtl('lampF', 'Couleur des feux avant', L.lampF || liveryLamp(L.livery, 'front') || LAMP_DEFAULT.front, th)}${colorCtl('lampR', 'Couleur des feux arrière', L.lampR || liveryLamp(L.livery, 'rear') || LAMP_DEFAULT.rear, th)}${range('lampGlow', 'Force du halo', L.lampGlow ?? liveryLamp(L.livery, 'glow') ?? LAMP_DEFAULT.glow, 0, 2, 0.01, pct)}${sel('livery', 'Livrée', L.livery || '', liveriesList(), { raw: true })}<div class="btnrow"><button class="mini-btn" data-act="openLiveryLab" data-id="${esc(L.livery || '')}">Créateur de livrées</button></div>${range('gloss', 'Brillance de la carrosserie', L.gloss ?? liveryGloss(L.livery) ?? 0.7, 0, 1, 0.01, pct)}${colorCtl('rimColor', 'Couleur des jantes', L.rimColor || '#9aa6c4', th)}<div class="btnrow"><button class="mini-btn" data-act="rimReset">Jantes d'origine</button></div>`, true);
+  if (doc.game === 'rl') h += section('Voiture', `${sel('livery', 'Livrée de cette voiture', L.livery || '', liveriesList(), { raw: true })}<div class="btnrow"><button class="mini-btn" data-act="openLiveryLab" data-id="${esc(L.livery || '')}">Créateur de livrées</button></div>${sel('lights', 'Feux', L.lights || 'auto', [['auto', 'Selon le modèle'], ['on', 'Allumés'], ['off', 'Éteints']], { raw: true })}<p class="hint">« Allumés » éclaire les phares et les feux arrière avec un halo de lumière. « Éteints » les coupe.</p>${colorCtl('lampF', 'Couleur des feux avant', L.lampF || liveryLamp(L.livery, 'front') || LAMP_DEFAULT.front, th)}${colorCtl('lampR', 'Couleur des feux arrière', L.lampR || liveryLamp(L.livery, 'rear') || LAMP_DEFAULT.rear, th)}${range('lampGlow', 'Force du halo', L.lampGlow ?? liveryLamp(L.livery, 'glow') ?? LAMP_DEFAULT.glow, 0, 2, 0.01, pct)}${range('gloss', 'Brillance de la carrosserie', L.gloss ?? liveryGloss(L.livery) ?? 0.7, 0, 1, 0.01, pct)}${colorCtl('rimColor', 'Couleur des jantes', L.rimColor || '#9aa6c4', th)}<div class="btnrow"><button class="mini-btn" data-act="rimReset">Jantes d'origine</button></div>`, true);
   else h += section('Visage', faceControls('face', L.face), !!(L.face && Object.keys(L.face).length));
   h += section('Éclairage', `
     ${colorCtl('rim.color', 'Contre-jour', L.rim?.color || '$glow', th)}${range('rim.intensity', 'Intensité du contre-jour', L.rim?.intensity ?? 4, 0, 12, 0.1, v => v.toFixed(1))}${range('rim.angle', 'Direction du contre-jour', L.rim?.angle ?? 150, 90, 270, 1, deg)}

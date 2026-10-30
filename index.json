@@ -1,6 +1,6 @@
 {
  "pack": "mybad-creator-3d",
- "version": 1,
+ "version": 2,
  "files": [
   {
    "game": "valorant",
@@ -104,8 +104,8 @@
    "game": "valorant",
    "key": "neon",
    "path": "valorant/neon.glb",
-   "size": 2935764,
-   "sha256": "638bc134698c6875d9404567d4193a0140455e59edbfb1510113bace7e4383c2"
+   "size": 5098948,
+   "sha256": "bbe635cd4c75fd8a55ffded044ab2f531d57c26b0f46cec55f0944d63b73e5ab"
   },
   {
    "game": "valorant",

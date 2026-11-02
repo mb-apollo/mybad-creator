@@ -1,7 +1,5 @@
-- Correction : le premier rendu d'un personnage (Jett sur Game Day notamment) n'est plus décalé ni trop zoomé
-- Game Day : l'agent est centré et placé devant les chevrons ; Bienvenue : les deux personnages ont la même taille et le même fondu ; Roster Rocket League : fumée désactivée ; Roster Valorant : nouveau sol par défaut
-- Menu clic droit sur l'affiche (copier, couper, coller, dupliquer, supprimer, ordre des calques, verrouiller, masquer, centrer)
-- Interface redimensionnable : poignées entre les modèles, l'affiche, le panneau de droite et les calques (tailles mémorisées, double-clic pour revenir à la valeur d'origine)
-- Barre du haut : les boutons passent en icônes quand la fenêtre est étroite, plus de chevauchement avec le choix du format
-- Contenu : bouton « Actualiser avec le Kit de marque » (joueurs, rôles, agents, structure, logo)
-- Modèles : on peut dupliquer n'importe quel modèle (fourni ou perso) dans « Modèles personnalisés », avec sa mise en page et ses réglages d'ambiance
+- Nouveau design « Liquid Glass » : barres et boutons en verre, bulle de sélection qui glisse sous le jeu, le format et les onglets, panneaux en verre dépoli, fenêtres et menus dans la même matière, aux couleurs de MyBad (bleu nuit, cyan). L'affiche et la zone de travail restent neutres pour ne pas teinter tes couleurs
+- Studio de poses et Créateur de livrées dans le même style
+- Nouvel installateur à tuiles pour la première installation : fichier « MyBad-Creator-Installateur » dans les téléchargements de la version (les mises à jour automatiques ne changent pas)
+- Boutons des modèles personnalisés mieux alignés ; la barre du haut ne chevauche plus le choix du format
+- Champs de saisie plus doux, coins arrondis partout

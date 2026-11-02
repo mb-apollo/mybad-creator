@@ -67,6 +67,12 @@ SetFont "Segoe UI" 9
 !macro MB_HIDE_LINE
   GetDlgItem $0 $HWNDPARENT 1045
   ShowWindow $0 0
+  GetDlgItem $0 $HWNDPARENT 1036
+  ShowWindow $0 0
+  GetDlgItem $0 $HWNDPARENT 1028
+  ShowWindow $0 0
+  GetDlgItem $0 $HWNDPARENT 1256
+  ShowWindow $0 0
 !macroend
 
 ; Assombrit la page intérieure courante et ses contrôles (boutons en mode sombre).
@@ -95,9 +101,10 @@ SetFont "Segoe UI" 9
   mb_btn:
     System::Call 'user32::GetWindowLongW(p $R1, i -16) i .R3'
     IntOp $R3 $R3 & 0xF
-    IntCmp $R3 1 mb_push mb_push
-    !insertmacro MB_UNTHEME $R1
-    SetCtlColors $R1 "F5F7FF" "090B17"
+    IntCmp $R3 7 mb_group mb_push mb_push
+  mb_group:
+    ; cadre « Dossier d'installation » : son trait blanc de Windows jure avec le reste, on le retire (le champ et « Parcourir » restent)
+    ShowWindow $R1 0
     Goto mb_loop
   mb_push:
     !insertmacro MB_DARKBTN $R1

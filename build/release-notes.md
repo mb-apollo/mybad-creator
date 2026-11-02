@@ -1,5 +1,3 @@
-- Nouvelle barre du haut : la barre grise de Windows est remplacée par une barre aux couleurs du logiciel, avec le menu (Fichier, Édition, Affichage, Aide) qui s'ouvre en verre fumé. Les raccourcis clavier ne changent pas
-- La colonne d'outils et la zone de travail passent en tuiles de verre dépoli comme les autres panneaux (l'affiche reste opaque : ses couleurs ne sont jamais teintées)
-- Bords des tuiles plus doux, surtout le trait lumineux dans le coin en haut à gauche
-- La bulle des barres de sélection (jeu, format, onglets) voyage plus lentement
-- Fenêtres, menus et notifications en verre fumé : plus clairs et plus transparents, sans reflet bleu
+- Les prochaines mises à jour s'installent sans l'assistant Windows : le logiciel prévient, se ferme, installe, puis se rouvre tout seul (Windows peut demander une autorisation si le logiciel est installé pour tous les utilisateurs). Cette fois encore, l'assistant classique peut s'afficher une dernière fois
+- L'installateur à tuiles (première installation) détecte une installation existante, « pour moi » ou « pour tous », et la met à jour au même endroit au lieu d'en créer une deuxième copie
+- Écran « Pour qui installer ? » de l'ancien assistant : boutons plus lisibles sur fond sombre

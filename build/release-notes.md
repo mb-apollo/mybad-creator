@@ -1,5 +1,5 @@
-- Nouveau design « Liquid Glass » : barres et boutons en verre, bulle de sélection qui glisse sous le jeu, le format et les onglets, panneaux en verre dépoli, fenêtres et menus dans la même matière, aux couleurs de MyBad (bleu nuit, cyan). L'affiche et la zone de travail restent neutres pour ne pas teinter tes couleurs
-- Studio de poses et Créateur de livrées dans le même style
-- Nouvel installateur à tuiles pour la première installation : fichier « MyBad-Creator-Installateur » dans les téléchargements de la version (les mises à jour automatiques ne changent pas)
-- Boutons des modèles personnalisés mieux alignés ; la barre du haut ne chevauche plus le choix du format
-- Champs de saisie plus doux, coins arrondis partout
+- Nouvelle barre du haut : la barre grise de Windows est remplacée par une barre aux couleurs du logiciel, avec le menu (Fichier, Édition, Affichage, Aide) qui s'ouvre en verre fumé. Les raccourcis clavier ne changent pas
+- La colonne d'outils et la zone de travail passent en tuiles de verre dépoli comme les autres panneaux (l'affiche reste opaque : ses couleurs ne sont jamais teintées)
+- Bords des tuiles plus doux, surtout le trait lumineux dans le coin en haut à gauche
+- La bulle des barres de sélection (jeu, format, onglets) voyage plus lentement
+- Fenêtres, menus et notifications en verre fumé : plus clairs et plus transparents, sans reflet bleu

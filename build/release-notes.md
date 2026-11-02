@@ -1,3 +1,1 @@
-- Les prochaines mises à jour s'installent sans l'assistant Windows : le logiciel prévient, se ferme, installe, puis se rouvre tout seul (Windows peut demander une autorisation si le logiciel est installé pour tous les utilisateurs). Cette fois encore, l'assistant classique peut s'afficher une dernière fois
-- L'installateur à tuiles (première installation) détecte une installation existante, « pour moi » ou « pour tous », et la met à jour au même endroit au lieu d'en créer une deuxième copie
-- Écran « Pour qui installer ? » de l'ancien assistant : boutons plus lisibles sur fond sombre
+- Correction : après une mise à jour, la fenêtre du logiciel pouvait rester cachée (le logiciel tournait mais rien ne s'affichait, et relancer ne changeait rien). Elle s'affiche maintenant dans tous les cas, et relancer le logiciel la fait réapparaître si elle était cachée

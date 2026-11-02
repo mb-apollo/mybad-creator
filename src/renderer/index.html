@@ -5,21 +5,28 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' mbc:; img-src 'self' mbc: data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' mbc:; script-src 'self' mbc: 'wasm-unsafe-eval' 'unsafe-eval' blob:; worker-src 'self' mbc: blob:; connect-src 'self' mbc: data: blob:">
 <title>MyBad Creator</title>
 <link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="kit/themes/mybad.css">
+<link rel="stylesheet" href="kit/verre.css">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="kit/creator.css">
 </head>
 <body>
+<div class="fond" aria-hidden="true"><span class="halo"></span><span class="halo"></span><span class="halo"></span></div>
+<svg id="defs-refraction" width="0" height="0" style="position:absolute" aria-hidden="true"></svg>
 <div id="boot" class="boot"><img class="boot-logo" src="assets/logo-mark.png" alt=""><span>MyBad Creator</span></div>
 
 <div class="app" id="app" hidden>
   <header class="toolbar">
     <div class="tb-left">
-      <div class="logo" aria-hidden="true"><img src="assets/logo-mark.png" alt=""></div>
-      <div class="proj"><span class="proj-app">MyBad Creator</span><span class="proj-name" id="projName">Sans titre</span></div>
-      <span class="tb-sep"></span>
-      <div class="seg" id="gameSeg" aria-label="Jeu"></div>
+      <div class="verre grp grp-id">
+        <div class="logo" aria-hidden="true"><img src="assets/logo-mark.png" alt=""></div>
+        <div class="proj"><span class="proj-app">MyBad Creator</span><span class="proj-name" id="projName">Sans titre</span></div>
+      </div>
+      <div class="seg barre-sel" id="gameSeg" aria-label="Jeu"></div>
     </div>
-    <div class="tb-center"><div class="seg" id="fmtSeg" aria-label="Format"></div></div>
+    <div class="tb-center"><div class="seg barre-sel" id="fmtSeg" aria-label="Format"></div></div>
     <div class="tb-right">
+     <div class="verre grp grp-actions">
       <button class="icon-btn" id="btnUndo" title="Annuler (Ctrl+Z)" aria-label="Annuler"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
       <button class="icon-btn" id="btnRedo" title="Rétablir (Ctrl+Y)" aria-label="Rétablir"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
       <span class="tb-sep"></span>
@@ -28,7 +35,8 @@
       <button class="ghost-btn" id="btnPoseLab" title="Régler toutes les poses par défaut, les doigts et le placement des armes"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.2"/><path d="M12 8v6M7 10l5 1 5-1M12 14l-3 7M12 14l3 7"/></svg>Studio de poses</button>
       <button class="ghost-btn" id="btnKit" title="Structure, rosters et ambiance repris dans chaque projet"><svg viewBox="0 0 24 24"><path d="M12 2 Q13 11 22 12 Q13 13 12 22 Q11 13 2 12 Q11 11 12 2Z"/></svg>Kit de marque</button>
       <button class="ghost-btn" id="btnCopy" title="Copier l'affiche dans le presse-papiers (Ctrl+Maj+C)"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>Copier</button>
-      <div class="export-group">
+     </div>
+      <div class="export-group verre teinte">
         <button class="primary-btn" id="btnExport"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Exporter</button>
         <button class="primary-btn caret" id="btnExportMenu" aria-label="Options d'export"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
         <div class="menu" id="exportMenu" hidden>
@@ -43,7 +51,7 @@
   </header>
 
   <div class="work">
-    <nav class="tools" id="tools" aria-label="Outils">
+    <nav class="tools verre" id="tools" aria-label="Outils">
       <button id="toolsToggle" class="ttoggle" title="Étendre / replier le panneau d'outils"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="tl">Outils</span></button>
       <span class="tsep"></span>
       <button data-tool="select" class="on" title="Sélection (V)"><svg viewBox="0 0 24 24"><path d="m4 3 7 17 2.5-7.5L21 10Z"/></svg><span class="tl">Sélection</span></button>
@@ -87,7 +95,7 @@
     <div class="side-resize" id="sideResize" title="Glisse pour élargir ou réduire le panneau de droite"></div>
     <aside class="side">
       <div class="side-top">
-        <div class="tabs" role="tablist">
+        <div class="tabs barre-sel" role="tablist">
           <button data-tab="props" class="on">Propriétés</button>
           <button data-tab="look">Réglages</button>
           <button data-tab="content">Contenu</button>
@@ -125,7 +133,7 @@
     </aside>
   </div>
 
-  <footer class="statusbar">
+  <footer class="statusbar verre">
     <span id="stFmt"></span>
     <span id="stPos" class="st-pos"></span>
     <span class="st-tip">Double-clic sur un texte pour l'éditer · Espace + glisser pour déplacer la vue · F1 pour les raccourcis</span>
@@ -142,6 +150,10 @@
 </div>
 <div class="toasts" id="toasts"></div>
 <input type="file" id="fileInput" hidden>
+<script src="kit/config.js"></script>
+<script src="kit/js/glisse.js"></script>
+<script src="kit/js/refraction.js"></script>
 <script src="dist/app.js"></script>
+<script src="kit/liaison.js"></script>
 </body>
 </html>

@@ -1,0 +1,122 @@
+/* Kit « Liquid Glass » — la couche de verre, indépendante des couleurs.
+   Toutes les couleurs viennent de variables --da-* définies dans un thème (themes/*.css) : on change la direction artistique en changeant de thème, pas ce fichier.
+   Chargement : un thème, ce fichier, puis le CSS du projet (l'ordre thème / verre.css n'a pas d'importance).  Voir DESIGN.md pour les règles et README.md pour l'intégration. */
+
+/* :where() = priorité nulle : un thème gagne toujours, qu'il soit chargé avant ou après ce fichier */
+:where(:root) {
+  /* ---- à définir par le thème (valeurs par défaut = sombre neutre bleu) ---- */
+  --da-fond: #0a0c12;            /* fond de page */
+  --da-texte: #f1f3f8;           /* texte principal */
+  --da-doux: #b9bfce;            /* texte secondaire */
+  --da-accent: #4f8cff;          /* couleur principale (action principale, halos) */
+  --da-sur-accent: #ffffff;      /* texte posé sur la couleur principale */
+  --da-reflet: #ffffff;          /* couleur des reflets du verre : blanc, ou blanc très légèrement teinté */
+  --da-ombre: #000000;           /* couleur des ombres */
+  --da-voile-force: 38%;         /* voile sous le verre (Apple conseille environ 35 %) ; plus bas = plus transparent */
+  --da-luminosite: .82;          /* luminosité de ce qui passe derrière le verre (sombre : .82 ; clair : 1.04) */
+
+  /* ---- déduit automatiquement des couleurs ci-dessus : en général il n'y a rien à toucher ---- */
+  --da-chaud: color-mix(in srgb, var(--da-accent) 38%, var(--da-reflet));                    /* reflets colorés du bord du verre */
+  --da-voile: color-mix(in srgb, var(--da-fond) var(--da-voile-force), transparent);
+  --da-opaque: color-mix(in srgb, var(--da-fond) 84%, var(--da-reflet));                      /* matière opaque (transparence réduite) */
+  --da-opaque-2: color-mix(in srgb, var(--da-fond) 92%, var(--da-reflet));
+  --da-trait: color-mix(in srgb, var(--da-reflet) 22%, transparent);
+
+  --v-fond: linear-gradient(150deg, color-mix(in srgb, var(--da-reflet) 17%, transparent), color-mix(in srgb, var(--da-reflet) 3%, transparent) 48%, color-mix(in srgb, var(--da-reflet) 10%, transparent));
+  --v-relief: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 60%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 7%, transparent),
+    inset 0 -12px 20px -14px color-mix(in srgb, var(--da-chaud) 38%, transparent), inset 0 12px 20px -14px color-mix(in srgb, var(--da-reflet) 26%, transparent),
+    0 14px 34px color-mix(in srgb, var(--da-ombre) 50%, transparent);
+  --v-flou: blur(10px) saturate(1.8) brightness(var(--da-luminosite));
+  --teinte: linear-gradient(150deg, color-mix(in srgb, color-mix(in srgb, var(--da-accent) 55%, var(--da-reflet)) 86%, transparent),
+    color-mix(in srgb, var(--da-accent) 66%, transparent) 55%, color-mix(in srgb, var(--da-accent) 78%, transparent));
+  --liseré: linear-gradient(140deg, color-mix(in srgb, var(--da-reflet) 95%, transparent), transparent 28%, transparent 64%, color-mix(in srgb, var(--da-chaud) 70%, transparent));
+
+  /* mouvement : ressorts d'Apple (les durées exactes sont dans glisse.js / effets.js) */
+  --ressort: cubic-bezier(.34, 1.56, .64, 1); --elastique: cubic-bezier(.34, 1.45, .64, 1); --glissade: cubic-bezier(.25, .85, .3, 1);
+  --haut: calc(env(safe-area-inset-top, 0px) + 10px); /* sous l'encoche */
+}
+
+/* ================= verre : barres, sélecteurs, boutons (jamais le contenu) ================= */
+/* le flou n'est jamais posé sur le parent d'un autre flou, ni sur le contenu qui défile (Safari les gère mal) */
+.verre { position: relative; isolation: isolate; border: 0; background: var(--v-fond); box-shadow: var(--v-relief); -webkit-backdrop-filter: var(--v-flou); backdrop-filter: var(--v-flou); }
+.verre::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.2px; pointer-events: none; background: var(--liseré);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.verre::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--da-voile); z-index: -1; pointer-events: none; }
+/* teinte de la couleur principale : réservée à l'action principale */
+.verre.teinte { background: var(--teinte); color: var(--da-sur-accent); }
+.verre.teinte::after { background: color-mix(in srgb, var(--da-fond) 16%, transparent); }
+
+/* barres de sélection (onglets, périodes) : le verre est sur ::before, la bulle (avec son propre flou) est une sœur du verre, jamais son enfant */
+.barre-sel { position: relative; isolation: isolate; touch-action: pan-y; }
+.barre-sel::before { content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1; pointer-events: none;
+  background: linear-gradient(var(--da-voile), var(--da-voile)), var(--v-fond); box-shadow: var(--v-relief); -webkit-backdrop-filter: var(--v-flou); backdrop-filter: var(--v-flou); }
+.barre-sel::after { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.2px; pointer-events: none; background: var(--liseré);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.barre-sel > button { position: relative; z-index: 1; background: transparent; border: 0; color: var(--da-doux); font: inherit; cursor: pointer; transition: color .3s, transform .5s var(--ressort); }
+.barre-sel > button.actif { color: var(--da-texte); }
+
+/* ================= la bulle de sélection (glisse.js) ================= */
+/* rendu : verre presque incolore, couleurs derrière plus vives, SANS flou ni voile blanc, liseré fin, ombre portée ; soulevée (--lev), le libellé dessous est agrandi */
+.bulle-verre { --lev: 0; position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 0; pointer-events: none; border-radius: 18px; opacity: 0; overflow: hidden;
+  background: color-mix(in srgb, var(--da-reflet) calc((5 + 3 * var(--lev)) * 1%), transparent);
+  -webkit-backdrop-filter: saturate(1.7) brightness(1.1); backdrop-filter: saturate(1.7) brightness(1.1);
+  box-shadow: 0 calc(3px + 5px * var(--lev)) calc(9px + 9px * var(--lev)) color-mix(in srgb, var(--da-ombre) calc((30 + 10 * var(--lev)) * 1%), transparent); will-change: transform, width, height; }
+.bulle-verre::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 1.2px color-mix(in srgb, var(--da-reflet) 50%, transparent), inset 0 1px 2px color-mix(in srgb, var(--da-reflet) calc((25 + 30 * var(--lev)) * 1%), transparent); }
+.copie { position: absolute; left: 0; top: 0; pointer-events: none; transform-origin: 0 0; }
+.copie button { color: var(--da-texte) !important; transition: none !important; }
+.avec-copie.pose > button.actif { color: transparent; transition: none; }
+/* pendant que la bulle bouge, les vrais libellés qu'elle recouvre sont effacés par un masque (la copie les remplace) : jamais de dédoublement */
+.sous-lentille > button { -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--ml, -999px) - 5px), transparent var(--ml, -999px), transparent var(--mr, -999px), #000 calc(var(--mr, -999px) + 5px));
+  mask-image: linear-gradient(90deg, #000 calc(var(--ml, -999px) - 5px), transparent var(--ml, -999px), transparent var(--mr, -999px), #000 calc(var(--mr, -999px) + 5px)); }
+.sous-lentille.vertical > button { -webkit-mask-image: linear-gradient(180deg, #000 calc(var(--ml, -999px) - 5px), transparent var(--ml, -999px), transparent var(--mr, -999px), #000 calc(var(--mr, -999px) + 5px));
+  mask-image: linear-gradient(180deg, #000 calc(var(--ml, -999px) - 5px), transparent var(--ml, -999px), transparent var(--mr, -999px), #000 calc(var(--mr, -999px) + 5px)); }
+
+/* ================= flou progressif sous les barres fixes (« scroll edge effect » d'Apple) ================= */
+/* HTML : <div class="flou-bord flou-haut"><i></i><i></i><i></i><i></i></div> et <div class="flou-bord flou-bas"><i></i><i></i><i></i></div> ; ajouter la classe « actif » quand la page a défilé.
+   Hauteurs réglables : --da-bord-haut, --da-bord-bas. Aucune teinte : rien ne voile les boutons de verre. */
+.flou-bord { position: fixed; left: 0; right: 0; pointer-events: none; z-index: 5; display: none; }
+.flou-bord.actif { display: block; }
+.flou-bord i { position: absolute; inset: 0; }
+.flou-haut { top: 0; height: var(--da-bord-haut, 110px); }
+.flou-bas { bottom: 0; height: calc(var(--da-bord-bas, 112px) + env(safe-area-inset-bottom, 0px)); }
+.flou-haut i:nth-child(1) { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 48%); mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 48%); }
+.flou-haut i:nth-child(2) { -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px); -webkit-mask-image: linear-gradient(to bottom, transparent 12%, #000 34%, #000 42%, transparent 66%); mask-image: linear-gradient(to bottom, transparent 12%, #000 34%, #000 42%, transparent 66%); }
+.flou-haut i:nth-child(3) { -webkit-backdrop-filter: blur(3.5px); backdrop-filter: blur(3.5px); -webkit-mask-image: linear-gradient(to bottom, transparent 34%, #000 54%, #000 62%, transparent 84%); mask-image: linear-gradient(to bottom, transparent 34%, #000 54%, #000 62%, transparent 84%); }
+.flou-haut i:nth-child(4) { -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px); -webkit-mask-image: linear-gradient(to bottom, transparent 56%, #000 78%, #000 88%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 56%, #000 78%, #000 88%, transparent 100%); }
+.flou-bas i:nth-child(1) { -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px); -webkit-mask-image: linear-gradient(to top, #000 0%, #000 30%, transparent 58%); mask-image: linear-gradient(to top, #000 0%, #000 30%, transparent 58%); }
+.flou-bas i:nth-child(2) { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); -webkit-mask-image: linear-gradient(to top, transparent 20%, #000 46%, #000 56%, transparent 82%); mask-image: linear-gradient(to top, transparent 20%, #000 46%, #000 56%, transparent 82%); }
+.flou-bas i:nth-child(3) { -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px); -webkit-mask-image: linear-gradient(to top, transparent 50%, #000 74%, #000 86%, transparent 100%); mask-image: linear-gradient(to top, transparent 50%, #000 74%, #000 86%, transparent 100%); }
+
+/* ================= matière du contenu : cartes et tuiles (Apple : pas de verre dans le contenu) ================= */
+.matiere { position: relative; border-radius: 28px; padding: 18px; background: linear-gradient(160deg, var(--da-opaque), var(--da-opaque-2)); box-shadow: inset 0 0 0 1px var(--da-trait); }
+
+/* ================= vraie réfraction (Chromium : Windows, Chrome, Edge ; refraction.js pose .refraction et --refr) ================= */
+:root.refraction { --refr: saturate(1); }
+.refraction .verre, .refraction .barre-sel::before { -webkit-backdrop-filter: var(--v-flou) var(--refr); backdrop-filter: var(--v-flou) var(--refr); }
+.refraction .copie { display: none; }
+.refraction .sous-lentille > button, .refraction .sous-lentille.vertical > button { -webkit-mask-image: none; mask-image: none; }
+.refraction .avec-copie.pose > button.actif { color: var(--da-texte); }
+
+/* ================= transparence réduite (classe .reduit sur <html>, ou réglage de l'appareil) ================= */
+.reduit .verre, .reduit .barre-sel::before { background: linear-gradient(150deg, var(--da-opaque), var(--da-opaque-2)); -webkit-backdrop-filter: blur(30px) saturate(1.1); backdrop-filter: blur(30px) saturate(1.1);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 24%, transparent), 0 10px 24px color-mix(in srgb, var(--da-ombre) 50%, transparent); }
+.reduit .verre.teinte { background: color-mix(in srgb, var(--da-accent) 88%, var(--da-fond)); }
+.reduit .verre::before, .reduit .verre::after, .reduit .barre-sel::after { display: none; }
+.reduit .bulle-verre { background: color-mix(in srgb, var(--da-opaque) 70%, var(--da-reflet)); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 3px 8px color-mix(in srgb, var(--da-ombre) 35%, transparent); }
+.reduit .bulle-verre::after { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 34%, transparent); }
+.reduit .copie { display: none; }
+.reduit .sous-lentille > button, .reduit .sous-lentille.vertical > button { -webkit-mask-image: none; mask-image: none; }
+.reduit .avec-copie.pose > button.actif { color: var(--da-texte); }
+.reduit .flou-bord { display: none !important; }
+@media (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+  .verre, .barre-sel::before { background: linear-gradient(150deg, var(--da-opaque), var(--da-opaque-2)); -webkit-backdrop-filter: blur(30px) saturate(1.1); backdrop-filter: blur(30px) saturate(1.1); }
+  .verre.teinte { background: color-mix(in srgb, var(--da-accent) 88%, var(--da-fond)); }
+  .verre::before, .verre::after, .barre-sel::after { display: none; }
+  .bulle-verre { background: color-mix(in srgb, var(--da-opaque) 70%, var(--da-reflet)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .copie { display: none; }
+  .sous-lentille.sous-lentille > button, .sous-lentille.sous-lentille.vertical > button { -webkit-mask-image: none; mask-image: none; }
+  .avec-copie.pose > button.actif { color: var(--da-texte); }
+  .flou-bord { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) { .bulle-verre { transition: opacity .2s; } .barre-sel > button { transition: none; } }

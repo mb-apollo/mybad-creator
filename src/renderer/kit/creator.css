@@ -1,0 +1,100 @@
+/* MyBad Creator × kit Liquid Glass (design_kit d'agentsIA) : le verre est réservé aux barres, sélecteurs et boutons ;
+   les panneaux (modèles, propriétés, calques) et la zone de travail restent en matière sombre. Chargé après styles.css. */
+
+html, body { background: var(--da-fond); }
+#defs-refraction { width: 0; height: 0; }
+
+/* ---- fond : halos bleus et cyan qui dérivent lentement derrière le verre ---- */
+.fond { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.halo { position: absolute; border-radius: 50%; filter: blur(60px); }
+.halo:nth-child(1) { left: -80px; top: -90px; width: 460px; height: 340px; background: radial-gradient(closest-side, var(--da-halo-1), transparent); }
+.halo:nth-child(2) { right: -120px; top: 30%; width: 420px; height: 420px; background: radial-gradient(closest-side, var(--da-halo-2), transparent); }
+.halo:nth-child(3) { left: 30%; bottom: -140px; width: 520px; height: 320px; background: radial-gradient(closest-side, var(--da-halo-3), transparent); }
+/* halos fixes (pas animés) : l'éditeur fait déjà travailler la carte graphique pour l'affiche et les modèles 3D */
+
+/* ---- disposition : tout flotte avec de l'air autour ---- */
+.app { position: relative; z-index: 1; padding: 10px; row-gap: 10px; grid-template-rows: 52px minmax(0, 1fr) 32px; }
+.work { margin: 0 -5px; }
+.toolbar { position: relative; z-index: 30; background: transparent; border: 0; padding: 0; gap: 10px; } /* au-dessus de la zone de travail : le menu d'export doit passer devant */
+.tb-left, .tb-right { overflow: visible; gap: 10px; }
+
+/* groupes de verre de la barre du haut (chacun est un morceau de verre, jamais un verre dans un verre) */
+.grp { height: 46px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 23px; flex: none; }
+.grp-id { padding: 0 16px 0 6px; gap: 10px; }
+.grp-id .logo { width: 34px; height: 34px; border-radius: 17px; background: none; border: 0; }
+.grp .tb-sep { background: color-mix(in srgb, var(--da-reflet) 22%, transparent); margin: 0 3px; }
+.grp .icon-btn, .grp .ghost-btn { border-radius: 19px; }
+.grp .icon-btn { width: 34px; height: 34px; color: var(--da-doux); }
+.grp .icon-btn:hover, .grp .ghost-btn:hover { background: color-mix(in srgb, var(--da-reflet) 14%, transparent); color: var(--da-texte); border-color: transparent; }
+.grp .ghost-btn { border: 0; height: 34px; padding: 0 13px; color: var(--da-texte); }
+.grp .ghost-btn svg { color: var(--da-doux); }
+.update-btn.has-update { border: 0; }
+.update-btn.has-update::after { box-shadow: 0 0 0 2px color-mix(in srgb, var(--da-fond) 70%, transparent); }
+.tb-right .grp .ghost-btn { white-space: nowrap; }
+
+/* bouton Exporter : la couleur principale, en verre teinté */
+.export-group.verre { height: 46px; border-radius: 23px; padding: 0 4px; align-items: center; flex: none; }
+.export-group .primary-btn { height: 38px; background: transparent; color: var(--da-sur-accent); border-radius: 19px 0 0 19px; padding: 0 16px; font-size: 13px; }
+.export-group .primary-btn:hover { background: color-mix(in srgb, var(--da-reflet) 22%, transparent); }
+.export-group .menu { color: var(--da-texte); }
+.export-group .primary-btn.caret { border-radius: 0 19px 19px 0; border-left: 1px solid color-mix(in srgb, var(--da-sur-accent) 25%, transparent); padding: 0 9px; }
+
+/* sélecteurs (jeu, format, onglets) : verre + bulle qui glisse (barre-sel, glisse.js) */
+.seg.barre-sel { height: 46px; padding: 4px; gap: 0; border: 0; background: none; border-radius: 23px; align-items: stretch; }
+.seg.barre-sel button { border-radius: 19px; padding: 0 16px; justify-content: center; }
+.seg.barre-sel button.on { background: transparent; box-shadow: none; }
+.seg.barre-sel button:hover { color: var(--da-texte); }
+.seg.barre-sel button small { color: var(--da-doux); }
+.seg.barre-sel button.actif small { color: var(--da-accent); }
+.tb-center { display: flex; }
+
+.tabs.barre-sel { margin: 10px 8px 8px; padding: 3px; height: 38px; border: 0; border-radius: 19px; gap: 0; grid-template-columns: repeat(6, auto); justify-content: stretch; }
+.tabs.barre-sel button { margin: 0; padding: 0 6px; border: 0; border-radius: 16px; font-size: 10.5px; letter-spacing: -.01em; }
+.tabs.barre-sel button.on { border-bottom-color: transparent; }
+
+/* colonne d'outils : une barre de verre à gauche */
+.tools.verre { margin: 0 5px; border: 0; border-radius: 22px; padding: 8px 0; }
+.tools.verre.open { padding: 8px; }
+.tools.verre button { border-radius: 14px; }
+.tools.verre button:hover { background: color-mix(in srgb, var(--da-reflet) 14%, transparent); }
+.tools.verre button.on { background: color-mix(in srgb, var(--da-accent) 26%, transparent); color: var(--da-accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--da-accent) 55%, transparent); }
+.tools .tsep { background: color-mix(in srgb, var(--da-reflet) 20%, transparent); }
+
+/* panneaux et zone de travail : matière sombre arrondie (le contenu n'est jamais en verre) */
+.gallery, .side, .stage { margin: 0 5px; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; }
+.side { border-left: 1px solid var(--line); }
+.side-layers { border-top-color: var(--line); }
+.gal-resize, .side-resize, .tools-resize { background: transparent; }
+
+/* barre du bas : une capsule de verre */
+.statusbar.verre { margin: 0 5px; padding: 0 18px; border: 0; border-radius: 16px; background-color: transparent; color: var(--da-doux); }
+.statusbar .st-tip, .statusbar .st-pos { color: var(--da-doux); }
+.statusbar .zoom-val:hover { color: var(--da-accent); }
+
+/* barres étroites : les pièces de verre se resserrent sans passer l'une sur l'autre */
+@media (max-width: 1500px) { .grp-id .proj { display: none; } .grp-id { padding: 0 6px; } }
+
+/* ---- finitions ---- */
+/* barre du haut : les côtés prennent la place dont ils ont besoin, le format occupe le milieu (plus de chevauchement) */
+.toolbar { grid-template-columns: auto minmax(0, 1fr) auto; }
+.tb-center { justify-content: center; min-width: 0; }
+/* boutons « Nouveau modèle vierge » / « Enregistrer l'affiche actuelle » : texte aligné à gauche, sur la hauteur qu'il faut */
+.gal-new .mini-btn { height: auto; min-height: 36px; padding: 8px 12px; justify-content: flex-start; text-align: left; line-height: 1.25; border-radius: 12px; white-space: normal; gap: 10px; }
+.gal-new .mini-btn svg { flex: none; }
+
+/* ---- grands panneaux (modèles, propriétés, calques) en verre dépoli ----
+   Même principe qu'une barre latérale d'Apple : le flou est posé sur ::before (jamais sur le parent des champs et des listes),
+   le fond reste assez dense pour que le texte soit toujours lisible. La zone de l'affiche, elle, reste opaque : les couleurs de l'affiche ne doivent pas être teintées. */
+.gallery, .side { position: relative; isolation: isolate; background: transparent; border: 0; box-shadow: 0 18px 40px color-mix(in srgb, var(--da-ombre, #000) 35%, transparent); }
+.side-layers { background: transparent; border-top-color: color-mix(in srgb, var(--da-reflet) 12%, transparent); }
+.gallery::before, .side::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 9%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 5%, transparent)),
+    color-mix(in srgb, var(--da-fond) 66%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(1.7) brightness(.92); backdrop-filter: blur(30px) saturate(1.7) brightness(.92);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 38%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent),
+    inset 0 -16px 26px -20px color-mix(in srgb, var(--da-chaud) 40%, transparent); }
+.gallery::after, .side::after { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; padding: 1.2px; pointer-events: none; background: var(--liseré);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+@media (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+  .gallery::before, .side::before { background: linear-gradient(150deg, var(--da-opaque), var(--da-opaque-2)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}

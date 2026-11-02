@@ -9,6 +9,7 @@ files:
   - src/main/**
   - src/renderer/index.html
   - src/renderer/styles.css
+  - src/renderer/kit/**
   - src/renderer/fonts.css
   - src/renderer/dist/**
   - src/renderer/fonts/**

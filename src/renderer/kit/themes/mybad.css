@@ -1,0 +1,13 @@
+/* Thème MyBad : la palette du logo (bleu nuit, blanc lunaire, bleu MyBad eSport, cyan) — voir « MyBad Studio / LISEZ-MOI.txt ». */
+:root {
+  --da-fond: #090B17;            /* bleu nuit */
+  --da-texte: #E8EBFA;
+  --da-doux: #A5ABCB;
+  --da-accent: #54D8FF;          /* cyan MyBad : action principale */
+  --da-sur-accent: #04121C;      /* texte foncé sur le cyan (clair) */
+  --da-reflet: #F5F7FF;          /* blanc lunaire */
+  --da-voile-force: 38%; --da-luminosite: .82;
+  --da-halo-1: rgba(30,167,255,.55);   /* bleu MyBad eSport */
+  --da-halo-2: rgba(84,216,255,.32);   /* cyan */
+  --da-halo-3: rgba(122,107,255,.36);  /* violet de l'éditeur */
+}

@@ -7,7 +7,7 @@
   --da-sur-accent: #04121C;      /* texte foncé sur le cyan (clair) */
   --da-reflet: #F5F7FF;          /* blanc lunaire */
   --da-voile-force: 38%; --da-luminosite: .82;
-  --da-halo-1: rgba(30,167,255,.55);   /* bleu MyBad eSport */
-  --da-halo-2: rgba(84,216,255,.32);   /* cyan */
-  --da-halo-3: rgba(122,107,255,.36);  /* violet de l'éditeur */
+  --da-halo-1: rgba(30,167,255,.66);   /* bleu MyBad eSport */
+  --da-halo-2: rgba(84,216,255,.44);   /* cyan */
+  --da-halo-3: rgba(122,107,255,.5);  /* violet de l'éditeur */
 }

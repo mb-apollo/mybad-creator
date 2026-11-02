@@ -7,9 +7,9 @@ html, body { background: var(--da-fond); }
 /* ---- fond : halos bleus et cyan qui dérivent lentement derrière le verre ---- */
 .fond { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
 .halo { position: absolute; border-radius: 50%; filter: blur(60px); }
-.halo:nth-child(1) { left: -80px; top: -90px; width: 460px; height: 340px; background: radial-gradient(closest-side, var(--da-halo-1), transparent); }
-.halo:nth-child(2) { right: -120px; top: 30%; width: 420px; height: 420px; background: radial-gradient(closest-side, var(--da-halo-2), transparent); }
-.halo:nth-child(3) { left: 30%; bottom: -140px; width: 520px; height: 320px; background: radial-gradient(closest-side, var(--da-halo-3), transparent); }
+.halo:nth-child(1) { left: -120px; top: -140px; width: 760px; height: 560px; background: radial-gradient(closest-side, var(--da-halo-1), transparent); }
+.halo:nth-child(2) { right: -160px; top: 22%; width: 680px; height: 680px; background: radial-gradient(closest-side, var(--da-halo-2), transparent); }
+.halo:nth-child(3) { left: 22%; bottom: -200px; width: 900px; height: 460px; background: radial-gradient(closest-side, var(--da-halo-3), transparent); }
 /* halos fixes (pas animés) : l'éditeur fait déjà travailler la carte graphique pour l'affiche et les modèles 3D */
 
 /* ---- disposition : tout flotte avec de l'air autour ---- */
@@ -89,8 +89,8 @@ html, body { background: var(--da-fond); }
 .side-layers { background: transparent; border-top-color: color-mix(in srgb, var(--da-reflet) 12%, transparent); }
 .gallery::before, .side::before, .stage::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
   background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 9%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 5%, transparent)),
-    color-mix(in srgb, var(--da-fond) 66%, transparent);
-  -webkit-backdrop-filter: blur(30px) saturate(1.7) brightness(.92); backdrop-filter: blur(30px) saturate(1.7) brightness(.92);
+    color-mix(in srgb, var(--da-fond) 34%, transparent);
+  -webkit-backdrop-filter: blur(36px) saturate(1.8) brightness(1); backdrop-filter: blur(36px) saturate(1.8) brightness(1);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent),
     inset 0 -16px 26px -20px color-mix(in srgb, var(--da-chaud) 40%, transparent); }
 .gallery::after, .side::after, .stage::after { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; padding: 1.2px; pointer-events: none; background: var(--liseré);
@@ -158,8 +158,8 @@ html, body { background: var(--da-fond); }
 /* listes et réglages : verre dépoli dense (ce sont eux qui défilent, le verre est donc posé directement dessus) */
 #poselab .pl-list, #poselab .pl-ctl, #liverylab .pl-list, #liverylab .pl-ctl { border: 0; border-radius: 22px; min-height: 0;
   background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 9%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 5%, transparent)),
-    color-mix(in srgb, var(--da-fond) 66%, transparent);
-  -webkit-backdrop-filter: blur(30px) saturate(1.7) brightness(.92); backdrop-filter: blur(30px) saturate(1.7) brightness(.92);
+    color-mix(in srgb, var(--da-fond) 34%, transparent);
+  -webkit-backdrop-filter: blur(36px) saturate(1.8) brightness(1); backdrop-filter: blur(36px) saturate(1.8) brightness(1);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent), 0 18px 40px color-mix(in srgb, #000 35%, transparent); }
 #poselab .pl-list, #liverylab .pl-list { padding: 12px; }
 #poselab .pl-ctl, #liverylab .pl-ctl { padding: 14px 16px 30px; }
@@ -194,18 +194,20 @@ html, body { background: var(--da-fond); }
 }
 .gallery::after, .side::after, .stage::after, .modal-card::after, .menu::after, .ctxmenu::after, .toast::after { opacity: .8; }
 
-/* colonne d'outils : une tuile de verre dépoli comme les panneaux (c'est elle qui défile, le verre est donc posé directement dessus) */
-.tools { border: 0; border-radius: 22px; margin: 0 5px;
-  background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 8%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 4%, transparent)),
-    color-mix(in srgb, var(--da-fond) 66%, transparent);
-  -webkit-backdrop-filter: blur(30px) saturate(1.7) brightness(.92); backdrop-filter: blur(30px) saturate(1.7) brightness(.92);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 8%, transparent), 0 18px 40px color-mix(in srgb, #000 35%, transparent); }
+/* colonne d'outils : la tuile des panneaux (fond clair translucide, reflet en haut à gauche, trait fin). C'est elle qui défile : le verre est donc posé directement dessus. */
+.tools { border: 1px solid color-mix(in srgb, var(--da-reflet) 16%, transparent); border-radius: 22px; margin: 0 5px;
+  background:
+    radial-gradient(130% 75% at 14% -12%, color-mix(in srgb, var(--da-reflet) 16%, transparent), transparent 58%) padding-box,
+    linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 9%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 5%, transparent)) padding-box,
+    linear-gradient(color-mix(in srgb, var(--da-fond) 34%, transparent), color-mix(in srgb, var(--da-fond) 34%, transparent)) padding-box;
+  -webkit-backdrop-filter: blur(36px) saturate(1.8) brightness(1); backdrop-filter: blur(36px) saturate(1.8) brightness(1);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 -16px 26px -20px color-mix(in srgb, var(--da-chaud) 40%, transparent), 0 18px 40px color-mix(in srgb, #000 35%, transparent); }
 
 /* zone de travail : la même tuile, avec la grille de points (l'affiche, elle, reste opaque : ses couleurs ne sont jamais teintées) */
 .stage { background: transparent; border: 0; }
 .stage::before { background-image: radial-gradient(color-mix(in srgb, var(--da-reflet) 7%, transparent) 1px, transparent 1px),
     linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 7%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 4%, transparent)),
-    linear-gradient(color-mix(in srgb, var(--da-fond) 70%, transparent), color-mix(in srgb, var(--da-fond) 70%, transparent));
+    linear-gradient(color-mix(in srgb, var(--da-fond) 38%, transparent), color-mix(in srgb, var(--da-fond) 38%, transparent));
   background-size: 22px 22px, auto, auto; }
 
 /* barre de titre sur mesure : le menu est dans l'interface, les trois boutons de la fenêtre restent à Windows (à droite, 40 px de haut) */

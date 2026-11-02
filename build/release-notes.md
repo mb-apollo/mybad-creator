@@ -1,1 +1,3 @@
-- Correction : après une mise à jour, la fenêtre du logiciel pouvait rester cachée (le logiciel tournait mais rien ne s'affichait, et relancer ne changeait rien). Elle s'affiche maintenant dans tous les cas, et relancer le logiciel la fait réapparaître si elle était cachée
+- Toutes les tuiles passent en verre clair et transparent : le fond sombre est beaucoup plus léger, le flou plus net, et les halos de couleur derrière sont plus présents
+- La colonne d'outils a exactement la même matière que les panneaux (reflet en haut à gauche, trait fin), au lieu d'un fond plus plat
+- Les fenêtres et les menus gardent leur verre fumé

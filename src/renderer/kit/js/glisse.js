@@ -10,6 +10,7 @@
 (function () {
   // réglable par la page avant le chargement du script : window.GlisseConfig = { conteneurs: ".ma-barre, .mes-onglets", surfaces: ".ma-carte" } (design_kit/)
   var CFG = (typeof window !== "undefined" && window.GlisseConfig) || {};
+  var LENT = CFG.lenteur > 0 ? CFG.lenteur : 1;   // 1 = ressorts d'Apple ; 1,6 = déplacements 60 % plus lents (réglable par la page : GlisseConfig.lenteur)
   var CONTENEURS = CFG.conteneurs || ".nav, .chips, .bascule";
   var SURFACES = CFG.surfaces || ".carte, .tuile, .hero";
   var ECHELLE = 1.25;   // agrandissement du libellé sous la bulle soulevée (rendu voulu par Axel : libellé nettement agrandi comme dans l'essai « lentille soulevée »)
@@ -24,10 +25,10 @@
     var w = 2 * Math.PI / reponse;
     return { k: w * w, c: 2 * amortissement * w, w: w, z: amortissement };
   }
-  var LEVE = ressort(0.27, 0.625), POSE = ressort(0.5, 0.7);
+  var LEVE = ressort(0.27, 0.625), POSE = ressort(0.5 * LENT, 0.7);
   /** Voyage d'une option à l'autre : plus la distance est grande, plus le ressort est lent (même rapport d'amortissement), pour que la bulle ne « parte » pas d'un bout à l'autre
       (traverser toute la barre : 0,3 s au lieu de 0,1 s, vitesse de pointe divisée par 3). Un déplacement d'une option garde presque le ressort d'Apple. */
-  function ressortVoyage(distance, longueur) { return ressort(0.27 + 0.7 * limiter(distance / Math.max(1, longueur), 0, 1), 0.625); }
+  function ressortVoyage(distance, longueur) { return ressort((0.27 + 0.7 * limiter(distance / Math.max(1, longueur), 0, 1)) * LENT, 0.625); }
 
   /** Avance `m[pos]` / `m[vit]` de `dt` secondes vers `cible` : solution exacte d'un ressort amorti (pas d'erreur de calcul, quel que soit dt). */
   function pasRessort(m, pos, vit, cible, sp, dt) {

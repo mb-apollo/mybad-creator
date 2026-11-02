@@ -83,10 +83,13 @@ function addRecent(p) { const s = readStore(); s.recent = [p, ...(s.recent || []
 function createWindow() {
   win = new BrowserWindow({
     width: 1560, height: 940, minWidth: 1180, minHeight: 720,
-    backgroundColor: '#06070D', show: false, title: 'MyBad Creator',
+    backgroundColor: '#090B17', show: false, title: 'MyBad Creator',
     icon: path.join(RENDERER, 'assets', 'icon.png'),
+    // barre de titre grise de Windows remplacée par la nôtre (index.html : .barre-titre) ; seuls les trois boutons de la fenêtre restent à Windows
+    titleBarStyle: 'hidden', titleBarOverlay: { color: '#090B17', symbolColor: '#E8EBFA', height: 40 }, autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
+  win.setMenuBarVisibility(false); // la barre de menus grise n'apparaît plus : le menu est dans l'interface, les raccourcis clavier restent actifs
   win.loadURL('mbc://app/index.html');
   win.once('ready-to-show', () => { win.maximize(); win.show(); if (process.env.MBC_SHOT) devShot(); });
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
@@ -128,6 +131,28 @@ const PROJECT_FILTER = [{ name: 'Projet MyBad Creator', extensions: ['mybad'] }]
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), pendingOpen, packaged: app.isPackaged }));
 ipcMain.on('doc:dirty', (_e, v) => { dirty = !!v; });
 ipcMain.on('win:title', (_e, t) => { if (win) win.setTitle(t); });
+// Menu affiché dans l'interface (barre de titre sur mesure) : l'interface lit la structure du vrai menu et renvoie le chemin de l'entrée choisie.
+ipcMain.handle('menu:structure', () => {
+  const m = Menu.getApplicationMenu();
+  if (!m) return [];
+  const rec = (items, base) => {
+    const sortie = [];
+    items.forEach((i, k) => {
+      if (i.visible === false) return;
+      const chemin = base.concat(k);
+      sortie.push({ label: i.label, type: i.type, enabled: i.enabled !== false, accelerator: i.accelerator ? String(i.accelerator).replace('CmdOrCtrl', 'Ctrl') : '', chemin, submenu: i.submenu ? rec(i.submenu.items, chemin) : null });
+    });
+    return sortie;
+  };
+  return rec(m.items, []);
+});
+ipcMain.on('menu:clic', (_e, chemin) => {
+  const m = Menu.getApplicationMenu();
+  if (!m || !Array.isArray(chemin)) return;
+  let items = m.items, it = null;
+  for (const k of chemin) { it = items && items[k]; if (!it) return; items = it.submenu ? it.submenu.items : null; }
+  if (it && it.enabled !== false && !it.submenu) it.click(undefined, win, win && win.webContents);
+});
 ipcMain.handle('store:get', (_e, key) => readStore()[key]);
 ipcMain.handle('store:set', (_e, key, value) => { const s = readStore(); s[key] = value; writeStore(s); return true; });
 

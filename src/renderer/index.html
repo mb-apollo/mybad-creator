@@ -16,6 +16,7 @@
 <div id="boot" class="boot"><img class="boot-logo" src="assets/logo-mark.png" alt=""><span>MyBad Creator</span></div>
 
 <div class="app" id="app" hidden>
+  <div class="barre-titre" id="barreTitre"><nav class="menus" id="menus" aria-label="Menu"></nav></div>
   <header class="toolbar">
     <div class="tb-left">
       <div class="verre grp grp-id">
@@ -51,7 +52,7 @@
   </header>
 
   <div class="work">
-    <nav class="tools verre" id="tools" aria-label="Outils">
+    <nav class="tools" id="tools" aria-label="Outils">
       <button id="toolsToggle" class="ttoggle" title="Étendre / replier le panneau d'outils"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="tl">Outils</span></button>
       <span class="tsep"></span>
       <button data-tool="select" class="on" title="Sélection (V)"><svg viewBox="0 0 24 24"><path d="m4 3 7 17 2.5-7.5L21 10Z"/></svg><span class="tl">Sélection</span></button>
@@ -155,5 +156,6 @@
 <script src="kit/js/refraction.js"></script>
 <script src="dist/app.js"></script>
 <script src="kit/liaison.js"></script>
+<script src="kit/barre-titre.js"></script>
 </body>
 </html>

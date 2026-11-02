@@ -53,11 +53,11 @@ html, body { background: var(--da-fond); }
 .tabs.barre-sel button.on { border-bottom-color: transparent; }
 
 /* colonne d'outils : une barre de verre à gauche */
-.tools.verre { margin: 0 5px; border: 0; border-radius: 22px; padding: 8px 0; }
-.tools.verre.open { padding: 8px; }
-.tools.verre button { border-radius: 14px; }
-.tools.verre button:hover { background: color-mix(in srgb, var(--da-reflet) 14%, transparent); }
-.tools.verre button.on { background: color-mix(in srgb, var(--da-accent) 26%, transparent); color: var(--da-accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--da-accent) 55%, transparent); }
+.tools { margin: 0 5px; border: 0; border-radius: 22px; padding: 8px 0; }
+.tools.open { padding: 8px; }
+.tools button { border-radius: 14px; }
+.tools button:hover { background: color-mix(in srgb, var(--da-reflet) 14%, transparent); }
+.tools button.on { background: color-mix(in srgb, var(--da-accent) 26%, transparent); color: var(--da-accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--da-accent) 55%, transparent); }
 .tools .tsep { background: color-mix(in srgb, var(--da-reflet) 20%, transparent); }
 
 /* panneaux et zone de travail : matière sombre arrondie (le contenu n'est jamais en verre) */
@@ -85,18 +85,18 @@ html, body { background: var(--da-fond); }
 /* ---- grands panneaux (modèles, propriétés, calques) en verre dépoli ----
    Même principe qu'une barre latérale d'Apple : le flou est posé sur ::before (jamais sur le parent des champs et des listes),
    le fond reste assez dense pour que le texte soit toujours lisible. La zone de l'affiche, elle, reste opaque : les couleurs de l'affiche ne doivent pas être teintées. */
-.gallery, .side { position: relative; isolation: isolate; background: transparent; border: 0; box-shadow: 0 18px 40px color-mix(in srgb, var(--da-ombre, #000) 35%, transparent); }
+.gallery, .side, .stage { position: relative; isolation: isolate; background: transparent; border: 0; box-shadow: 0 18px 40px color-mix(in srgb, var(--da-ombre, #000) 35%, transparent); }
 .side-layers { background: transparent; border-top-color: color-mix(in srgb, var(--da-reflet) 12%, transparent); }
-.gallery::before, .side::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+.gallery::before, .side::before, .stage::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
   background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 9%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 5%, transparent)),
     color-mix(in srgb, var(--da-fond) 66%, transparent);
   -webkit-backdrop-filter: blur(30px) saturate(1.7) brightness(.92); backdrop-filter: blur(30px) saturate(1.7) brightness(.92);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 38%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent),
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent),
     inset 0 -16px 26px -20px color-mix(in srgb, var(--da-chaud) 40%, transparent); }
-.gallery::after, .side::after { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; padding: 1.2px; pointer-events: none; background: var(--liseré);
+.gallery::after, .side::after, .stage::after { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; padding: 1.2px; pointer-events: none; background: var(--liseré);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
 @media (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
-  .gallery::before, .side::before { background: linear-gradient(150deg, var(--da-opaque), var(--da-opaque-2)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .gallery::before, .side::before, .stage::before { background: linear-gradient(150deg, var(--da-opaque), var(--da-opaque-2)); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 
 /* ---- fenêtres, menus et notifications : verre dépoli dense (le texte reste très lisible), boutons en pastilles ---- */
@@ -116,7 +116,7 @@ html, body { background: var(--da-fond); }
   background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 9%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 5%, transparent)),
     color-mix(in srgb, var(--da-fond) 80%, transparent);
   -webkit-backdrop-filter: blur(36px) saturate(1.6); backdrop-filter: blur(36px) saturate(1.6);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 38%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent),
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent),
     inset 0 -16px 26px -20px color-mix(in srgb, var(--da-chaud) 40%, transparent); }
 .modal-card::after, .menu::after, .ctxmenu::after, .toast::after { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; padding: 1.2px; pointer-events: none; background: var(--liseré);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
@@ -160,7 +160,7 @@ html, body { background: var(--da-fond); }
   background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 9%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 5%, transparent)),
     color-mix(in srgb, var(--da-fond) 66%, transparent);
   -webkit-backdrop-filter: blur(30px) saturate(1.7) brightness(.92); backdrop-filter: blur(30px) saturate(1.7) brightness(.92);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 38%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent), 0 18px 40px color-mix(in srgb, #000 35%, transparent); }
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent), 0 18px 40px color-mix(in srgb, #000 35%, transparent); }
 #poselab .pl-list, #liverylab .pl-list { padding: 12px; }
 #poselab .pl-ctl, #liverylab .pl-ctl { padding: 14px 16px 30px; }
 /* aperçu : reste sombre et neutre (c'est lui qu'on regarde) */
@@ -183,3 +183,60 @@ html, body { background: var(--da-fond); }
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 60%, transparent), 0 8px 22px color-mix(in srgb, var(--da-accent) 30%, transparent); transition: transform .5s var(--ressort), box-shadow .3s; }
 #poselab .primary-btn:hover, #liverylab .primary-btn:hover { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 60%, transparent), 0 10px 28px color-mix(in srgb, var(--da-accent) 45%, transparent); }
 #poselab .pl-top .input, #liverylab .pl-top .input { height: 34px; border-radius: 999px; padding: 0 14px; }
+
+/* ======== retouches (2e tour) ======== */
+/* liseré et reflets du bord moins marqués : on garde un trait fin, mais moins lumineux (surtout en haut à gauche de chaque tuile) */
+:root {
+  --liseré: linear-gradient(140deg, color-mix(in srgb, var(--da-reflet) 42%, transparent), transparent 22%, transparent 68%, color-mix(in srgb, var(--da-chaud) 34%, transparent));
+  --v-relief: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 30%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 6%, transparent),
+    inset 0 -12px 20px -14px color-mix(in srgb, var(--da-chaud) 30%, transparent), inset 0 12px 20px -14px color-mix(in srgb, var(--da-reflet) 12%, transparent),
+    0 14px 34px color-mix(in srgb, var(--da-ombre) 45%, transparent);
+}
+.gallery::after, .side::after, .stage::after, .modal-card::after, .menu::after, .ctxmenu::after, .toast::after { opacity: .8; }
+
+/* colonne d'outils : une tuile de verre dépoli comme les panneaux (c'est elle qui défile, le verre est donc posé directement dessus) */
+.tools { border: 0; border-radius: 22px; margin: 0 5px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 8%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 4%, transparent)),
+    color-mix(in srgb, var(--da-fond) 66%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(1.7) brightness(.92); backdrop-filter: blur(30px) saturate(1.7) brightness(.92);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 8%, transparent), 0 18px 40px color-mix(in srgb, #000 35%, transparent); }
+
+/* zone de travail : la même tuile, avec la grille de points (l'affiche, elle, reste opaque : ses couleurs ne sont jamais teintées) */
+.stage { background: transparent; border: 0; }
+.stage::before { background-image: radial-gradient(color-mix(in srgb, var(--da-reflet) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 7%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 4%, transparent)),
+    linear-gradient(color-mix(in srgb, var(--da-fond) 70%, transparent), color-mix(in srgb, var(--da-fond) 70%, transparent));
+  background-size: 22px 22px, auto, auto; }
+
+/* barre de titre sur mesure : le menu est dans l'interface, les trois boutons de la fenêtre restent à Windows (à droite, 40 px de haut) */
+.app { grid-template-rows: 40px 52px minmax(0, 1fr) 32px; row-gap: 8px; padding-top: 0; }
+.barre-titre { -webkit-app-region: drag; display: flex; align-items: center; height: 40px; padding: 0 160px 0 4px; position: relative; z-index: 31; }
+.menus { display: flex; gap: 2px; -webkit-app-region: no-drag; }
+.menu-mot { border: 0; background: transparent; color: var(--da-doux); font: 500 13px var(--ui); padding: 6px 13px; border-radius: 999px; cursor: pointer; transition: background .25s, color .25s; }
+.menu-mot:hover, .menu-mot.ouvert { background: color-mix(in srgb, var(--da-reflet) 12%, transparent); color: var(--da-texte); }
+.menu-voile { position: fixed; inset: 0; z-index: 90; -webkit-app-region: no-drag; }
+.menu-glass { position: fixed; z-index: 91; min-width: 270px; padding: 6px; border-radius: 18px; -webkit-app-region: no-drag;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 7%, transparent), color-mix(in srgb, var(--da-reflet) 1%, transparent) 55%), color-mix(in srgb, #05060c 56%, transparent);
+  -webkit-backdrop-filter: blur(34px) saturate(1.5) brightness(.92); backdrop-filter: blur(34px) saturate(1.5) brightness(.92);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 18%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 8%, transparent), 0 24px 60px rgba(0, 0, 0, .5);
+  transform-origin: 20px 0; animation: menu-ouvre .26s var(--ressort); }
+@keyframes menu-ouvre { from { opacity: 0; transform: scale(.94) translateY(-6px); } }
+.menu-entree { display: flex; align-items: center; justify-content: space-between; gap: 28px; width: 100%; border: 0; background: transparent; color: var(--da-texte); padding: 8px 12px; border-radius: 12px; font: 400 13px var(--ui); text-align: left; cursor: pointer; }
+.menu-entree.sous { padding-left: 24px; }
+.menu-entree:hover:not(:disabled) { background: color-mix(in srgb, var(--da-accent) 24%, transparent); }
+.menu-entree:disabled { opacity: .38; cursor: default; }
+.menu-raccourci { color: var(--da-doux); font: 400 11.5px var(--mono); white-space: nowrap; }
+.menu-sep { height: 1px; margin: 5px 8px; background: color-mix(in srgb, var(--da-reflet) 12%, transparent); }
+.menu-titre { padding: 8px 12px 3px; color: var(--da-doux); font: 500 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; }
+@media (prefers-reduced-motion: reduce) { .menu-glass { animation: none; } }
+
+/* fenêtres, menus et notifications : verre fumé, plus clair et plus transparent (le logiciel se devine derrière), sans reflet bleu */
+.modal::before { background: color-mix(in srgb, #000 30%, transparent); -webkit-backdrop-filter: blur(10px) saturate(1.2); backdrop-filter: blur(10px) saturate(1.2); }
+.modal-card::before, .menu::before, .ctxmenu::before, .toast::before {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 7%, transparent), color-mix(in srgb, var(--da-reflet) 1%, transparent) 55%), color-mix(in srgb, #05060c 54%, transparent);
+  -webkit-backdrop-filter: blur(38px) saturate(1.5) brightness(.9); backdrop-filter: blur(38px) saturate(1.5) brightness(.9);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 18%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 8%, transparent); }
+.modal-card { box-shadow: 0 30px 80px rgba(0, 0, 0, .5); }
+.modal-head, .modal-foot { border-color: color-mix(in srgb, var(--da-reflet) 9%, transparent); }
+.note, .upd-card, .packcard, .kit-mybad { background: color-mix(in srgb, var(--da-reflet) 5%, transparent); border-color: color-mix(in srgb, var(--da-reflet) 8%, transparent); }
+.modal .input, .modal select.input, .modal textarea.input { background-color: color-mix(in srgb, #000 28%, transparent); }

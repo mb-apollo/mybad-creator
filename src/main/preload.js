@@ -32,5 +32,7 @@ contextBridge.exposeInMainWorld('studio', {
   updateInstall: () => ipcRenderer.invoke('update:install'),
   onUpdate: fn => ipcRenderer.on('update', (_e, d) => fn(d)),
   onMenu: fn => ipcRenderer.on('menu', (_e, cmd) => fn(cmd)),
+  menuStructure: () => ipcRenderer.invoke('menu:structure'),
+  menuClic: chemin => ipcRenderer.send('menu:clic', chemin),
   onOpenPath: fn => ipcRenderer.on('open-path', (_e, p) => fn(p)),
 });

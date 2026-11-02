@@ -75,9 +75,15 @@ namespace MyBadInstallateur
             if (!string.IsNullOrEmpty(existant)) return existant;
             return IOPath.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", K.Dossier);
         }
+        /// <summary>Vrai si l'installation existante est « pour tous les utilisateurs » (Program Files) : la mise à jour doit alors se faire au même endroit, avec l'autorisation de Windows.</summary>
+        public static bool ParMachine;
+
+        /// <summary>Dossier d'une installation existante (pour moi, sinon pour tous), ou null.</summary>
         public static string Existant()
         {
-            try { using (var cle = Registry.CurrentUser.OpenSubKey(@"Software\" + K.Guid)) { if (cle != null) { object v = cle.GetValue("InstallLocation"); if (v != null) return v.ToString(); } } } catch { }
+            ParMachine = false;
+            try { using (var cle = Registry.CurrentUser.OpenSubKey(@"Software\" + K.Guid)) { if (cle != null) { object v = cle.GetValue("InstallLocation"); if (v != null && v.ToString().Length > 0) return v.ToString(); } } } catch { }
+            try { using (var cle = Registry.LocalMachine.OpenSubKey(@"Software\" + K.Guid)) { if (cle != null) { object v = cle.GetValue("InstallLocation"); if (v != null && v.ToString().Length > 0) { ParMachine = true; return v.ToString(); } } } } catch { }
             return null;
         }
     }
@@ -190,10 +196,11 @@ namespace MyBadInstallateur
             l1.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); l1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); l1.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var puce1 = Puce("M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"); Grid.SetColumn(puce1, 0); l1.Children.Add(puce1);
             var col1 = new StackPanel { Margin = new Thickness(14, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center };
-            col1.Children.Add(Texte12("Emplacement"));
+            bool miseAJour = Moteur.Existant() != null;   // une installation existe déjà : on la met à jour sur place (on ne change pas son dossier)
+            col1.Children.Add(Texte12(miseAJour ? "Mise à jour de ton installation" : "Emplacement"));
             txtDossier = Txt(Raccourcir(dossier), 14.5, FontWeights.Medium, Texte, Corps); txtDossier.ToolTip = dossier; txtDossier.Margin = new Thickness(0, 2, 0, 0);
             col1.Children.Add(txtDossier); Grid.SetColumn(col1, 1); l1.Children.Add(col1);
-            var modif = Pastille("Modifier", false, 36, 18, ChoisirDossier); modif.VerticalAlignment = VerticalAlignment.Center; Grid.SetColumn(modif, 2); l1.Children.Add(modif);
+            if (!miseAJour) { var modif = Pastille("Modifier", false, 36, 18, ChoisirDossier); modif.VerticalAlignment = VerticalAlignment.Center; Grid.SetColumn(modif, 2); l1.Children.Add(modif); }
             t1.Contenu.Children.Add(l1); droite.Children.Add(t1.Exterieur);
             // raccourcis
             var t2 = Matiere(26); var l2 = new StackPanel { Margin = new Thickness(20, 4, 20, 4) };
@@ -209,7 +216,7 @@ namespace MyBadInstallateur
             Grid.SetRow(haut, 0); g.Children.Add(haut);
             var bas = new Grid { Margin = new Thickness(0, 26, 0, 0) };
             var annuler = Pastille("Annuler", false, 36, 18, Close); annuler.HorizontalAlignment = HorizontalAlignment.Left; annuler.VerticalAlignment = VerticalAlignment.Center; bas.Children.Add(annuler);
-            var installer = Pastille("Installer", true, 50, 38, Installer); installer.HorizontalAlignment = HorizontalAlignment.Right; bas.Children.Add(installer);
+            var installer = Pastille(miseAJour ? "Mettre à jour" : "Installer", true, 50, 38, Installer); installer.HorizontalAlignment = HorizontalAlignment.Right; bas.Children.Add(installer);
             Grid.SetRow(bas, 1); g.Children.Add(bas);
             Afficher(g);
         }
@@ -310,10 +317,18 @@ namespace MyBadInstallateur
                 {
                     moteurExe = Moteur.Extraire();
                     Ui(() => MettreAJour(0.04, 1));
-                    var p = Process.Start(new ProcessStartInfo(moteurExe, "/S /currentuser /D=" + cible) { UseShellExecute = false });
+                    // installation « pour moi » (sans autorisation) ; si une installation « pour tous » existe déjà, on la met à jour au même endroit (Windows demande son autorisation)
+                    bool pourTous = Moteur.Existant() != null && Moteur.ParMachine;
+                    if (pourTous) cible = Moteur.Existant();
+                    long depart = TailleDossier(cible);
+                    var debut = DateTime.UtcNow;
+                    var p = Process.Start(new ProcessStartInfo(moteurExe, "/S " + (pourTous ? "/allusers" : "/currentuser") + " /D=" + cible) { UseShellExecute = false });
                     while (!p.WaitForExit(350))
                     {
-                        double part = Math.Min(1.0, TailleDossier(cible) / (double)K.Octets);
+                        // la progression suit les fichiers qui arrivent ; pour une mise à jour (dossier déjà plein), elle suit le temps
+                        double taille = Math.Max(0, TailleDossier(cible) - depart) / Math.Max(1.0, (double)(K.Octets - depart));
+                        double temps = 1 - Math.Exp(-(DateTime.UtcNow - debut).TotalSeconds / 14.0);
+                        double part = Math.Min(1.0, Math.Max(taille, depart > K.Octets * 0.5 ? temps * 0.9 : 0));
                         Ui(() => MettreAJour(0.04 + 0.9 * part, 1));
                     }
                     codeSortie = p.ExitCode;

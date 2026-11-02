@@ -585,7 +585,9 @@ async function openUpdates(refreshOnly = false) {
 async function installUpdate() {
   flushHistory();
   await API?.storeSet('session', { doc: S.doc, filePath: S.filePath, projectName: S.projectName, dirty: S.dirty });
-  API?.updateInstall();
+  // La mise à jour s'installe en silence (plus d'assistant Windows) : on prévient avant que la fenêtre se ferme, puis le logiciel se rouvre tout seul.
+  openModal('Mise à jour en cours', `<div class="packmodal"><p>MyBad Creator va se fermer, installer la mise à jour, puis <b>se rouvrir tout seul</b> (compte une vingtaine de secondes).</p><p class="muted">Ton projet est enregistré : tu le retrouveras tel quel. Si Windows demande une autorisation, accepte-la.</p></div>`, '', false);
+  setTimeout(() => API?.updateInstall(), 1600);
 }
 API?.onUpdate(u => {
   const before = update.state;

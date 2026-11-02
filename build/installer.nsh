@@ -101,7 +101,16 @@ SetFont "Segoe UI" 9
   mb_btn:
     System::Call 'user32::GetWindowLongW(p $R1, i -16) i .R3'
     IntOp $R3 $R3 & 0xF
-    IntCmp $R3 7 mb_group mb_push mb_push
+    IntCmp $R3 7 mb_group
+    IntCmp $R3 9 mb_check
+    IntCmp $R3 3 mb_check
+    IntCmp $R3 4 mb_check
+    Goto mb_push
+  mb_check:
+    ; boutons radio et cases à cocher (page « Pour qui installer ? ») : sans le thème Windows le fond sombre s'applique (sinon une bande blanche)
+    !insertmacro MB_UNTHEME $R1
+    SetCtlColors $R1 "F5F7FF" "090B17"
+    Goto mb_loop
   mb_group:
     ; cadre « Dossier d'installation » : son trait blanc de Windows jure avec le reste, on le retire (le champ et « Parcourir » restent)
     ShowWindow $R1 0

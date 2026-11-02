@@ -323,7 +323,7 @@ function setupUpdater() {
     try { await autoUpdater.checkForUpdates(); } catch (err) { emit({ state: 'error', error: String(err.message || err), silent }); }
   });
   ipcMain.handle('update:download', async () => { try { await autoUpdater.downloadUpdate(); } catch (err) { emit({ state: 'error', error: String(err.message || err) }); } });
-  ipcMain.handle('update:install', () => { quittingForUpdate = true; setImmediate(() => autoUpdater.quitAndInstall(false, true)); });
+  ipcMain.handle('update:install', () => { quittingForUpdate = true; setImmediate(() => autoUpdater.quitAndInstall(true, true)); }); // silencieux : pas d'assistant Windows, le logiciel se rouvre tout seul
   if (!autoUpdater) return;
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;

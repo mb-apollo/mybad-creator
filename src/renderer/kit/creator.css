@@ -144,3 +144,42 @@ html, body { background: var(--da-fond); }
 .input, select.input, textarea.input, .num { background-color: color-mix(in srgb, var(--da-fond) 50%, transparent); border-color: color-mix(in srgb, var(--da-reflet) 11%, transparent); }
 .input:hover, .num:hover { border-color: color-mix(in srgb, var(--da-reflet) 22%, transparent); }
 .input:focus, .num:focus-within { border-color: var(--da-accent); }
+
+/* ---- Studio de poses et Créateur de livrées (écrans plein format) ---- */
+#poselab, #liverylab { padding: 10px; gap: 10px; box-sizing: border-box;
+  background: radial-gradient(560px 380px at 6% -8%, var(--da-halo-1), transparent), radial-gradient(520px 520px at 100% 42%, var(--da-halo-2), transparent),
+    radial-gradient(620px 360px at 36% 110%, var(--da-halo-3), transparent), var(--da-fond); }
+#poselab .pl-body, #liverylab .pl-body { gap: 10px; grid-template-columns: 260px 1fr 390px; }
+/* barre du haut : un morceau de verre */
+#poselab .pl-top, #liverylab .pl-top { position: relative; isolation: isolate; height: 54px; padding: 0 14px 0 20px; border: 0; border-radius: 27px; flex: none;
+  background: var(--v-fond); box-shadow: var(--v-relief); -webkit-backdrop-filter: var(--v-flou); backdrop-filter: var(--v-flou); }
+#poselab .pl-top::before, #liverylab .pl-top::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.2px; pointer-events: none; background: var(--liseré);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+/* listes et réglages : verre dépoli dense (ce sont eux qui défilent, le verre est donc posé directement dessus) */
+#poselab .pl-list, #poselab .pl-ctl, #liverylab .pl-list, #liverylab .pl-ctl { border: 0; border-radius: 22px; min-height: 0;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 9%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 5%, transparent)),
+    color-mix(in srgb, var(--da-fond) 66%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(1.7) brightness(.92); backdrop-filter: blur(30px) saturate(1.7) brightness(.92);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 38%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent), 0 18px 40px color-mix(in srgb, #000 35%, transparent); }
+#poselab .pl-list, #liverylab .pl-list { padding: 12px; }
+#poselab .pl-ctl, #liverylab .pl-ctl { padding: 14px 16px 30px; }
+/* aperçu : reste sombre et neutre (c'est lui qu'on regarde) */
+#poselab .pl-view, #liverylab .pl-view { border-radius: 22px; overflow: hidden; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 10%, transparent); }
+/* choix dans les listes */
+#poselab .pl-list button, #liverylab .pl-list button { border-radius: 12px; color: var(--da-texte); transition: background .2s; }
+#poselab .pl-list button:hover, #liverylab .pl-list button:hover { background: color-mix(in srgb, var(--da-reflet) 10%, transparent); }
+#poselab .pl-list button.on, #liverylab .pl-list button.on { border-color: transparent; background: color-mix(in srgb, var(--da-accent) 22%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 30%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-accent) 50%, transparent); }
+#liverylab .ll-row { border-radius: 12px; }
+#liverylab .ll-row.on { border-color: transparent; background: color-mix(in srgb, var(--da-accent) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--da-accent) 50%, transparent); }
+/* boutons : pastilles de verre, bouton principal cyan */
+#poselab .ghost-btn, #poselab .mini-btn, #liverylab .ghost-btn, #liverylab .mini-btn { height: 34px; padding: 0 15px; border: 0; border-radius: 999px; color: var(--da-texte);
+  background: color-mix(in srgb, var(--da-reflet) 10%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 28%, transparent); transition: background .2s, transform .5s var(--ressort); }
+#poselab .mini-btn, #liverylab .mini-btn { height: 30px; padding: 0 12px; }
+#poselab .ghost-btn:hover, #poselab .mini-btn:hover, #liverylab .ghost-btn:hover, #liverylab .mini-btn:hover { background: color-mix(in srgb, var(--da-reflet) 18%, transparent); }
+#poselab .mini-btn.on, #liverylab .mini-btn.on { background: color-mix(in srgb, var(--da-accent) 28%, transparent); color: var(--da-accent); }
+#poselab button:active, #liverylab button:active { transform: scale(.96); }
+#poselab .primary-btn, #liverylab .primary-btn, #liverylab .llsave .primary-btn { height: 40px; border: 0; border-radius: 999px; background: var(--teinte); color: var(--da-sur-accent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 60%, transparent), 0 8px 22px color-mix(in srgb, var(--da-accent) 30%, transparent); transition: transform .5s var(--ressort), box-shadow .3s; }
+#poselab .primary-btn:hover, #liverylab .primary-btn:hover { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 60%, transparent), 0 10px 28px color-mix(in srgb, var(--da-accent) 45%, transparent); }
+#poselab .pl-top .input, #liverylab .pl-top .input { height: 34px; border-radius: 999px; padding: 0 14px; }

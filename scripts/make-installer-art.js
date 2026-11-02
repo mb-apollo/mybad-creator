@@ -24,43 +24,48 @@ function bmp24(bgra, w, h) {
 }
 
 const PAGE = `<!doctype html><meta charset="utf-8"><style>
-@font-face{font-family:M;font-weight:800;src:url('file:///${FONTS}/montserrat-latin-800-normal.woff2')}
-@font-face{font-family:M;font-weight:600;src:url('file:///${FONTS}/montserrat-latin-600-normal.woff2')}
-@font-face{font-family:M;font-weight:500;src:url('file:///${FONTS}/montserrat-latin-500-normal.woff2')}
 @font-face{font-family:P;font-weight:500;src:url('file:///${FONTS}/ibm-plex-mono-latin-500-normal.woff2')}
 </style><body style="margin:0"><canvas id="c"></canvas><script>
-const S = ${S}, CY = '#35d6ff';
-const rnd = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const S = ${S};
+const UI = "'Segoe UI Variable Display','Segoe UI Variable Text','Segoe UI',sans-serif";
+// Visuels de l'installateur : même matière que le logiciel (kit Liquid Glass) : bleu nuit, halos flous, morceau de verre avec liseré lumineux.
+function rr(x, X, Y, W, H, R) { x.beginPath(); x.moveTo(X + R, Y); x.arcTo(X + W, Y, X + W, Y + H, R); x.arcTo(X + W, Y + H, X, Y + H, R); x.arcTo(X, Y + H, X, Y, R); x.arcTo(X, Y, X + W, Y, R); x.closePath(); }
+function halo(x, cx, cy, r, rgb, a) { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, 'rgba(' + rgb + ',' + a + ')'); g.addColorStop(1, 'rgba(' + rgb + ',0)'); x.fillStyle = g; x.fillRect(cx - r, cy - r, 2 * r, 2 * r); }
+function glass(x, X, Y, W, H, R) {
+  x.save(); x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = 20; x.shadowOffsetY = 9; rr(x, X, Y, W, H, R); x.fillStyle = 'rgba(14,22,52,.7)'; x.fill(); x.restore();
+  rr(x, X, Y, W, H, R); const g = x.createLinearGradient(X, Y, X + W * 0.7, Y + H);
+  g.addColorStop(0, 'rgba(255,255,255,.22)'); g.addColorStop(0.5, 'rgba(255,255,255,.05)'); g.addColorStop(1, 'rgba(255,255,255,.13)'); x.fillStyle = g; x.fill();
+  x.save(); rr(x, X, Y, W, H, R); x.clip();
+  const b = x.createLinearGradient(0, Y + H - H * 0.4, 0, Y + H); b.addColorStop(0, 'rgba(84,216,255,0)'); b.addColorStop(1, 'rgba(84,216,255,.26)'); x.fillStyle = b; x.fillRect(X, Y + H - H * 0.4, W, H * 0.4);
+  const t = x.createRadialGradient(X + W * 0.25, Y - 4, 0, X + W * 0.25, Y - 4, W * 0.95); t.addColorStop(0, 'rgba(255,255,255,.34)'); t.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = t; x.fillRect(X, Y, W, H);
+  x.restore();
+  rr(x, X + 0.5, Y + 0.5, W - 1, H - 1, R); const r = x.createLinearGradient(X, Y, X + W, Y + H);
+  r.addColorStop(0, 'rgba(255,255,255,.85)'); r.addColorStop(0.3, 'rgba(255,255,255,.16)'); r.addColorStop(0.7, 'rgba(255,255,255,.07)'); r.addColorStop(1, 'rgba(160,230,255,.6)');
+  x.strokeStyle = r; x.lineWidth = 1.1; x.stroke();
+}
 async function art(kind, tagline) {
-  await Promise.all(["800 10px M", "600 10px M", "500 10px M", "500 10px P"].map(f => document.fonts.load(f)));
+  await Promise.all(['500 10px P', "600 10px 'Segoe UI Variable Display'", "400 10px 'Segoe UI Variable Text'"].map(f => document.fonts.load(f)));
   const icon = new Image(); icon.src = '${ICON}'; await icon.decode();
   const side = kind === 'side', W = (side ? 164 : 150) * S, H = (side ? 314 : 57) * S;
   const c = document.getElementById('c'); c.width = W; c.height = H;
   const x = c.getContext('2d'); x.scale(S, S);
   const w = W / S, h = H / S;
-  const bg = x.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#080a15'); bg.addColorStop(0.55, '#0b1230'); bg.addColorStop(1, '#0a1f4a');
-  x.fillStyle = bg; x.fillRect(0, 0, w, h);
-  const glow = x.createRadialGradient(w / 2, side ? 92 : 28, 0, w / 2, side ? 92 : 28, side ? 120 : 70);
-  glow.addColorStop(0, 'rgba(53,214,255,.22)'); glow.addColorStop(1, 'rgba(53,214,255,0)');
-  x.fillStyle = glow; x.fillRect(0, 0, w, h);
-  const r = rnd(side ? 7 : 11);
-  for (let i = 0; i < (side ? 46 : 14); i++) { x.fillStyle = 'rgba(190,225,255,' + (0.15 + r() * 0.5) + ')'; const s = r() < 0.15 ? 1.1 : 0.6; x.fillRect(r() * w, r() * h, s, s); }
-  x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  x.fillStyle = '#090B17'; x.fillRect(0, 0, w, h);
   if (side) {
-    const cx = w / 2, cy = 90;
-    x.drawImage(icon, cx - 39, cy - 39, 78, 78);
-    x.fillStyle = '#f5f7ff'; x.font = '800 30px M'; x.letterSpacing = '1px'; x.fillText('MYBAD', cx + 0.5, 172);
-    x.fillStyle = CY; x.font = '600 10.5px M'; x.letterSpacing = '5px'; x.fillText('CREATOR', cx + 2.5, 192);
-    x.fillStyle = 'rgba(53,214,255,.45)'; x.fillRect(cx - 14, 205, 28, 0.8);
-    x.fillStyle = '#c9cfea'; x.font = '500 9.5px M'; x.letterSpacing = '0px';
-    tagline.forEach((t, i) => x.fillText(t, cx, 226 + i * 14));
-    x.fillStyle = '#5b6085'; x.font = '500 6.4px P'; x.letterSpacing = '0.6px'; x.fillText('POLARIS / NORTH STAR', cx, 293);
-    x.fillText('MYBAD ESPORT', cx, 303);
+    halo(x, -10, 20, 150, '30,167,255', 0.55); halo(x, w + 30, 150, 120, '84,216,255', 0.34); halo(x, 50, h + 10, 150, '122,107,255', 0.4);
+    halo(x, w / 2, 100, 74, '84,216,255', 0.3);
+    glass(x, w / 2 - 44, 56, 88, 88, 24);
+    x.drawImage(icon, w / 2 - 28, 72, 56, 56);
+    x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+    x.fillStyle = '#F5F7FF'; x.font = '600 19px ' + UI; x.letterSpacing = '-0.2px'; x.fillText('MyBad Creator', w / 2, 188);
+    x.fillStyle = 'rgba(232,235,250,.66)'; x.font = '400 9.6px ' + UI; x.letterSpacing = '0px';
+    tagline.forEach((t, i) => x.fillText(t, w / 2, 208 + i * 14));
+    x.fillStyle = 'rgba(165,171,203,.7)'; x.font = '500 6.2px P'; x.letterSpacing = '1.6px'; x.fillText('MYBAD ESPORT', w / 2, 296);
   } else {
-    x.drawImage(icon, 8, 11, 35, 35);
-    x.textAlign = 'left';
-    x.fillStyle = '#f5f7ff'; x.font = '800 15px M'; x.letterSpacing = '1px'; x.fillText('MYBAD', 50, 31);
-    x.fillStyle = CY; x.font = '600 7.2px M'; x.letterSpacing = '3.4px'; x.fillText('CREATOR', 50, 43);
+    halo(x, 22, 28, 70, '30,167,255', 0.5); halo(x, w - 10, 40, 60, '122,107,255', 0.32);
+    glass(x, 10, 9, 39, 39, 12);
+    x.drawImage(icon, 15, 14, 29, 29);
+    x.textAlign = 'left'; x.fillStyle = '#F5F7FF'; x.font = '600 12.5px ' + UI; x.letterSpacing = '-0.1px'; x.fillText('MyBad Creator', 58, 32);
   }
   return c.toDataURL('image/png');
 }
@@ -79,6 +84,7 @@ app.whenReady().then(async () => {
     const url = await win.webContents.executeJavaScript(`art(${JSON.stringify(kind)}, ${JSON.stringify(tag)})`);
     const img = nativeImage.createFromDataURL(url), size = img.getSize();
     fs.writeFileSync(path.join(ROOT, 'build', name + '.bmp'), bmp24(img.toBitmap(), size.width, size.height));
+    if (process.env.ART_PREVIEW) fs.writeFileSync(path.join(process.env.ART_PREVIEW, name + '.png'), img.toPNG());
     console.log(name, size.width + 'x' + size.height, '(zone', w + 'x' + h + ')');
   }
   fs.unlinkSync(path.join(__dirname, '.art.html'));

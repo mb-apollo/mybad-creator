@@ -14,9 +14,9 @@ SetFont "Segoe UI" 9
 
 !ifndef BUILD_UNINSTALLER
   !define MUI_WELCOMEPAGE_TITLE "Bienvenue dans MyBad Creator"
-  !define MUI_WELCOMEPAGE_TEXT "L'éditeur d'affiches de MyBad Esport : roster, matchday, résultats, plannings, recrutement et tournois, avec calques, effets et modèles 3D.$\r$\n$\r$\nCet assistant va installer MyBad Creator ${VERSION} sur ton ordinateur.$\r$\n$\r$\nClique sur Suivant pour continuer."
+  !define MUI_WELCOMEPAGE_TEXT "L'éditeur d'affiches de MyBad Esport : roster, matchday, résultats, plannings, recrutement et tournois.$\r$\n$\r$\nCet assistant installe MyBad Creator ${VERSION} sur ton ordinateur, en quelques secondes.$\r$\n$\r$\nClique sur Suivant pour continuer."
   !define MUI_FINISHPAGE_TITLE "C'est prêt !"
-  !define MUI_FINISHPAGE_TEXT "MyBad Creator est installé.$\r$\n$\r$\nUn raccourci a été ajouté sur ton Bureau et dans le menu Démarrer.$\r$\n$\r$\nPOLARIS / NORTH STAR"
+  !define MUI_FINISHPAGE_TEXT "MyBad Creator est installé.$\r$\n$\r$\nUn raccourci a été ajouté sur ton Bureau et dans le menu Démarrer."
   !define MUI_FINISHPAGE_RUN_TEXT "Lancer MyBad Creator"
 !else
   !define MUI_WELCOMEPAGE_TITLE "Désinstaller MyBad Creator"
@@ -63,8 +63,15 @@ SetFont "Segoe UI" 9
   ShowWindow $0 0
 !macroend
 
+; La ligne claire au-dessus des boutons (que l'assistant réaffiche à chaque page) : cachée, la zone des boutons se détache par sa teinte.
+!macro MB_HIDE_LINE
+  GetDlgItem $0 $HWNDPARENT 1045
+  ShowWindow $0 0
+!macroend
+
 ; Assombrit la page intérieure courante et ses contrôles (boutons en mode sombre).
 !macro MB_DARK_INNER
+  !insertmacro MB_HIDE_LINE
   FindWindow $R0 "#32770" "" $HWNDPARENT
   SetCtlColors $R0 "F5F7FF" "090B17"
   StrCpy $R1 0
@@ -105,6 +112,7 @@ Function mbGuiInit
 FunctionEnd
 !ifndef BUILD_UNINSTALLER
   Function mbDarkWelcome
+    !insertmacro MB_HIDE_LINE
   FunctionEnd
   Function mbDarkDirectory
     !insertmacro MB_DARK_INNER
@@ -113,6 +121,7 @@ FunctionEnd
     !insertmacro MB_DARK_INNER
   FunctionEnd
   Function mbDarkFinish
+    !insertmacro MB_HIDE_LINE
     ${If} $mui.FinishPage.Run != ""
       !insertmacro MB_UNTHEME $mui.FinishPage.Run
       SetCtlColors $mui.FinishPage.Run "F5F7FF" "090B17"

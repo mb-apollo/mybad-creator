@@ -33,3 +33,16 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Installateur à tuiles pour la première installation (installer-ui/). Les mises à jour automatiques continuent d'utiliser
+      # l'installateur NSIS ci-dessus (celui de latest.yml) : celui-ci est un fichier de plus dans la release, rien ne le remplace.
+      # continue-on-error : la version est déjà publiée à ce stade, un souci avec ce fichier ne doit pas faire échouer la publication.
+      - name: Installateur à tuiles
+        if: steps.check.outputs.exists == 'false'
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V=${{ steps.check.outputs.version }}
+          node installer-ui/build.js "release/MyBad-Creator-Setup-$V.exe"
+          gh release upload "v$V" "release/MyBad-Creator-Installateur-$V.exe" --clobber

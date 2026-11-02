@@ -24,6 +24,7 @@ function fileFromArgs(argv) { return argv.find(a => /\.mybad$/i.test(a) && fs.ex
 if (!app.requestSingleInstanceLock()) app.quit();
 app.on('second-instance', (_e, argv) => {
   if (!win) return;
+  if (!win.isVisible()) win.show(); // une fenêtre restée cachée réapparaît quand on relance le logiciel
   if (win.isMinimized()) win.restore();
   win.focus();
   const f = fileFromArgs(argv);
@@ -91,7 +92,13 @@ function createWindow() {
   });
   win.setMenuBarVisibility(false); // la barre de menus grise n'apparaît plus : le menu est dans l'interface, les raccourcis clavier restent actifs
   win.loadURL('mbc://app/index.html');
-  win.once('ready-to-show', () => { win.maximize(); win.show(); if (process.env.MBC_SHOT) devShot(); });
+  // La fenêtre naît cachée et s'affiche quand la page est prête. « ready-to-show » ne se déclenche pas toujours (constaté sur un PC après une mise à jour :
+  // logiciel lancé, fenêtre invisible, rien ne s'ouvrait au double-clic) : on double la sécurité avec la fin du chargement, puis un délai maximal.
+  let affichee = false;
+  const afficher = () => { if (affichee || !win) return; affichee = true; win.maximize(); win.show(); if (process.env.MBC_SHOT) devShot(); };
+  win.once('ready-to-show', afficher);
+  win.webContents.once('did-finish-load', () => setTimeout(afficher, 1500));
+  setTimeout(afficher, 8000);
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('mbc://')) { e.preventDefault(); if (/^https?:/.test(url)) shell.openExternal(url); } });
   win.on('close', e => {

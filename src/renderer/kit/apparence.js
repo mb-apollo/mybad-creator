@@ -5,20 +5,20 @@
   var CLE = "mbc.apparence.v1";
   var racine = document.documentElement;
 
-  /* réglages par défaut du logiciel = la configuration choisie par Axel le 03/11/2026 (« Réinitialiser » y revient) */
+  /* réglages par défaut du logiciel = la configuration choisie par Axel le 03/11/2026 (2e version, verre fumé) (« Réinitialiser » y revient) */
   var DEF = {
-    fume: false,
-    fond1: "#03071a", fond2: "#050d26", fond3: "#040920",
-    h1c: "#1450c8", h1f: 33, h2c: "#1e78e6", h2f: 52, h3c: "#2d3cb9", h3f: 75,
-    tTeinte: "#000000", tReflet: 60, tVoileC: "#000724", tVoile: 0, tFlou: 20, tLum: 0.8, tSat: 1.95,
-    bTeinte: "#6499e8", bVoile: 51, bFlou: 16, bLum: 0.88,
-    fOpac: 5, fFlou: 28,
-    accent: "#0091ff", texte: "#ffffff", doux: "#c2c2c2", lisere: 49
+    fume: true,
+    fond1: "#000514", fond2: "#000514", fond3: "#000514",
+    h1c: "#1450c8", h1f: 85, h2c: "#1e78e6", h2f: 92, h3c: "#2d3cb9", h3f: 100,
+    tTeinte: "#0a0a0a", tReflet: 105, tVoileC: "#04081a", tVoile: 19, tFlou: 60, tLum: 0.75, tSat: 1.75,
+    bTeinte: "#9ec5ff", bVoile: 20, bFlou: 0, bLum: 0.6,
+    fOpac: 10, fFlou: 35,
+    accent: "#3ed1fe", texte: "#e8ebfa", doux: "#a5abcb", lisere: 25
   };
   /* ce que change l'interrupteur « Verre fumé » : tuiles et barres plus sombres et plus floues, reflets plus discrets (comme dans l'appli téléphone) */
   var PRESETS = {
     clair: { tVoile: 0, tFlou: 20, tLum: 0.8, tSat: 1.95, tReflet: 60, bVoile: 51, bLum: 0.88 },
-    fume: { tVoile: 52, tFlou: 34, tLum: 0.85, tSat: 1.5, tReflet: 65, bVoile: 56, bLum: 0.72 }
+    fume: { tVoile: 19, tFlou: 60, tLum: 0.75, tSat: 1.75, tReflet: 105, bVoile: 20, bLum: 0.6 }
   };
 
   function couleur(k, label) { return { type: "couleur", k: k, label: label }; }
@@ -140,7 +140,7 @@
   }
 
   function reinitialiser() {
-    var fait = function () { etat = copie(DEF); changer(); fume.checked = false; tout_rafraichir(); };
+    var fait = function () { etat = copie(DEF); changer(); fume.checked = !!DEF.fume; tout_rafraichir(); };
     if (window.Dialogue && window.Dialogue.confirmer) {
       window.Dialogue.confirmer({ message: "Remettre l'apparence d'origine ?", detail: "Toutes tes couleurs et transparences reviennent à l'aspect actuel du logiciel.", ok: "Réinitialiser", annuler: "Annuler" }).then(function (oui) { if (oui) fait(); });
     } else fait();

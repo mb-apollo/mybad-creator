@@ -1,1 +1,3 @@
-- Studio de poses et Créateur de livrées : un sol sous le personnage ou la voiture (ombres, reflet) pour mieux juger la pose ; activé par défaut, bouton « Sol » pour le masquer, réglage mémorisé
+- Nouveau look par défaut : ton profil « verre fumé » (fonds très sombres, lueurs bleues fortes, accent cyan) devient celui du logiciel
+- Titres des barres (Raccourcis utiles, Ajouter, Calques, Modèles…) et textes secondaires plus clairs et plus nets partout
+- Traits de séparation presque blancs dans tout le logiciel, pour bien distinguer les sections

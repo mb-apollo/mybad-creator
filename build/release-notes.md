@@ -1,3 +1,2 @@
-- Menu Exporter corrigé : il se déploie proprement sous le bouton, sans rien qui se chevauche, avec une animation en ressort
-- Interrupteurs refaits dans le style iOS : la pastille glisse en douceur et s'allonge quand on appuie
-- Plus de fluidité partout : survol doux et léger enfoncement sur les boutons, les outils, les calques et les modèles ; halo sur les champs de saisie ; messages qui arrivent en douceur
+- Le message de fermeture avec des modifications non enregistrées passe au style verre du logiciel (à la place de la boîte grise de Windows)
+- Toutes les autres confirmations (supprimer une livrée, une pose ou un modèle, abandonner un projet, revenir aux poses d'origine) aussi, avec un bouton rouge pour les suppressions

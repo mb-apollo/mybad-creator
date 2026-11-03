@@ -128,7 +128,7 @@ function build() {
   $('#plRedo', root).onclick = () => stepHistory(redoDraft);
   $('#plExport', root).onclick = doExport; $('#plImport', root).onclick = doImport;
   $('#plResetAll', root).onclick = async () => {
-    const ok = API?.confirm ? await API.confirm({ message: 'Revenir aux poses d\'origine ?', detail: 'Tous tes réglages du Studio (poses, poses génériques, armes) seront effacés. Pense à les exporter avant.', ok: 'Tout réinitialiser' }) : confirm('Tout réinitialiser ?');
+    const ok = API?.confirm ? await window.Dialogue.confirmer({ danger: true, message: 'Revenir aux poses d\'origine ?', detail: 'Tous tes réglages du Studio (poses, poses génériques, armes) seront effacés. Pense à les exporter avant.', ok: 'Tout réinitialiser' }) : confirm('Tout réinitialiser ?');
     if (ok) { resetAll(); if (!find(ST.id)) ST.id = 'default'; refreshList(); selectItem(ST.id); status(); }
   };
   $('#plAgent', root).onchange = e => { ST.agent = e.target.value; preview(); };
@@ -170,7 +170,7 @@ function build() {
     if (a === 'rename') { ST.rename = true; renderControls(); const i = $('#plRename', root); i?.focus(); i?.select(); }
     if (a === 'renameOk') { const v = ($('#plRename', root).value || '').trim(); if (v) renameCustom(it.cid, v); ST.rename = false; refreshList(); renderControls(); }
     if (a === 'delete') {
-      const ok = API?.confirm ? await API.confirm({ message: `Supprimer la pose « ${it.label} » ?`, detail: 'Elle disparaît des boutons du panneau 3D.', ok: 'Supprimer' }) : confirm('Supprimer ?');
+      const ok = API?.confirm ? await window.Dialogue.confirmer({ danger: true, message: `Supprimer la pose « ${it.label} » ?`, detail: 'Elle disparaît des boutons du panneau 3D.', ok: 'Supprimer' }) : confirm('Supprimer ?');
       if (ok) { deleteCustom(it.cid); refreshList(); selectItem('default'); }
     }
   };
@@ -322,7 +322,7 @@ async function doImport() {
 export function openPoseLab() {
   if (!root) build();
   const list = previewAgents();
-  if (!list.length) { alert('Ajoute d\'abord un personnage 3D (Bibliothèque ou pack 3D) pour utiliser le Studio de poses.'); return; }
+  if (!list.length) { window.Dialogue.informer({ message: 'Ajoute d\'abord un personnage 3D', detail: 'Télécharge le pack 3D ou importe un modèle dans la Bibliothèque pour utiliser le Studio de poses.', ok: 'Compris' }); return; }
   if (!ST.open) beginDraft();
   ST.open = true; root.hidden = false; window.Transitions?.entrer(root);
   if (!ST.agent || !list.find(a => a.key === ST.agent)) ST.agent = (list.find(a => a.key === 'jett') || list[0]).key;
@@ -332,7 +332,7 @@ export function openPoseLab() {
 export async function closePoseLab() {
   if (!root || !ST.open) return;
   if (isDirty()) {
-    const ask = o => (API?.confirm ? API.confirm(o) : Promise.resolve(confirm(o.message)));
+    const ask = o => window.Dialogue.confirmer(o);
     if (await ask({ message: 'Enregistrer tes changements ?', detail: 'Ils s\'appliqueront à toutes les affiches. Sinon ils seront perdus.', ok: 'Enregistrer' })) endDraft(true);
     else if (await ask({ message: 'Abandonner tes changements ?', detail: 'Les réglages non enregistrés seront perdus.', ok: 'Abandonner' })) endDraft(false);
     else return;

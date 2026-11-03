@@ -101,14 +101,23 @@ function createWindow() {
   setTimeout(afficher, 8000);
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('mbc://')) { e.preventDefault(); if (/^https?:/.test(url)) shell.openExternal(url); } });
+  // fermeture avec des modifications non enregistrées : la question s'affiche dans la fenêtre du logiciel (en verre) ; la boîte grise de Windows ne sert que de secours
+  let fermetureOk = false;
+  ipcMain.removeAllListeners('app:fermeture-ok');
+  ipcMain.on('app:fermeture-ok', () => { fermetureOk = true; if (win) win.close(); });
   win.on('close', e => {
-    if (!dirty || quittingForUpdate) return;
-    const r = dialog.showMessageBoxSync(win, {
-      type: 'warning', buttons: ['Quitter sans enregistrer', 'Annuler'], defaultId: 1, cancelId: 1,
-      title: 'Modifications non enregistrées', message: 'Le projet contient des modifications non enregistrées.',
-      detail: 'Ta session reste récupérable au prochain lancement, mais le fichier .mybad ne sera pas mis à jour.',
-    });
-    if (r !== 0) e.preventDefault();
+    if (!dirty || quittingForUpdate || fermetureOk) return;
+    e.preventDefault();
+    if (win.webContents.isCrashed() || win.webContents.isLoading()) {
+      const r = dialog.showMessageBoxSync(win, {
+        type: 'warning', buttons: ['Quitter sans enregistrer', 'Annuler'], defaultId: 1, cancelId: 1,
+        title: 'Modifications non enregistrées', message: 'Le projet contient des modifications non enregistrées.',
+        detail: 'Ta session reste récupérable au prochain lancement, mais le fichier .mybad ne sera pas mis à jour.',
+      });
+      if (r === 0) { fermetureOk = true; win.close(); }
+      return;
+    }
+    win.webContents.send('app:demande-fermeture');
   });
   win.on('closed', () => { win = null; });
 }
@@ -351,6 +360,7 @@ async function devShot() {
   let i = 0;
   for (const st of steps) {
     try { if (st.js) await win.webContents.executeJavaScript(st.js); } catch (e) { console.log('JS ERR', e.message); }
+    if (st.close && win) win.close();   // test de la fermeture avec modifications non enregistrées
     await wait(st.wait || 1200);
     if (st.shot) { const img = await win.webContents.capturePage(); fs.writeFileSync(path.join(process.env.MBC_SHOT, (st.name || ('shot' + i)) + '.png'), img.toPNG()); }
     i++;

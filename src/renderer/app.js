@@ -308,7 +308,7 @@ async function loadFrom(res) {
 async function prepare(doc) { await whenLoaded(docImageUrls(doc, S.library)); await preloadModels(doc); }
 async function confirmDiscard() {
   if (!S.dirty || !API) return true;
-  return API.confirm({ message: 'Abandonner les modifications non enregistrées ?', detail: 'Le projet en cours n\'a pas été enregistré dans un fichier.', ok: 'Abandonner' });
+  return window.Dialogue.confirmer({ message: 'Abandonner les modifications non enregistrées ?', detail: 'Le projet en cours n\'a pas été enregistré dans un fichier.', ok: 'Abandonner' });
 }
 async function newProject() {
   if (!(await confirmDiscard())) return;

@@ -4,6 +4,8 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 contextBridge.exposeInMainWorld('studio', {
   info: () => ipcRenderer.invoke('app:info'),
   setDirty: v => ipcRenderer.send('doc:dirty', v),
+  surDemandeFermeture: cb => ipcRenderer.on('app:demande-fermeture', () => cb()),
+  fermetureConfirmee: () => ipcRenderer.send('app:fermeture-ok'),
   setTitle: t => ipcRenderer.send('win:title', t),
   storeGet: k => ipcRenderer.invoke('store:get', k),
   storeSet: (k, v) => ipcRenderer.invoke('store:set', k, v),

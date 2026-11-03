@@ -702,9 +702,12 @@ function customAction(act, key) {
   if (act === 'rename') actions.askName?.('Renommer le modèle', TEMPLATES[key]?.name || '', name => { Custom.renameCustom(key, name); renderGallery(); });
   if (act === 'dupT') { const k2 = Custom.duplicateTemplate(key); if (k2) { renderGallery(); actions.switchTemplate?.(k2); toast('Modèle dupliqué dans « Modèles personnalisés » (mise en page et réglages gardés)'); } return; }
   if (act === 'dup') { if (Custom.duplicateCustom(key)) { renderGallery(); toast('Modèle dupliqué'); } }
-  if (act === 'del' && confirm(`Supprimer le modèle « ${TEMPLATES[key]?.name} » ? Les affiches déjà créées avec ce modèle sont gardées.`)) {
-    if (S.doc.tpl === key) change(d => { d.tpl = 'roster'; }, { immediate: true, full: true });
-    Custom.deleteCustom(key); renderGallery(); toast('Modèle supprimé');
+  if (act === 'del') {
+    window.Dialogue.confirmer({ message: `Supprimer le modèle « ${TEMPLATES[key]?.name} » ?`, detail: 'Les affiches déjà créées avec ce modèle sont gardées.', ok: 'Supprimer', danger: true }).then(oui => {
+      if (!oui) return;
+      if (S.doc.tpl === key) change(d => { d.tpl = 'roster'; }, { immediate: true, full: true });
+      Custom.deleteCustom(key); renderGallery(); toast('Modèle supprimé');
+    });
   }
 }
 export function initGallery() {

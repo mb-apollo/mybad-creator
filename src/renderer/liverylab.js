@@ -219,7 +219,7 @@ function saveAndApply() {
   status_(hit.length ? `Livrée enregistrée et posée sur ${hit.length} voiture(s) de l'affiche${car ? ' (' + car + ' uniquement)' : ''}` : `Livrée enregistrée${car ? ' pour ' + car : ''} ; elle sera posée sur les nouvelles affiches Rocket League`);
 }
 async function delLivery() {
-  const ok = API?.confirm ? await API.confirm({ message: `Supprimer la livrée « ${ST.def.name} » ?`, detail: (isBuiltin(ST.id) ? 'Elle disparaît de la liste (un bouton permet de restaurer les livrées fournies). ' : '') + 'Les voitures qui l\'utilisent reviennent à la peinture d\'origine.', ok: 'Supprimer' }) : confirm('Supprimer cette livrée ?');
+  const ok = API?.confirm ? await window.Dialogue.confirmer({ danger: true, message: `Supprimer la livrée « ${ST.def.name} » ?`, detail: (isBuiltin(ST.id) ? 'Elle disparaît de la liste (un bouton permet de restaurer les livrées fournies). ' : '') + 'Les voitures qui l\'utilisent reviennent à la peinture d\'origine.', ok: 'Supprimer' }) : confirm('Supprimer cette livrée ?');
   if (!ok) return;
   deleteLivery(ST.id); const rest = allLiveries()[0]; refreshList();
   if (rest) select_(rest.id); else { ST.id = ''; ST.def = null; ST.sel = null; $('#llHead', root).innerHTML = ''; $('#llControls', root).innerHTML = '<p class="hint" style="padding:12px">Plus aucune livrée. Crée-en une avec « + Créer », ou restaure les livrées fournies.</p>'; preview(); }

@@ -1,3 +1,3 @@
-- Transitions à la Apple : le studio de poses, le créateur de livrées et les fenêtres s'ouvrent et se ferment en grandissant depuis l'endroit où tu as cliqué, avec un ressort doux
-- Changement d'onglet animé : l'ancien contenu s'efface, le nouveau arrive du bon côté
-- Toutes les animations peuvent être interrompues sans saut ; si Windows demande de réduire les animations, il ne reste qu'un fondu très court
+- Menu Exporter corrigé : il se déploie proprement sous le bouton, sans rien qui se chevauche, avec une animation en ressort
+- Interrupteurs refaits dans le style iOS : la pastille glisse en douceur et s'allonge quand on appuie
+- Plus de fluidité partout : survol doux et léger enfoncement sur les boutons, les outils, les calques et les modèles ; halo sur les champs de saisie ; messages qui arrivent en douceur

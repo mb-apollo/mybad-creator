@@ -113,5 +113,42 @@
     }
   }
 
+  /* ---- menus (Exporter…) : ils se déploient depuis leur coin, en ressort, dès qu'ils sont affichés ---- */
+  new MutationObserver(function (muts) {
+    muts.forEach(function (m) {
+      var el = m.target;
+      if (m.attributeName !== "hidden" || el.hidden || !el.classList || !el.classList.contains("menu") || reduit()) return;
+      annuler(el); el.style.transformOrigin = "top right";
+      garder(el, anime(el, [{ opacity: 0, transform: "translateY(-8px) scale(.94)" }, { opacity: 1, transform: "none" }], { duration: 420, easing: DOUX }));
+    });
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ["hidden"], subtree: true });
+
+  /* ---- interrupteurs : l'application reconstruit le panneau à chaque réglage, donc le nouvel interrupteur naît déjà dans son état final et ne glisse jamais.
+     On retient l'état d'avant, et sur le nouvel interrupteur on repart de cet état avant de passer au nouveau : la pastille glisse. ---- */
+  var attente = {};
+  function cle(i) { var l = i.closest ? i.closest("label") : null; return (i.getAttribute("data-path") || i.getAttribute("data-c") || i.id || "") + "|" + (l ? l.textContent.trim() : ""); }
+  document.addEventListener("change", function (e) {
+    var i = e.target;
+    if (!i || !i.matches || !i.matches(".toggle input[type=checkbox]")) return;
+    attente[cle(i)] = { avant: !i.checked, t: Date.now() };
+  }, true);
+  new MutationObserver(function (muts) {
+    muts.forEach(function (m) {
+      Array.prototype.forEach.call(m.addedNodes, function (n) {
+        if (n.nodeType !== 1) return;
+        var liste = n.matches && n.matches(".toggle input") ? [n] : (n.querySelectorAll ? n.querySelectorAll(".toggle input[type=checkbox]") : []);
+        Array.prototype.forEach.call(liste, function (i) {
+          var k = cle(i), a = attente[k];
+          if (!a || Date.now() - a.t > 1500 || i.checked === a.avant) return;
+          delete attente[k];
+          var cible = i.checked;
+          i.checked = a.avant;           // on repart de l'ancien état…
+          void i.offsetWidth;            // …le navigateur le prend en compte…
+          i.checked = cible;             // …puis la transition CSS joue vers le nouveau
+        });
+      });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+
   window.Transitions = { entrer: entrer, sortir: sortir, fenetreEntrer: fenetreEntrer, fenetreSortir: fenetreSortir, onglet: onglet, ressort: ressort };
 })();

@@ -92,3 +92,5 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   ne pas recréer de liste à la main, et tester l'ouverture avec un `mousedown` simulé sur le `<select>`.
 - Transitions (`kit/transitions.js`, `window.Transitions`) : ouverture/fermeture des studios et des fenêtres, changement d'onglet, tout en ressorts (courbe CSS `linear()` calculée) et interruptible.
   Pour une nouvelle fenêtre plein format : appeler `Transitions.entrer(el)` après l'avoir affichée, et `Transitions.sortir(el, () => { el.hidden = true; })` pour la fermer. Mesurer l'opacité/échelle image par image (pas seulement une capture).
+- Un menu placé dans une pièce de verre (`.verre`, ex. menu Exporter) ne voit pas le fond derrière lui (le flou imbriqué ne marche pas) : lui donner un fond presque plein. Ne jamais mettre `position: relative` sur `.menu` (il doit rester `absolute`).
+- Les panneaux sont reconstruits à chaque réglage : un interrupteur neuf naît déjà dans son état final et ne glisse pas ; `transitions.js` rejoue la transition (état d'avant → état d'après). Même piège possible pour d'autres contrôles.

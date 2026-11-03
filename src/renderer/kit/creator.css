@@ -158,15 +158,19 @@ html, body { background: var(--da-fond); }
 #poselab .pl-top::before, #liverylab .pl-top::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.2px; pointer-events: none; background: var(--liseré);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
 /* listes et réglages : verre dépoli dense (ce sont eux qui défilent, le verre est donc posé directement dessus) */
-#poselab .pl-list, #poselab .pl-ctl, #liverylab .pl-list, #liverylab .pl-ctl { border: 0; border-radius: 22px; min-height: 0;
+#poselab .pl-list, #poselab .pl-ctl, #liverylab .pl-list, #liverylab .pl-ctl, #poselab .pl-view, #liverylab .pl-view { border: 0; border-radius: 22px; min-height: 0;
   background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 9%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 5%, transparent)),
     color-mix(in srgb, var(--da-fond) 34%, transparent);
   -webkit-backdrop-filter: blur(36px) saturate(1.8) brightness(1); backdrop-filter: blur(36px) saturate(1.8) brightness(1);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 9%, transparent), 0 18px 40px color-mix(in srgb, #000 35%, transparent); }
 #poselab .pl-list, #liverylab .pl-list { padding: 12px; }
 #poselab .pl-ctl, #liverylab .pl-ctl { padding: 14px 16px 30px; }
-/* aperçu : reste sombre et neutre (c'est lui qu'on regarde) */
-#poselab .pl-view, #liverylab .pl-view { border-radius: 22px; overflow: hidden; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 10%, transparent); }
+/* aperçu 3D : une tuile de verre transparente comme les autres ; le modèle est posé dessus, sans cadre ni fond autour (le canevas est transparent) */
+#poselab .pl-view, #liverylab .pl-view { overflow: hidden; }
+/* Créateur de livrées : la voiture est dessinée sur toute la tuile (pas dans un cadre), les boutons de vue flottent en bas par-dessus */
+#liverylab .pl-view { justify-content: flex-end; padding-bottom: 16px; }
+#liverylab .pl-view canvas { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; aspect-ratio: auto; }
+#liverylab .pl-cam, #liverylab .pl-hint { position: relative; z-index: 1; }
 /* choix dans les listes */
 #poselab .pl-list button, #liverylab .pl-list button { border-radius: 12px; color: var(--da-texte); transition: background .2s; }
 #poselab .pl-list button:hover, #liverylab .pl-list button:hover { background: color-mix(in srgb, var(--da-reflet) 10%, transparent); }
@@ -257,7 +261,7 @@ html, body { background: linear-gradient(180deg, #050A1C, #08122F 55%, #060C24);
 .halo:nth-child(3) { left: 20%; bottom: -300px; width: 1300px; height: 600px; }
 /* grandes tuiles : à peine un voile, un flou net, le fond bleu se voit à travers */
 .gallery::before, .side::before, .stage::before,
-#poselab .pl-list, #poselab .pl-ctl, #liverylab .pl-list, #liverylab .pl-ctl {
+#poselab .pl-list, #poselab .pl-ctl, #liverylab .pl-list, #liverylab .pl-ctl, #poselab .pl-view, #liverylab .pl-view {
   background: linear-gradient(160deg, color-mix(in srgb, var(--ap-teinte, #A8C8FF) calc(5% * var(--ap-k, 1)), transparent), color-mix(in srgb, var(--ap-teinte, #A8C8FF) calc(1% * var(--ap-k, 1)), transparent) 45%, color-mix(in srgb, var(--ap-teinte, #A8C8FF) calc(2.5% * var(--ap-k, 1)), transparent)),
     color-mix(in srgb, var(--ap-voile-c, var(--da-fond)) var(--ap-voile, 7%), transparent);
   -webkit-backdrop-filter: blur(var(--ap-flou, 22px)) saturate(var(--ap-sat, 1.4)) brightness(var(--ap-lum, 1)); backdrop-filter: blur(var(--ap-flou, 22px)) saturate(var(--ap-sat, 1.4)) brightness(var(--ap-lum, 1)); }

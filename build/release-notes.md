@@ -1,2 +1,2 @@
-- Nouveau bouton « Apparence » (à côté des menus, ou Ctrl+Alt+A) : un interrupteur « Verre fumé » pour tester le verre clair ou fumé, et des réglages à la main des couleurs de fond, des lueurs, des transparences, du flou et des couleurs du logiciel
-- Les réglages sont gardés d'un lancement à l'autre, avec un bouton pour copier ta configuration et un autre pour tout réinitialiser
+- Nouveau look par défaut : tes réglages d'apparence (bleu vif, lueurs plus fortes, verre plus transparent) deviennent ceux du logiciel
+- Créateur de livrées et Studio de poses : la zone 3D est une tuile de verre transparente ; la voiture est dessinée sur toute la tuile, sans cadre, et n'est plus coupée sur les bords

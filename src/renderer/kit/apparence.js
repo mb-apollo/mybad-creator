@@ -5,19 +5,19 @@
   var CLE = "mbc.apparence.v1";
   var racine = document.documentElement;
 
-  /* valeurs d'origine = l'aspect actuel du logiciel (rien ne change tant qu'on ne touche à rien) */
+  /* réglages par défaut du logiciel = la configuration choisie par Axel le 03/11/2026 (« Réinitialiser » y revient) */
   var DEF = {
     fume: false,
     fond1: "#03071a", fond2: "#050d26", fond3: "#040920",
-    h1c: "#1450c8", h1f: 30, h2c: "#1e78e6", h2f: 17, h3c: "#2d3cb9", h3f: 28,
-    tTeinte: "#a8c8ff", tReflet: 100, tVoileC: "#04081a", tVoile: 7, tFlou: 22, tLum: 1, tSat: 1.4,
-    bTeinte: "#9cc4ff", bVoile: 38, bFlou: 10, bLum: 0.82,
-    fOpac: 54, fFlou: 38,
-    accent: "#54d8ff", texte: "#e8ebfa", doux: "#a5abcb", lisere: 80
+    h1c: "#1450c8", h1f: 33, h2c: "#1e78e6", h2f: 52, h3c: "#2d3cb9", h3f: 75,
+    tTeinte: "#000000", tReflet: 60, tVoileC: "#000724", tVoile: 0, tFlou: 20, tLum: 0.8, tSat: 1.95,
+    bTeinte: "#6499e8", bVoile: 51, bFlou: 16, bLum: 0.88,
+    fOpac: 5, fFlou: 28,
+    accent: "#0091ff", texte: "#ffffff", doux: "#c2c2c2", lisere: 49
   };
   /* ce que change l'interrupteur « Verre fumé » : tuiles et barres plus sombres et plus floues, reflets plus discrets (comme dans l'appli téléphone) */
   var PRESETS = {
-    clair: { tVoile: 7, tFlou: 22, tLum: 1, tSat: 1.4, tReflet: 100, bVoile: 38, bLum: 0.82 },
+    clair: { tVoile: 0, tFlou: 20, tLum: 0.8, tSat: 1.95, tReflet: 60, bVoile: 51, bLum: 0.88 },
     fume: { tVoile: 52, tFlou: 34, tLum: 0.85, tSat: 1.5, tReflet: 65, bVoile: 56, bLum: 0.72 }
   };
 

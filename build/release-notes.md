@@ -1,3 +1,6 @@
-- Toutes les tuiles passent en verre clair et transparent : le fond sombre est beaucoup plus léger, le flou plus net, et les halos de couleur derrière sont plus présents
-- La colonne d'outils a exactement la même matière que les panneaux (reflet en haut à gauche, trait fin), au lieu d'un fond plus plat
-- Les fenêtres et les menus gardent leur verre fumé
+- Nouveau fond bleu nuit plus sombre, avec des tuiles de verre presque transparentes
+- Curseurs refaits dans le style iOS : piste fine et pastille blanche qui grossit sous le doigt ; boutons + et − ronds
+- Tous les petits boutons deviennent des pastilles de verre arrondies
+- Studio de poses et créateur de livrées : les trois boutons de la fenêtre ne cachent plus les boutons du haut
+- Les barres de choix (jeu, format) glissent de nouveau en douceur quand on change d'option
+- Installateur : texte des boutons bien centré

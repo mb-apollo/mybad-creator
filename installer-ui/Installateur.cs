@@ -544,9 +544,18 @@ namespace MyBadInstallateur
                 b.Background = Lin(.2, 0, .8, 1, "#FFA8EBFF", 0, "#FF54D8FF", .55, "#FF33BDEE", 1);
                 b.Effect = new DropShadowEffect { BlurRadius = 30, ShadowDepth = 10, Direction = 270, Opacity = .4, Color = (Color)ColorConverter.ConvertFromString("#FF54D8FF") };
             }
-            else { b.Background = Pinceau("#1AF5F7FF"); b.BorderThickness = new Thickness(0, 1, 0, 0); b.BorderBrush = Pinceau("#40F5F7FF"); }
+            else b.Background = Pinceau("#1AF5F7FF");
             var t = Txt(texte, principal ? 16 : 13.5, principal ? FontWeights.SemiBold : FontWeights.Medium, principal ? "#FF04121C" : Texte, principal ? Titres : Corps);
-            t.VerticalAlignment = VerticalAlignment.Center; b.Child = t;
+            // le milieu des lettres tombe plus bas que le milieu de la ligne (police Segoe) : on remonte le texte de 1 px pour qu'il soit au centre du bouton ; le filet du haut est un calque (une bordure décalerait le texte)
+            t.VerticalAlignment = VerticalAlignment.Center; t.HorizontalAlignment = HorizontalAlignment.Center; t.Margin = new Thickness(0, 0, 0, 2);
+            if (principal) b.Child = t;
+            else
+            {
+                var g = new Grid();
+                g.Children.Add(new Border { Margin = new Thickness(-marge, 0, -marge, 0), CornerRadius = new CornerRadius(hauteur / 2), BorderThickness = new Thickness(1), BorderBrush = Lin(0, 0, 0, 1, "#40F5F7FF", 0, "#00F5F7FF", .55), IsHitTestVisible = false });
+                g.Children.Add(t);
+                b.Child = g;
+            }
             Action<double> echelle = v =>
             {
                 var st = (ScaleTransform)b.RenderTransform;

@@ -83,3 +83,8 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
 - Détourage hors ligne : @imgly/background-removal (licence AGPL, d'où la licence du projet).
 - Tester le rendu sans interface : `MBC_SHOT=<dossier> MBC_STEPS='[...]' electron .` (captures automatiques,
   voir `devShot` dans `main.js`) ; `window.__creator` expose l'état pour les tests.
+- Fenêtre sans barre Windows (`titleBarOverlay`) : les 3 boutons réduire/agrandir/fermer (≈ 150 × 40 px, en haut à droite) recouvrent tout ce qui est
+  dessous. Tout écran plein format (studio de poses, créateur de livrées…) doit laisser cette bande libre (`padding-top: 40px`) ; sinon des boutons sont cachés.
+- Les barres de choix (`#gameSeg`, `#fmtSeg`) sont reconstruites par `buildGame` / `buildFormats` : la bulle de verre doit être conservée (`refaireBarre`)
+  et l'option choisie porter `actif`, sinon la bulle réapparaît d'un coup au lieu de glisser. Après toute retouche, mesurer le déplacement de la bulle sur chaque barre.
+- Installateur à tuiles : le texte d'un bouton n'est pas au centre de la ligne (police Segoe) ; ne pas mettre de bordure partielle sur un bouton arrondi (décale le texte).

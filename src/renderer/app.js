@@ -39,11 +39,18 @@ function refreshTab() {
   if (tab === 'look') P.renderLook();
   if (tab === 'library') P.renderLibrary();
 }
+// Les barres de choix sont reconstruites à chaque changement : on garde la bulle de verre (sinon elle serait détruite et réapparaîtrait d'un coup, sans glisser)
+// et l'option choisie porte tout de suite « actif », pour que la bulle sache où aller.
+function refaireBarre(barre, html) {
+  const bulle = barre.querySelector(':scope > .bulle-verre');
+  barre.innerHTML = html;
+  if (bulle) barre.insertBefore(bulle, barre.firstChild);
+}
 function buildFormats() {
-  $('#fmtSeg').innerHTML = Object.entries(FORMATS).map(([k, f]) => `<button data-k="${k}" class="${S.doc.fmt === k ? 'on' : ''}">${f.label}<small>${esc(f.hint)}</small></button>`).join('');
+  refaireBarre($('#fmtSeg'), Object.entries(FORMATS).map(([k, f]) => `<button data-k="${k}" class="${S.doc.fmt === k ? 'on actif' : ''}">${f.label}<small>${esc(f.hint)}</small></button>`).join(''));
 }
 function buildGame() {
-  $('#gameSeg').innerHTML = Object.values(GAMES).map(g => `<button data-g="${g.key}" class="${S.doc.game === g.key ? 'on' : ''}">${esc(g.name)}</button>`).join('');
+  refaireBarre($('#gameSeg'), Object.values(GAMES).map(g => `<button data-g="${g.key}" class="${S.doc.game === g.key ? 'on actif' : ''}">${esc(g.name)}</button>`).join(''));
 }
 function updateUndo() { $('#btnUndo').disabled = !canUndo(); $('#btnRedo').disabled = !canRedo(); }
 function updateTitle() { $('#projName').textContent = S.projectName; $('#projName').classList.toggle('dirty', S.dirty); }

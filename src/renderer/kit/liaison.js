@@ -18,7 +18,15 @@
   BARRES.forEach(function (sel) {
     var barre = document.querySelector(sel);
     if (!barre) return;
-    var surveille = new MutationObserver(function () { if (synchroniser(barre)) replacer(); });
+    // la barre peut aussi être reconstruite (format, jeu) : les options sont alors de nouveaux boutons, la bulle doit les rejoindre en glissant
+    var surveille = new MutationObserver(function (muts) {
+      var change = synchroniser(barre);
+      var refaite = muts.some(function (m) {
+        if (m.type !== "childList" || m.target !== barre) return false;
+        return [].slice.call(m.addedNodes).some(function (n) { return !(n.classList && n.classList.contains("bulle-verre")); });
+      });
+      if (change || refaite) replacer();
+    });
     surveille.observe(barre, { subtree: true, attributes: true, attributeFilter: ["class"], childList: true });
     synchroniser(barre);
   });

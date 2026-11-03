@@ -1,6 +1,4 @@
-- Nouveau fond bleu nuit plus sombre, avec des tuiles de verre presque transparentes
-- Curseurs refaits dans le style iOS : piste fine et pastille blanche qui grossit sous le doigt ; boutons + et − ronds
-- Tous les petits boutons deviennent des pastilles de verre arrondies
-- Studio de poses et créateur de livrées : les trois boutons de la fenêtre ne cachent plus les boutons du haut
-- Les barres de choix (jeu, format) glissent de nouveau en douceur quand on change d'option
-- Installateur : texte des boutons bien centré
+- Les listes déroulantes passent en verre arrondi (à la place de la liste grise de Windows), avec une coche sur le choix en cours
+- Pastilles de couleur rondes, tuiles « Ajouter » et touches de raccourcis en verre, ascenseurs fins
+- Fond bleu nuit un peu plus sombre
+- Les choix à deux options dans les panneaux et les réglages prédéfinis passent aussi au style verre

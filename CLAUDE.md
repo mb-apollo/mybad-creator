@@ -88,3 +88,5 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
 - Les barres de choix (`#gameSeg`, `#fmtSeg`) sont reconstruites par `buildGame` / `buildFormats` : la bulle de verre doit être conservée (`refaireBarre`)
   et l'option choisie porter `actif`, sinon la bulle réapparaît d'un coup au lieu de glisser. Après toute retouche, mesurer le déplacement de la bulle sur chaque barre.
 - Installateur à tuiles : le texte d'un bouton n'est pas au centre de la ligne (police Segoe) ; ne pas mettre de bordure partielle sur un bouton arrondi (décale le texte).
+- Listes déroulantes : `kit/menu-select.js` remplace la liste grise de Windows par une liste en verre (le `<select>` reste en place et reçoit `input` + `change`) ;
+  ne pas recréer de liste à la main, et tester l'ouverture avec un `mousedown` simulé sur le `<select>`.

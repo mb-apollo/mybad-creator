@@ -84,10 +84,10 @@ function addRecent(p) { const s = readStore(); s.recent = [p, ...(s.recent || []
 function createWindow() {
   win = new BrowserWindow({
     width: 1560, height: 940, minWidth: 1180, minHeight: 720,
-    backgroundColor: '#050A1C', show: false, title: 'MyBad Creator',
+    backgroundColor: '#03071A', show: false, title: 'MyBad Creator',
     icon: path.join(RENDERER, 'assets', 'icon.png'),
     // barre de titre grise de Windows remplacée par la nôtre (index.html : .barre-titre) ; seuls les trois boutons de la fenêtre restent à Windows
-    titleBarStyle: 'hidden', titleBarOverlay: { color: '#050A1C', symbolColor: '#E8EBFA', height: 40 }, autoHideMenuBar: true,
+    titleBarStyle: 'hidden', titleBarOverlay: { color: '#03071A', symbolColor: '#E8EBFA', height: 40 }, autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   win.setMenuBarVisibility(false); // la barre de menus grise n'apparaît plus : le menu est dans l'interface, les raccourcis clavier restent actifs

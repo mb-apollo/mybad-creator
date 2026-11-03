@@ -295,3 +295,68 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px;
 input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.08); }
 input[type=range]:active::-webkit-slider-thumb { transform: scale(1.2); box-shadow: 0 0 0 .5px color-mix(in srgb, #000 25%, transparent), 0 5px 14px color-mix(in srgb, #000 50%, transparent), inset 0 1px 0 #fff; }
 input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 5px color-mix(in srgb, var(--da-accent) 35%, transparent), 0 3px 9px color-mix(in srgb, #000 45%, transparent); }
+
+/* ======== passe « tout en style Apple » (3e tour) ======== */
+/* fond un peu plus sombre */
+html, body { background: linear-gradient(180deg, #03071A, #050D26 55%, #040920); }
+
+/* touches du clavier (raccourcis) : petites pastilles de verre */
+kbd { border: 0; border-radius: 8px; padding: 3px 9px; font-size: 11px; color: var(--da-texte);
+  background: color-mix(in srgb, var(--da-reflet) 10%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 26%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 7%, transparent), 0 1px 2px color-mix(in srgb, #000 30%, transparent); }
+
+/* tuiles « Ajouter » (Texte, Image, Logo…) : tuiles de verre arrondies */
+.addbtn { border: 0; border-radius: 16px; padding: 12px 4px; color: var(--da-doux);
+  background: color-mix(in srgb, var(--da-reflet) 7%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 22%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 6%, transparent);
+  transition: background .2s, color .2s, transform .5s var(--ressort); }
+.addbtn:hover { background: color-mix(in srgb, var(--da-reflet) 14%, transparent); color: var(--da-texte); border-color: transparent; }
+.addbtn:active { transform: scale(.95); }
+.preset { border: 0; border-radius: 14px; background: color-mix(in srgb, var(--da-reflet) 6%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 6%, transparent); }
+.preset .sw { border-radius: 10px; }
+
+/* pastilles de couleur : rondes, avec un anneau clair, comme un sélecteur de couleur d'iOS */
+input[type=color], .cc-row input[type=color], .token input[type=color], #liverylab .llcol input[type=color] {
+  -webkit-appearance: none; appearance: none; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; overflow: hidden;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--da-reflet) 42%, transparent), 0 2px 8px color-mix(in srgb, #000 40%, transparent);
+  transition: transform .4s var(--ressort), box-shadow .3s; }
+input[type=color]:hover { transform: scale(1.1); }
+input[type=color]:active { transform: scale(.95); }
+input[type=color]::-webkit-color-swatch-wrapper { padding: 3px; }
+input[type=color]::-webkit-color-swatch { border: 0; border-radius: 50%; box-shadow: inset 0 1px 2px color-mix(in srgb, #000 35%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 22%, transparent); }
+.chip { border-radius: 50%; border: 0; box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--da-reflet) 28%, transparent); }
+.chip.on { box-shadow: 0 0 0 2px var(--da-fond), 0 0 0 3.5px var(--da-accent); }
+
+/* choix à deux ou trois options dans les panneaux (Toutes les affiches / Cette affiche…) : capsule de verre */
+.seg:not(.barre-sel) { border: 0; border-radius: 999px; padding: 3px; background: color-mix(in srgb, var(--da-reflet) 7%, transparent); box-shadow: inset 0 1px 2px color-mix(in srgb, #000 30%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 6%, transparent); }
+.seg:not(.barre-sel) button { border-radius: 999px; transition: background .25s, color .25s; }
+.seg:not(.barre-sel) button.on { background: color-mix(in srgb, var(--da-reflet) 17%, transparent); color: var(--da-texte); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 32%, transparent), 0 2px 6px color-mix(in srgb, #000 30%, transparent); }
+
+/* ascenseurs fins et arrondis */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--da-reflet) 22%, transparent); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--da-reflet) 38%, transparent); border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+
+/* champs avec liste (select) : même matière que les autres champs, flèche discrète */
+select.input { border-radius: 12px; }
+select.input.ouvert { border-color: var(--da-accent); }
+
+/* ---- liste déroulante en verre (menu-select.js) ---- */
+.menu-select { position: fixed; z-index: 9999; isolation: isolate; border-radius: 16px; padding: 6px; box-shadow: 0 24px 60px color-mix(in srgb, #000 55%, transparent); animation: ms-entree .22s var(--ressort); }
+.menu-select.vers-haut { transform-origin: bottom; }
+@keyframes ms-entree { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+.menu-select::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--da-reflet) 9%, transparent), color-mix(in srgb, var(--da-reflet) 2%, transparent) 45%, color-mix(in srgb, var(--da-reflet) 5%, transparent)), color-mix(in srgb, var(--da-fond) 84%, transparent);
+  -webkit-backdrop-filter: blur(36px) saturate(1.6); backdrop-filter: blur(36px) saturate(1.6);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--da-reflet) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--da-reflet) 10%, transparent); }
+.menu-select-corps { overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.ms-item { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: 10px; font-size: 12.5px; color: var(--da-texte); cursor: pointer; white-space: nowrap; }
+.ms-texte { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.ms-coche { width: 14px; display: grid; place-items: center; color: var(--da-accent); opacity: 0; }
+.ms-item.choisi .ms-coche { opacity: 1; }
+.ms-item.survol { background: color-mix(in srgb, var(--da-accent) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--da-accent) 40%, transparent); }
+.ms-item.desactive { opacity: .4; cursor: default; }
+.ms-groupe { padding: 8px 10px 4px; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--da-doux); }
+.kbd-mini kbd, .kbd-list kbd { justify-self: end; }

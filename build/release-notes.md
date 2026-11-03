@@ -1,4 +1,3 @@
-- Les listes déroulantes passent en verre arrondi (à la place de la liste grise de Windows), avec une coche sur le choix en cours
-- Pastilles de couleur rondes, tuiles « Ajouter » et touches de raccourcis en verre, ascenseurs fins
-- Fond bleu nuit un peu plus sombre
-- Les choix à deux options dans les panneaux et les réglages prédéfinis passent aussi au style verre
+- Transitions à la Apple : le studio de poses, le créateur de livrées et les fenêtres s'ouvrent et se ferment en grandissant depuis l'endroit où tu as cliqué, avec un ressort doux
+- Changement d'onglet animé : l'ancien contenu s'efface, le nouveau arrive du bon côté
+- Toutes les animations peuvent être interrompues sans saut ; si Windows demande de réduire les animations, il ne reste qu'un fondu très court

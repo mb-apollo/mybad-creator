@@ -324,7 +324,7 @@ export function openPoseLab() {
   const list = previewAgents();
   if (!list.length) { alert('Ajoute d\'abord un personnage 3D (Bibliothèque ou pack 3D) pour utiliser le Studio de poses.'); return; }
   if (!ST.open) beginDraft();
-  ST.open = true; root.hidden = false;
+  ST.open = true; root.hidden = false; window.Transitions?.entrer(root);
   if (!ST.agent || !list.find(a => a.key === ST.agent)) ST.agent = (list.find(a => a.key === 'jett') || list[0]).key;
   $('#plAgent', root).innerHTML = list.map(a => `<option value="${a.key}" ${a.key === ST.agent ? 'selected' : ''}>${esc(a.name)}</option>`).join('');
   refreshList(); selectItem(find(ST.id) ? ST.id : 'default');
@@ -337,7 +337,8 @@ export async function closePoseLab() {
     else if (await ask({ message: 'Abandonner tes changements ?', detail: 'Les réglages non enregistrés seront perdus.', ok: 'Abandonner' })) endDraft(false);
     else return;
   } else endDraft(false);
-  root.hidden = true; ST.open = false;
+  if (window.Transitions) window.Transitions.sortir(root, () => { root.hidden = true; }); else root.hidden = true;
+  ST.open = false;
   document.dispatchEvent(new CustomEvent('poselab:closed'));   // les poses ont pu changer : l'application rafraîchit ses listes et ses affiches
 }
 void getPath;

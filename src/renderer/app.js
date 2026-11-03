@@ -26,10 +26,16 @@ P.actions.setTab = t => setTab(t);
 // ---------------------------------------------------------------- onglets & interface
 let tab = 'props';
 function setTab(t) {
+  const avant = tab, ancien = $$('.tabpane').find(p => !p.hidden), defile = ancien ? ancien.scrollTop : 0;
   tab = t;
   $$('.tabs [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   $$('.tabpane').forEach(p => { p.hidden = p.dataset.pane !== t; });
   refreshTab();
+  // changement d'onglet animé (le sens suit l'ordre des onglets) ; rien au tout premier affichage ni si l'onglet ne change pas
+  if (avant !== t && ancien && !$('#app').hidden) {
+    const ordre = $$('.tabs [data-tab]').map(b => b.dataset.tab);
+    window.Transitions?.onglet(ancien, $$('.tabpane').find(p => !p.hidden), ordre.indexOf(t) >= ordre.indexOf(avant) ? 1 : -1, defile);
+  }
 }
 function refreshTab() {
   if (tab === 'props') P.renderProps();
@@ -500,10 +506,16 @@ P.actions.materialize = materialize;
 function openModal(title, body, foot = '', wide = false) {
   $('#modalTitle').textContent = title; $('#modalBody').innerHTML = body; $('#modalFoot').innerHTML = foot;
   $('#modal .modal-card').classList.toggle('wide', wide);
+  const dejaOuverte = !$('#modal').hidden;
   $('#modal').hidden = false;
+  if (!dejaOuverte || $('#modal').__sortant) window.Transitions?.fenetreEntrer($('#modal'));   // une fenêtre qui en remplace une autre ne rejoue pas l'animation ; on annule seulement une fermeture en cours
   setTimeout(() => $('#modal').querySelector('input, select, button.primary-btn')?.focus(), 30);
 }
-function closeModal() { $('#modal').hidden = true; }
+function closeModal() {
+  const m = $('#modal');
+  if (m.hidden) return;
+  if (window.Transitions) window.Transitions.fenetreSortir(m, () => { m.hidden = true; }); else m.hidden = true;
+}
 // Petite fenêtre « saisis un nom » (window.prompt n'existe pas dans Electron).
 P.actions.askName = (title, value, cb) => {
   openModal(title, `<div class="field full"><input class="input" id="askNameInput" value="${esc(value)}" maxlength="40" spellcheck="false"></div>`, '<button class="ghost-btn" id="askNameNo">Annuler</button><span class="spacer"></span><button class="primary-btn solo" id="askNameOk">Valider</button>');

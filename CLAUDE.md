@@ -90,3 +90,5 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
 - Installateur à tuiles : le texte d'un bouton n'est pas au centre de la ligne (police Segoe) ; ne pas mettre de bordure partielle sur un bouton arrondi (décale le texte).
 - Listes déroulantes : `kit/menu-select.js` remplace la liste grise de Windows par une liste en verre (le `<select>` reste en place et reçoit `input` + `change`) ;
   ne pas recréer de liste à la main, et tester l'ouverture avec un `mousedown` simulé sur le `<select>`.
+- Transitions (`kit/transitions.js`, `window.Transitions`) : ouverture/fermeture des studios et des fenêtres, changement d'onglet, tout en ressorts (courbe CSS `linear()` calculée) et interruptible.
+  Pour une nouvelle fenêtre plein format : appeler `Transitions.entrer(el)` après l'avoir affichée, et `Transitions.sortir(el, () => { el.hidden = true; })` pour la fermer. Mesurer l'opacité/échelle image par image (pas seulement une capture).

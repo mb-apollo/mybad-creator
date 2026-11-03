@@ -316,13 +316,13 @@ async function doImport() {
 
 export function openLiveryLab(id) {
   if (!root) build();
-  ST.open = true; root.hidden = false;
+  ST.open = true; root.hidden = false; window.Transitions?.entrer(root);
   $('#llCar', root).value = ST.car;
   select_(id && getDef(id) ? id : (getDef(ST.id) ? ST.id : 'nuit'));
 }
 export function closeLiveryLab() {
   if (!root || !ST.open) return;
-  clearTimeout(ST.t); root.hidden = true; ST.open = false;
+  clearTimeout(ST.t); if (window.Transitions) window.Transitions.sortir(root, () => { root.hidden = true; }); else root.hidden = true; ST.open = false;
   document.dispatchEvent(new CustomEvent('poselab:closed'));   // rafraîchit le panneau 3D et les affiches
 }
 void getPath;

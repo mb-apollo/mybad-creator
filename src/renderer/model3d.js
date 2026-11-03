@@ -297,7 +297,13 @@ export function fitCanvas(cv) {
 const SOL_CLE = 'mbc.studio.sol';
 export const solActif = () => { try { return localStorage.getItem(SOL_CLE) !== '0'; } catch { return true; } };
 export const solRegler = on => { try { localStorage.setItem(SOL_CLE, on ? '1' : '0'); } catch { /* stockage indisponible */ } };
-export const solStudio = () => (solActif() ? { on: true, shape: 'platform', tex: true, opacity: 0.75, glow: 0.5, shadow: 0.55, reflect: 0.3, blur: 0.5 } : undefined);
+// teinte du sol : le bleu des lueurs de fond du logiciel (réglage « lueur 2 » du panneau Apparence), assombri, et non le vert-cyan de l'affiche
+const bleuSol = () => {
+  let h = '#1e78e6'; try { h = window.Apparence?.etat?.().h2c || h; } catch { /* panneau absent */ }
+  const n = parseInt(h.slice(1), 16), k = 0.62, c = x => Math.round(x * k).toString(16).padStart(2, '0');
+  return '#' + c(n >> 16) + c((n >> 8) & 255) + c(n & 255);
+};
+export const solStudio = () => (solActif() ? { on: true, shape: 'platform', tex: true, color: bleuSol(), opacity: 0.8, halo: false, shadow: 0.55, reflect: 0.3, blur: 0.5 } : undefined);
 // Sol d'un studio : la même plateforme que les scènes d'affiche (béton, bord arrière net, lueur), avec ombre portée, ombres de contact sous les pieds et reflet,
 // pour un seul modèle. `grp` porte le modèle (retourné pour le reflet).
 function studioFloor(scene, fl, col, inst) {
@@ -321,7 +327,7 @@ function studioFloor(scene, fl, col, inst) {
   const rg = new THREE.PlaneGeometry(platW * 1.7, 0.035); rg.rotateX(-Math.PI / 2);
   const edge = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: col('$accent'), transparent: true, opacity: Math.min(1, 0.55 * (fl.glow ?? 0.5) / 0.35), alphaMap: lineAlphaTex(), blending: THREE.AdditiveBlending, depthWrite: false }));
   edge.position.set(0, 0.003, zBack + 0.02);
-  const blobs = new THREE.Group(); floor.add(dark, glow, shadow, edge, blobs);
+  const blobs = new THREE.Group(); floor.add(dark, shadow, blobs); if (fl.halo !== false) floor.add(glow, edge);   // halo et ligne de fond : seulement si demandés
   // ombres de contact sous les pieds (personnages) : s'estompent quand le pied se lève
   const blobGeo = new THREE.PlaneGeometry(1, 1); blobGeo.rotateX(-Math.PI / 2);
   const rig = inst.root.userData.rig, k = inst.pivot.scale.x / inst.baseScale, ys = footYs(rig);

@@ -1,3 +1,1 @@
-- Nouveau look par défaut : ton profil « verre fumé » (fonds très sombres, lueurs bleues fortes, accent cyan) devient celui du logiciel
-- Titres des barres (Raccourcis utiles, Ajouter, Calques, Modèles…) et textes secondaires plus clairs et plus nets partout
-- Traits de séparation presque blancs dans tout le logiciel, pour bien distinguer les sections
+- Sol des studios (poses et livrées) : plus de halo ni de ligne lumineuse derrière ; il prend le bleu des lueurs de fond du logiciel au lieu du bleu-vert

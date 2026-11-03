@@ -1,6 +1,6 @@
 {
  "pack": "mybad-creator-3d",
- "version": 2,
+ "version": 3,
  "files": [
   {
    "game": "valorant",
@@ -83,8 +83,8 @@
    "game": "valorant",
    "key": "jett",
    "path": "valorant/jett.glb",
-   "size": 3305656,
-   "sha256": "2060c2037dfa06c149963a8138a3b8d98326dfb0a5cd0587d3e610e584478b01"
+   "size": 6725824,
+   "sha256": "73c9c3fc62273bca6554e3fcace894881b82a0550df65fc9ca14961224c45249"
   },
   {
    "game": "valorant",

@@ -1,2 +1,2 @@
-- Le message de fermeture avec des modifications non enregistrées passe au style verre du logiciel (à la place de la boîte grise de Windows)
-- Toutes les autres confirmations (supprimer une livrée, une pose ou un modèle, abandonner un projet, revenir aux poses d'origine) aussi, avec un bouton rouge pour les suppressions
+- Nouveau bouton « Apparence » (à côté des menus, ou Ctrl+Alt+A) : un interrupteur « Verre fumé » pour tester le verre clair ou fumé, et des réglages à la main des couleurs de fond, des lueurs, des transparences, du flou et des couleurs du logiciel
+- Les réglages sont gardés d'un lancement à l'autre, avec un bouton pour copier ta configuration et un autre pour tout réinitialiser

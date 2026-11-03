@@ -2,7 +2,7 @@
 // Chaque modification est enregistrée tout de suite ; les livrées se choisissent ensuite dans l'onglet 3D (section Voiture) de chaque voiture.
 import { S, change as docChange, toast } from './state.js';
 import { esc, setPath, getPath, section, range, select, toggle, textInput, syncRange, pct, deg } from './ui.js';
-import { renderModelPreview, pickBody, agentKeyOf } from './model3d.js';
+import { renderModelPreview, pickBody, agentKeyOf, solActif, solRegler, solStudio, fitCanvas } from './model3d.js';
 import { hiddenCount, restoreBuiltins, setDefaultLivery, allLiveries, getDef, cloneDef, saveDef, createLivery, renameLivery, deleteLivery, resetLivery, isBuiltin, hasOverride, newLayer, exportLiveries, importLiveries, onLiveryChange, FONTS, CARS } from './livery.js';
 
 const API = window.studio;
@@ -75,8 +75,8 @@ function build() {
   };
   cv.onpointerup = () => { cv._x = null; if (ST.drag) { ST.drag = null; cv.style.cursor = 'ew-resize'; clearTimeout(ST.t); commit(); } };
   cv.onwheel = e => { e.preventDefault(); ST.cam.zoom3d = Math.max(0.5, Math.min(3, ST.cam.zoom3d * (e.deltaY < 0 ? 1.08 : 0.92))); preview(); };
-  $('#llCam', root).innerHTML = [['3/4', '330,10,0.95'], ['Profil', '0,6,0.95'], ['Autre flanc', '180,6,0.95'], ['Face', '270,10,1.05'], ['Dos', '90,10,1.05'], ['Dessus', '270,60,0.62']].map(([l, v]) => `<button class="mini-btn" data-v="${v}">${l}</button>`).join('');
-  $('#llCam', root).onclick = e => { const b = e.target.closest('button[data-v]'); if (!b) return; const [rotY, camPitch, zoom3d] = b.dataset.v.split(',').map(Number); Object.assign(ST.cam, { rotY, camPitch, zoom3d }); preview(); };
+  $('#llCam', root).innerHTML = [['3/4', '330,10,0.95'], ['Profil', '0,6,0.95'], ['Autre flanc', '180,6,0.95'], ['Face', '270,10,1.05'], ['Dos', '90,10,1.05'], ['Dessus', '270,60,0.62']].map(([l, v]) => `<button class="mini-btn" data-v="${v}">${l}</button>`).join('') + `<button class="mini-btn ${solActif() ? 'on' : ''}" data-sol title="Afficher ou masquer le sol (ombres et reflet)">Sol</button>`;
+  $('#llCam', root).onclick = e => { const s = e.target.closest('button[data-sol]'); if (s) { const on = !solActif(); solRegler(on); s.classList.toggle('on', on); preview(); return; } const b = e.target.closest('button[data-v]'); if (!b) return; const [rotY, camPitch, zoom3d] = b.dataset.v.split(',').map(Number); Object.assign(ST.cam, { rotY, camPitch, zoom3d }); preview(); };
 
   const ctl = $('#llControls', root);
   ctl.oninput = e => { const el = e.target; if (!el.dataset.p) return; if (el.type === 'range' || el.type === 'color' || el.type === 'text') apply(el, false); };
@@ -282,16 +282,9 @@ function renderControls() {
 }
 
 // ------------------------------------------------------------------ aperçu
-// Le canevas occupe toute la tuile de verre (la voiture est posée dessus, sans cadre) : on dessine à la taille réelle de la tuile, plafonnée pour rester fluide.
-function fitCanvas(cv) {
-  const r = cv.getBoundingClientRect(); if (r.width < 64 || r.height < 64) return;
-  const k = Math.min(window.devicePixelRatio || 1, 1.25) * Math.min(1, 1500 / Math.max(r.width, r.height));
-  const w = Math.round(r.width * k), h = Math.round(r.height * k);
-  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
-}
 const CADRAGE = 0.5;   // la voiture occupe la moitié de la tuile environ : elle tient entière, sous tous les angles
 function previewLayer(w = 640, h = 520) {
-  return { id: 'livery-preview', type: 'model', model: 'g:rl:' + ST.car, x: 0, y: 0, w, h, rot: 0, ...ST.cam, zoom3d: ST.cam.zoom3d * CADRAGE, fov: 30, anim: 0, animTime: 0, livery: ST.id, lights: ST.lights, envLight: 0.9,
+  return { id: 'livery-preview', type: 'model', model: 'g:rl:' + ST.car, x: 0, y: 0, w, h, rot: 0, ...ST.cam, zoom3d: ST.cam.zoom3d * CADRAGE, floor: solStudio(), fov: 30, anim: 0, animTime: 0, livery: ST.id, lights: ST.lights, envLight: 0.9,
     key: { color: '#eef2ff', intensity: 1.7, angle: -45 }, rim: { color: '#7ab8ff', intensity: 2, angle: 160 }, fill: { color: '#c9d4ff', intensity: 0.6 }, ambient: { color: '#8ea3e8', intensity: 0.7 } };
 }
 function preview() {

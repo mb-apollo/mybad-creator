@@ -286,6 +286,83 @@ function instance(url, L, gltf) {
   return inst;
 }
 
+// Le canevas d'un studio occupe toute la tuile de verre (le modèle est posé dessus, sans cadre) : on dessine à la taille réelle de la tuile, plafonnée pour rester fluide.
+export function fitCanvas(cv) {
+  const r = cv.getBoundingClientRect(); if (r.width < 64 || r.height < 64) return;
+  const k = Math.min(window.devicePixelRatio || 1, 1.25) * Math.min(1, 1500 / Math.max(r.width, r.height));
+  const w = Math.round(r.width * k), h = Math.round(r.height * k);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+}
+// Sol des studios (poses, livrées) : affiché par défaut, l'interrupteur « Sol » le retire ; le choix est gardé d'un lancement à l'autre.
+const SOL_CLE = 'mbc.studio.sol';
+export const solActif = () => { try { return localStorage.getItem(SOL_CLE) !== '0'; } catch { return true; } };
+export const solRegler = on => { try { localStorage.setItem(SOL_CLE, on ? '1' : '0'); } catch { /* stockage indisponible */ } };
+export const solStudio = () => (solActif() ? { on: true, shape: 'platform', tex: true, opacity: 0.75, glow: 0.5, shadow: 0.55, reflect: 0.3, blur: 0.5 } : undefined);
+// Sol d'un studio : la même plateforme que les scènes d'affiche (béton, bord arrière net, lueur), avec ombre portée, ombres de contact sous les pieds et reflet,
+// pour un seul modèle. `grp` porte le modèle (retourné pour le reflet).
+function studioFloor(scene, fl, col, inst) {
+  const size = inst.size, platW = Math.max(Math.max(size.x, size.z) / 2 + 1.2, 2), zBack = -Math.max(0.5, size.z / 2) - 0.5, zFront = 7;
+  const grp = new THREE.Group(); scene.add(grp); grp.add(inst.pivot);
+  inst.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  const sl = new THREE.DirectionalLight(0xffffff, 0.0005); sl.position.set(0, 2.6, -2.6); sl.target.position.set(0, 0, 0); scene.add(sl, sl.target);
+  sl.castShadow = true; sl.shadow.mapSize.set(2048, 2048); sl.shadow.bias = -0.0006; sl.shadow.radius = 6;
+  const sc = sl.shadow.camera; sc.left = -4.5; sc.right = 4.5; sc.top = 4.5; sc.bottom = -4.5; sc.near = 0.5; sc.far = 14;
+  const floor = new THREE.Group(); scene.add(floor);
+  const geo = new THREE.PlaneGeometry(platW * 2, zFront - zBack); geo.rotateX(-Math.PI / 2); geo.translate(0, 0, (zBack + zFront) / 2);
+  const glowGeo = new THREE.CircleGeometry(fl.size ?? 7, 64); glowGeo.rotateX(-Math.PI / 2);
+  const darkMat = new THREE.MeshBasicMaterial({ color: col(fl.color || '$bg2'), transparent: true, opacity: fl.opacity ?? 0.75, alphaMap: platformAlpha(), depthWrite: false });
+  let planeTex = null;
+  if (fl.tex !== false) { planeTex = concreteTex().clone(); planeTex.needsUpdate = true; planeTex.repeat.set(platW * 2 / 1.6, (zFront - zBack) / 1.6); darkMat.map = planeTex; }
+  const dark = new THREE.Mesh(geo, darkMat);
+  const glow = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({ color: col('$glow'), transparent: true, opacity: fl.glow ?? 0.5, alphaMap: (_glowTex ||= radialTex(0)), blending: THREE.AdditiveBlending, depthWrite: false }));
+  glow.scale.set(0.45, 1, 0.45); glow.position.set(0, 0.001, 0);
+  const shadow = new THREE.Mesh(geo, new THREE.ShadowMaterial({ opacity: fl.shadow ?? 0.55 }));
+  shadow.receiveShadow = true; shadow.position.y = 0.002;
+  const rg = new THREE.PlaneGeometry(platW * 1.7, 0.035); rg.rotateX(-Math.PI / 2);
+  const edge = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: col('$accent'), transparent: true, opacity: Math.min(1, 0.55 * (fl.glow ?? 0.5) / 0.35), alphaMap: lineAlphaTex(), blending: THREE.AdditiveBlending, depthWrite: false }));
+  edge.position.set(0, 0.003, zBack + 0.02);
+  const blobs = new THREE.Group(); floor.add(dark, glow, shadow, edge, blobs);
+  // ombres de contact sous les pieds (personnages) : s'estompent quand le pied se lève
+  const blobGeo = new THREE.PlaneGeometry(1, 1); blobGeo.rotateX(-Math.PI / 2);
+  const rig = inst.root.userData.rig, k = inst.pivot.scale.x / inst.baseScale, ys = footYs(rig);
+  if (ys) for (const [fi, ti] of [[0, 2], [1, 3]]) {
+    const fb = rig[fi === 0 ? 'footL' : 'footR'], tb = rig[ti === 2 ? 'toeL' : 'toeR']; if (!fb) continue;
+    const f = worldPos(fb), t = tb ? worldPos(tb) : f.clone().add(new THREE.Vector3(0, 0, 0.04 * k));
+    const lift = Math.max(0, ys[fi] - inst.footRest[fi] * k), dx = t.x - f.x, dz = t.z - f.z, len = Math.hypot(dx, dz) * 2.0 + 0.16;
+    const o = Math.min(0.9, (fl.shadow ?? 0.55) * 2.0) * Math.exp(-lift / 0.035); if (o < 0.02) continue;
+    const m = new THREE.Mesh(blobGeo, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: o, alphaMap: (_glowTex ||= radialTex(0)), depthWrite: false }));
+    m.position.set((f.x + t.x) / 2, 0.004, (f.z + t.z) / 2); m.rotation.y = Math.atan2(dx, dz); m.scale.set(len * 0.62, 1, len); blobs.add(m);
+  }
+  return { grp, dark, glow, shadow, edge, blobs, dispose() {
+    grp.remove(inst.pivot); scene.remove(grp, floor, sl, sl.target);
+    geo.dispose(); glowGeo.dispose(); rg.dispose(); blobGeo.dispose(); blobs.children.forEach(m => m.material.dispose());
+    dark.material.dispose(); glow.material.dispose(); shadow.material.dispose(); edge.material.dispose(); planeTex?.dispose(); sl.shadow.map?.dispose();
+  } };
+}
+// Dessin avec le sol : reflet (modèle retourné, flou, qui s'estompe), puis sol, puis modèle et ombres.
+function drawWithFloor(r, scene, cam, fx, fl, c, pw, ph) {
+  const { grp, dark, glow, shadow, edge, blobs } = fx;
+  const show = (f, s, a) => { dark.visible = glow.visible = edge.visible = f; shadow.visible = blobs.visible = s; grp.visible = a; };
+  r.autoClear = false; r.setClearColor(0x000000, 0);
+  if ((fl.reflect ?? 0.3) > 0) {
+    r.clear(true, true, true); show(false, false, true);
+    grp.scale.y = -1; fadeMaterials(grp, fl.reflect ?? 0.3, true);
+    r.render(scene, cam);
+    fadeMaterials(grp, 0, false); grp.scale.y = 1;
+    const tmp = document.createElement('canvas'); tmp.width = pw; tmp.height = ph; const tc = tmp.getContext('2d');
+    const bl = (fl.blur ?? 0.5) * 9 * (pw / 1000);
+    if (bl > 0.3) tc.filter = `blur(${bl.toFixed(1)}px)`;
+    tc.drawImage(r.domElement, 0, 0); tc.filter = 'none';
+    const y0 = (1 - new THREE.Vector3(0, 0, 0).project(cam).y) / 2 * ph;
+    const gr = tc.createLinearGradient(0, y0 - 0.04 * ph, 0, y0 + 0.42 * ph); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    tc.globalCompositeOperation = 'destination-in'; tc.fillStyle = gr; tc.fillRect(0, 0, pw, ph);
+    c.drawImage(tmp, 0, 0);
+  }
+  r.clear(true, true, true); show(true, false, false); r.render(scene, cam); c.drawImage(r.domElement, 0, 0);
+  r.clear(true, true, true); show(false, true, true); r.render(scene, cam); c.drawImage(r.domElement, 0, 0);
+  r.autoClear = true;
+}
+
 function renderModel(L, w, h, theme, exporting) {
   if (L.actors) return renderStage(L, w, h, theme, exporting);
   const url = modelUrl(S.doc_override || S.doc, L.model);
@@ -298,7 +375,7 @@ function renderModel(L, w, h, theme, exporting) {
   const wdoc = S.doc_override || S.doc, pzr = resolvePose(L.pose, agentKeyOf(wdoc, L.model)), wdef = weaponOf(L, pzr), wurl = weaponUrl(wdoc, wdef);
   if (wurl) load(wurl);
   const fin = finOf(wdoc), arot = agentRotY(agentKeyOf(wdoc, L.model));
-  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, L.roll, L.pitch, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, L.lights, L.rimColor, liveryKey(L.livery && (!liveryOnly(L.livery) || liveryOnly(L.livery) === agentKeyOf(wdoc, L.model)) ? L.livery : ''), L.gloss, L.lampF, L.lampR, L.lampGlow, theme.glow, theme.accent, theme.text]);
+  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, L.roll, L.pitch, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, L.lights, L.rimColor, liveryKey(L.livery && (!liveryOnly(L.livery) || liveryOnly(L.livery) === agentKeyOf(wdoc, L.model)) ? L.livery : ''), L.gloss, L.lampF, L.lampR, L.lampGlow, L.floor, theme.glow, theme.accent, theme.text, theme.bg2]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
@@ -343,6 +420,7 @@ function renderModel(L, w, h, theme, exporting) {
   const rl2 = new THREE.DirectionalLight(col(rim.color || '$glow'), (rim.intensity ?? 4) * 0.6);
   rl2.position.set(-Math.sin(ra) * 3, 1.8, Math.cos(ra) * 3); scene.add(rl2);
   if ((fill.intensity ?? 0.4) > 0) { const fl = new THREE.DirectionalLight(col(fill.color || '$accent'), fill.intensity ?? 0.4); fl.position.set(0, 0.3, 3); scene.add(fl); }
+  const flr = L.floor?.on ? studioFloor(scene, L.floor, col, inst) : null;   // sol des studios (poses, livrées) : activable, absent des affiches
 
   const fov = L.fov || 28;
   const sz = tilt || inst.size;
@@ -356,14 +434,15 @@ function renderModel(L, w, h, theme, exporting) {
   cam.position.set((L.offsetX || 0) * sz.y, targetY + Math.sin(pitch) * dist, Math.cos(pitch) * dist);
   cam.lookAt((L.offsetX || 0) * sz.y, targetY, 0);
   if (!r.warmModel) { r.warmModel = true; r.render(scene, cam); }   // premier rendu de ce personnage : le premier passage sort décalé et trop zoomé, on le rejoue
-  r.render(scene, cam);
-  recordHandles(L, cam, [{ inst, actor: null }]);
-  dropWeapons([held]);
-  scene.remove(inst.pivot);
-
   const out = cached?.canvas || document.createElement('canvas');
   out.width = pw; out.height = ph;
-  const c = out.getContext('2d'); c.clearRect(0, 0, pw, ph); c.drawImage(r.domElement, 0, 0);
+  const c = out.getContext('2d'); c.clearRect(0, 0, pw, ph);
+  if (flr) drawWithFloor(r, scene, cam, flr, L.floor, c, pw, ph);
+  else { r.render(scene, cam); c.drawImage(r.domElement, 0, 0); }
+  recordHandles(L, cam, [{ inst, actor: null }]);
+  dropWeapons([held]);
+  inst.pivot.removeFromParent();
+  if (flr) flr.dispose();
   if (L.lights === 'on' && wdoc.game === 'rl') feather(c, pw, ph);   // les halos dépassent du cadre du rendu : fondu des bords pour qu'ils ne finissent pas en carré
   RENDERS.set(L.id, { key: params, canvas: out, cam, inst });
   return out;

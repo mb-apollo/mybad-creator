@@ -1,2 +1,1 @@
-- Nouveau look par défaut : tes réglages d'apparence (bleu vif, lueurs plus fortes, verre plus transparent) deviennent ceux du logiciel
-- Créateur de livrées et Studio de poses : la zone 3D est une tuile de verre transparente ; la voiture est dessinée sur toute la tuile, sans cadre, et n'est plus coupée sur les bords
+- Studio de poses et Créateur de livrées : un sol sous le personnage ou la voiture (ombres, reflet) pour mieux juger la pose ; activé par défaut, bouton « Sol » pour le masquer, réglage mémorisé

@@ -167,10 +167,10 @@ html, body { background: var(--da-fond); }
 #poselab .pl-ctl, #liverylab .pl-ctl { padding: 14px 16px 30px; }
 /* aperçu 3D : une tuile de verre transparente comme les autres ; le modèle est posé dessus, sans cadre ni fond autour (le canevas est transparent) */
 #poselab .pl-view, #liverylab .pl-view { overflow: hidden; }
-/* Créateur de livrées : la voiture est dessinée sur toute la tuile (pas dans un cadre), les boutons de vue flottent en bas par-dessus */
-#liverylab .pl-view { justify-content: flex-end; padding-bottom: 16px; }
-#liverylab .pl-view canvas { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; aspect-ratio: auto; }
-#liverylab .pl-cam, #liverylab .pl-hint { position: relative; z-index: 1; }
+/* le modèle (voiture ou personnage) est dessiné sur toute la tuile (pas dans un cadre), les boutons de vue flottent en bas par-dessus */
+#poselab .pl-view, #liverylab .pl-view { justify-content: flex-end; padding-bottom: 16px; }
+#poselab .pl-view canvas, #liverylab .pl-view canvas { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; aspect-ratio: auto; }
+#poselab .pl-cam, #poselab .pl-hint, #liverylab .pl-cam, #liverylab .pl-hint { position: relative; z-index: 1; }
 /* choix dans les listes */
 #poselab .pl-list button, #liverylab .pl-list button { border-radius: 12px; color: var(--da-texte); transition: background .2s; }
 #poselab .pl-list button:hover, #liverylab .pl-list button:hover { background: color-mix(in srgb, var(--da-reflet) 10%, transparent); }

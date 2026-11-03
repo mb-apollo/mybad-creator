@@ -5,7 +5,7 @@
 import { S } from './state.js';
 import { esc, setPath, getPath, section, syncRange } from './ui.js';
 import { gameItems, WEAPONS } from './engine/games.js';
-import { renderModelPreview, HANDS } from './model3d.js';
+import { renderModelPreview, HANDS, solActif, solRegler, solStudio, fitCanvas } from './model3d.js';
 import { WEAPON_STANCES, poseValues } from './pose3d.js';
 import { getItem, setItem, resetItem, resetAll, hasOverride, overrideCount, exportConfig, importConfig, presetsList, customList, addCustom, renameCustom, deleteCustom, beginDraft, saveDraft, endDraft, isDirty, undoDraft, redoDraft, canUndoDraft, canRedoDraft } from './posereg.js';
 
@@ -176,6 +176,7 @@ function build() {
   };
   // caméra : glisser pour tourner, molette pour zoomer
   const cv = $('#plCanvas', root);
+  new ResizeObserver(() => { if (ST.open) preview(); }).observe(cv);   // l'aperçu remplit toute la tuile : on redessine quand elle change de taille
   cv.onpointerdown = e => { try { cv.setPointerCapture(e.pointerId); } catch { /* pointeur synthétique */ } cv._x = e.clientX; cv._y = e.clientY; cv._mv = e.shiftKey && !!aimTarget(); };
   cv.onpointermove = e => {
     if (cv._x == null) return;
@@ -185,11 +186,12 @@ function build() {
   cv.onpointerup = () => { cv._x = null; cv._mv = false; };
   cv.onwheel = e => { e.preventDefault(); ST.cam.zoom3d = Math.max(0.5, Math.min(4, ST.cam.zoom3d * (e.deltaY < 0 ? 1.08 : 0.92))); preview(); };
   $('#plCam', root).onclick = e => {
+    const s = e.target.closest('button[data-sol]'); if (s) { const on = !solActif(); solRegler(on); s.classList.toggle('on', on); preview(); return; }
     const b = e.target.closest('button[data-v]'); if (!b) return;
     const [rotY, camPitch, zoom3d, target, offsetX] = b.dataset.v.split(',').map(Number);
     Object.assign(ST.cam, { rotY, camPitch, zoom3d, target, offsetX }); preview();
   };
-  $('#plCam', root).innerHTML = [['Face', '0,3,1,0.5,0'], ['3/4', '-30,3,1,0.5,0'], ['Profil', '-90,3,1,0.5,0'], ['Dos', '180,3,1,0.5,0'], ['Dessus', '-30,55,1,0.5,0'], ['Buste', '-25,3,1.9,0.72,0'], ['Mains', '-40,10,2.6,0.6,0']].map(([l, v]) => `<button class="mini-btn" data-v="${v}">${l}</button>`).join('');
+  $('#plCam', root).innerHTML = [['Face', '0,3,1,0.5,0'], ['3/4', '-30,3,1,0.5,0'], ['Profil', '-90,3,1,0.5,0'], ['Dos', '180,3,1,0.5,0'], ['Dessus', '-30,55,1,0.5,0'], ['Buste', '-25,3,1.9,0.72,0'], ['Mains', '-40,10,2.6,0.6,0']].map(([l, v]) => `<button class="mini-btn" data-v="${v}">${l}</button>`).join('') + `<button class="mini-btn ${solActif() ? 'on' : ''}" data-sol title="Afficher ou masquer le sol (ombres et reflet)">Sol</button>`;
   document.addEventListener('keydown', e => {
     if (!ST.open) return;
     const typing = /^(INPUT|TEXTAREA)$/.test(e.target.tagName) && e.target.type !== 'range' && e.target.type !== 'checkbox';
@@ -265,13 +267,14 @@ function mirror([from, to]) {
 // ------------------------------------------------------------------ aperçu 3D
 const PLACE = ['scale', 'x', 'y', 'z', 'rx', 'ry', 'rz', 'lx', 'ly', 'lz', 'lroll'];
 const placeOf = d => Object.fromEntries(PLACE.filter(k => d[k] != null).map(k => [k, d[k]]));
-function previewLayer() {
+const CADRAGE = 0.88;   // le personnage reste au-dessus des boutons de vue, qui flottent en bas de la tuile
+function previewLayer(w = 640, h = 800) {
   const it = find(ST.id), d = ST.data, ag = ST.agent;
   let pose, weapon = null;
   if (it.type === 'stance') { const { both, aim, hand, ...p } = d; pose = { on: true, ...p }; weapon = { ...placeOf(d), key: ST.weapon[it.kind], hand: hand || (both ?? it.kind === 'rifle' ? 'RL' : 'R'), both, aim }; }
   else if (it.type === 'weapon') { const { both, aim, hand, ...p } = getItem(`stance:${it.kind}:${ST.previewStance}`); pose = { on: true, ...p }; weapon = { ...d, key: it.key, hand: hand || (both ?? it.kind === 'rifle' ? 'RL' : 'R'), both, aim }; }
   else { const { weapon: w, ...p } = d; pose = { on: true, ...p }; weapon = w?.key ? w : null; }
-  return { id: 'poselab-preview', type: 'model', model: 'g:valorant:' + ag, x: 0, y: 0, w: 640, h: 800, rot: 0, ...ST.cam, fov: 28, anim: 0, animTime: 0,
+  return { id: 'poselab-preview', type: 'model', model: 'g:valorant:' + ag, x: 0, y: 0, w, h, rot: 0, ...ST.cam, zoom3d: ST.cam.zoom3d * CADRAGE, floor: solStudio(), fov: 28, anim: 0, animTime: 0,
     key: { color: '#ffffff', intensity: 1.5, angle: -35 }, rim: { color: '#7ab8ff', intensity: 2, angle: 150 }, fill: { color: '#ffffff', intensity: 0.7 }, ambient: { color: '#ffffff', intensity: 0.8 }, pose, weapon };
 }
 // Objet « visée » de l'élément en cours (pose avec arme, ou position d'arme), sinon null.
@@ -284,7 +287,7 @@ function aimTarget() {
 // Déplace l'arme avec la souris : le glissé est converti en mètres dans le repère du personnage (avant, haut, côté) selon l'angle de caméra.
 function dragWeapon(dx, dy, cv) {
   const t = aimTarget(); if (!t) return;
-  const a = t.aim, r = cv.getBoundingClientRect(), k = (cv.width / r.width) / (680 * ST.cam.zoom3d); // pixels d'écran → hauteurs de personnage
+  const a = t.aim, r = cv.getBoundingClientRect(), k = (cv.width / r.width) / (680 * (cv.height / 800) * ST.cam.zoom3d * CADRAGE); // pixels d'écran → hauteurs de personnage
   const ux = dx * k, uy = -dy * k, ry = (ST.cam.rotY * Math.PI) / 180;
   a.z = (a.z ?? 0) - ux * Math.cos(ry); a.x = (a.x ?? 0) + ux * Math.sin(ry); a.y = (a.y ?? 0) + uy;
   persist(); renderControls();
@@ -294,8 +297,9 @@ function preview() {
   ST.raf = requestAnimationFrame(() => {
     ST.raf = 0;
     const cv = $('#plCanvas', root), ctx = cv.getContext('2d');
+    fitCanvas(cv);
     let out = null;
-    try { out = renderModelPreview(previewLayer(), 640, 800, S.doc.theme); } catch (err) { console.error('Studio de poses', err); }
+    try { out = renderModelPreview(previewLayer(cv.width, cv.height), cv.width, cv.height, S.doc.theme); } catch (err) { console.error('Studio de poses', err); }
     if (out) { ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(out, 0, 0, cv.width, cv.height); ST.tries = 0; }
     else if (ST.tries++ < 60) setTimeout(() => { if (ST.open) preview(); }, 350); // modèles encore en chargement
   });

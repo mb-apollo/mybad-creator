@@ -93,10 +93,10 @@ export function deleteCustom(id) { REG.custom = (REG.custom || []).filter(c => c
 
 // Export / import : l'import fusionne (un fichier par agent est possible). Un fichier qui ne contient que « default » et dont le nom est
 // celui d'un agent (ex. Jett.json) devient la pose de cet agent.
-export function exportConfig() { return JSON.stringify({ app: 'MyBad Creator', kind: 'poselab', version: 2, data: REG }, null, 2); }
+export function exportConfig() { return JSON.stringify({ app: 'Heliance Creator', kind: 'poselab', version: 2, data: REG }, null, 2); }
 export function importConfig(text, fileName = '', agentKeys = []) {
   const j = JSON.parse(text);
-  if (j?.kind !== 'poselab' || typeof j.data !== 'object') throw new Error('Ce fichier n\'est pas une configuration de poses MyBad Creator.');
+  if (j?.kind !== 'poselab' || typeof j.data !== 'object') throw new Error('Ce fichier n\'est pas une configuration de poses Heliance Creator.');
   const d = clone(j.data), base = fileName.replace(/^.*[\\/]/, '').replace(/\.[^.]*$/, '').toLowerCase();
   if (d.default && !d.agents && agentKeys.includes(base)) { d.agents = { [base]: d.default }; delete d.default; }
   if (d.default) REG.default = d.default;

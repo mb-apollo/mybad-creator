@@ -1,6 +1,6 @@
 appId: fr.mybadesport.creator
-productName: MyBad Creator
-copyright: © 2026 MyBad Esport
+productName: Heliance Creator
+copyright: © 2026 Heliance Esport
 directories:
   output: release
   buildResources: build
@@ -20,8 +20,8 @@ files:
 npmRebuild: false
 fileAssociations:
   - ext: mybad
-    name: Projet MyBad Creator
-    description: Projet d'affiche MyBad Creator
+    name: Projet Heliance Creator
+    description: Projet d'affiche Heliance Creator
     icon: build/icon.ico
 win:
   target: [nsis]
@@ -33,15 +33,15 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
   createStartMenuShortcut: true
-  shortcutName: MyBad Creator
-  uninstallDisplayName: MyBad Creator
+  shortcutName: Heliance Creator
+  uninstallDisplayName: Heliance Creator
   installerIcon: build/icon.ico
   uninstallerIcon: build/icon.ico
   installerHeaderIcon: build/icon.ico
   language: "1036"
   installerLanguages: [fr_FR]
   deleteAppDataOnUninstall: false
-  artifactName: MyBad-Creator-Setup-${version}.exe
+  artifactName: Heliance-Creator-Setup-${version}.exe
 publish:
   provider: github
   owner: mb-apollo

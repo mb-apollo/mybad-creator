@@ -1,1 +1,2 @@
-- Sol des studios (poses et livrées) : plus de halo ni de ligne lumineuse derrière ; il prend le bleu des lueurs de fond du logiciel au lieu du bleu-vert
+- Nouveau nom : le logiciel s'appelle maintenant **Heliance Creator** (Heliance Esport) et reprend la nouvelle icône Heliance
+- Tes réglages, ta bibliothèque et tes projets .mybad sont conservés tels quels ; l'ancien raccourci « MyBad Creator » est remplacé par « Heliance Creator »

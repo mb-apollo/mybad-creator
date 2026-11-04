@@ -1,4 +1,4 @@
-# Publie automatiquement une nouvelle version de MyBad Creator
+# Publie automatiquement une nouvelle version de Heliance Creator
 # dès que le numéro de version de package.json change sur la branche main.
 name: Publier une version
 on:
@@ -44,5 +44,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           V=${{ steps.check.outputs.version }}
-          node installer-ui/build.js "release/MyBad-Creator-Setup-$V.exe"
-          gh release upload "v$V" "release/MyBad-Creator-Installateur-$V.exe" --clobber
+          node installer-ui/build.js "release/Heliance-Creator-Setup-$V.exe"
+          gh release upload "v$V" "release/Heliance-Creator-Installateur-$V.exe" --clobber

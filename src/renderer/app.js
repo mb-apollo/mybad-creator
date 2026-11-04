@@ -1,4 +1,4 @@
-// MyBad Creator — démarrage, barre d'outils, fichiers, export, kit de marque, bibliothèque et mises à jour.
+// Heliance Creator — démarrage, barre d'outils, fichiers, export, kit de marque, bibliothèque et mises à jour.
 import { S, API, on, emit, change, setDoc, normalize, select, selected, layerById, undo, redo, canUndo, canRedo, flushHistory, setDirty, resetHistory, toast } from './state.js';
 import * as posereg from './posereg.js';
 import { newDocument, applyTemplate, renderDoc, FORMATS, THEMES, setGameDefaults, MYBAD_KIT } from './engine/render.js';
@@ -303,7 +303,7 @@ async function loadFrom(res) {
     await prepare(doc);
     setDoc(doc); setDirty(false); afterDocLoad();
     toast(`Projet ouvert : ${S.projectName}`);
-  } catch { toast('Ce fichier n\'est pas un projet MyBad Creator valide.', true); }
+  } catch { toast('Ce fichier n\'est pas un projet Heliance Creator valide.', true); }
 }
 async function prepare(doc) { await whenLoaded(docImageUrls(doc, S.library)); await preloadModels(doc); }
 async function confirmDiscard() {
@@ -385,7 +385,7 @@ $('#btnUndo').onclick = undo;
 $('#btnRedo').onclick = redo;
 
 // ---------------------------------------------------------------- kit de marque & assistant de démarrage
-const KIT_FIELDS = [['org', 'Nom de la structure', 'Ex. MYBAD ESPORT'], ['live', 'Lien de stream', 'twitch.tv/ta-chaine'], ['coach', 'Coach', ''], ['sig', 'Signature (ligne 1)', 'Facultatif'], ['coords', 'Signature (ligne 2)', 'Facultatif']];
+const KIT_FIELDS = [['org', 'Nom de la structure', 'Ex. HELIANCE ESPORT'], ['live', 'Lien de stream', 'twitch.tv/ta-chaine'], ['coach', 'Coach', ''], ['sig', 'Signature (ligne 1)', 'Facultatif'], ['coords', 'Signature (ligne 2)', 'Facultatif']];
 function kitForm(k, wizard) {
   const T = k.T || {};
   const roster = g => {
@@ -395,8 +395,8 @@ function kitForm(k, wizard) {
   const accent = (k.themeColors && k.themeColors.accent) || (THEMES.find(t => t.id === (k.theme || 'nuit')) || THEMES[0]).c.accent;
   const glow = (k.themeColors && k.themeColors.glow) || (THEMES.find(t => t.id === (k.theme || 'nuit')) || THEMES[0]).c.glow;
   return `
-    ${wizard ? `<div class="wiz-hero"><img src="assets/logo-mark.png" alt=""><div><h3>Bienvenue dans MyBad Creator</h3><p>Configure ta structure une fois : son nom, son logo et ses couleurs seront repris dans toutes tes affiches. Tu pourras tout changer plus tard dans <b>Kit de marque</b>.</p></div></div>
-      <button class="kit-mybad" id="kUseMyBad"><img src="assets/brand/mybad-logo.png" alt=""><span><b>Je fais partie de MyBad Esport</b><small>Remplir avec le kit officiel (logo, nom, signature, ambiance)</small></span></button>
+    ${wizard ? `<div class="wiz-hero"><img src="assets/logo-mark.png" alt=""><div><h3>Bienvenue dans Heliance Creator</h3><p>Configure ta structure une fois : son nom, son logo et ses couleurs seront repris dans toutes tes affiches. Tu pourras tout changer plus tard dans <b>Kit de marque</b>.</p></div></div>
+      <button class="kit-mybad" id="kUseMyBad"><img src="assets/brand/mybad-logo.png" alt=""><span><b>Je fais partie de Heliance Esport</b><small>Remplir avec le kit officiel (logo, nom, signature, ambiance)</small></span></button>
       <div class="wiz-or"><span>ou configure ta structure</span></div>` : ''}
     <div class="kit-top">
       <div class="kit-logo"><div class="kit-logo-prev" id="kLogoPrev">${k.logo ? `<img src="${esc(k.logo)}" alt="">` : '<span>Logo</span>'}</div>
@@ -433,7 +433,7 @@ function bindKitForm(k, rerender) {
   });
   $('#kLogoDel')?.addEventListener('click', () => { readKit(k); k.logo = null; rerender(); });
   $('#kTheme').onchange = () => { const c = (THEMES.find(t => t.id === $('#kTheme').value) || THEMES[0]).c; $('#kAccent').value = c.accent; $('#kGlow').value = c.glow; };
-  $('#kUseMyBad')?.addEventListener('click', () => { Object.assign(k, JSON.parse(JSON.stringify(MYBAD_KIT)), { rosters: k.rosters || {} }); rerender(); toast('Kit MyBad Esport chargé : vérifie et valide'); });
+  $('#kUseMyBad')?.addEventListener('click', () => { Object.assign(k, JSON.parse(JSON.stringify(MYBAD_KIT)), { rosters: k.rosters || {} }); rerender(); toast('Kit Heliance Esport chargé : vérifie et valide'); });
 }
 async function applyKitToDoc(k) {
   const t = THEMES.find(x => x.id === (k.theme || 'nuit')) || THEMES[0];
@@ -583,7 +583,7 @@ async function openUpdates(refreshOnly = false) {
     downloading: [`Téléchargement de la version ${update.version}…`, 'new'], downloaded: [`La version ${update.version} est prête à être installée.`, 'ok'],
     error: [`Vérification impossible : ${update.error || 'erreur inconnue'}`, 'err'], dev: ['Les mises à jour automatiques fonctionnent dans la version installée du logiciel.', ''],
   }[update.state] || ['', ''];
-  const body = `<div class="about"><div class="about-logo"><img src="assets/logo-mark.png" alt=""><div><h3>MyBad Creator</h3><span>Version installée : <b>${esc(info?.version || '?')}</b>${update.version && update.state !== 'none' ? ` · disponible : <b>${esc(update.version)}</b>` : ''}</span></div></div>
+  const body = `<div class="about"><div class="about-logo"><img src="assets/logo-mark.png" alt=""><div><h3>Heliance Creator</h3><span>Version installée : <b>${esc(info?.version || '?')}</b>${update.version && update.state !== 'none' ? ` · disponible : <b>${esc(update.version)}</b>` : ''}</span></div></div>
     <div class="upd-card ${st[1]}"><p class="upd-state">${esc(st[0])}</p>
     ${update.state === 'downloading' ? `<div class="pbar big"><i style="width:${pct}%"></i></div><p class="hint">${pct} %</p>` : ''}
     ${update.lastCheck ? `<p class="hint">Dernière vérification : ${new Date(update.lastCheck).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</p>` : ''}</div>
@@ -605,7 +605,7 @@ async function installUpdate() {
   flushHistory();
   await API?.storeSet('session', { doc: S.doc, filePath: S.filePath, projectName: S.projectName, dirty: S.dirty });
   // La mise à jour s'installe en silence (plus d'assistant Windows) : on prévient avant que la fenêtre se ferme, puis le logiciel se rouvre tout seul.
-  openModal('Mise à jour en cours', `<div class="packmodal"><p>MyBad Creator va se fermer, installer la mise à jour, puis <b>se rouvrir tout seul</b> (compte une vingtaine de secondes).</p><p class="muted">Ton projet est enregistré : tu le retrouveras tel quel. Si Windows demande une autorisation, accepte-la.</p></div>`, '', false);
+  openModal('Mise à jour en cours', `<div class="packmodal"><p>Heliance Creator va se fermer, installer la mise à jour, puis <b>se rouvrir tout seul</b> (compte une vingtaine de secondes).</p><p class="muted">Ton projet est enregistré : tu le retrouveras tel quel. Si Windows demande une autorisation, accepte-la.</p></div>`, '', false);
   setTimeout(() => API?.updateInstall(), 1600);
 }
 API?.onUpdate(u => {

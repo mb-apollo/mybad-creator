@@ -1,4 +1,4 @@
-// Modèle de document MyBad Creator : formats, thèmes (DA), champs, application des modèles.
+// Modèle de document Heliance Creator : formats, thèmes (DA), champs, application des modèles.
 import { renderScene, scaledDoc, uid, setDocFonts, migrateFade } from './scene.js';
 import { TEMPLATES } from './templates.js';
 import { GAMES } from './games.js';
@@ -11,7 +11,7 @@ export const FORMATS = {
 
 const BASE = { text: '#F5F7FF', muted: '#9AA0B8', line: '#2C3352', panel: '#0B0F1D', white: '#FFFFFF' };
 export const THEMES = [
-  { id: 'nuit', name: 'Nuit MyBad', c: { ...BASE, bg: '#05070E', bg2: '#0C1226', accent: '#54D8FF', accent2: '#7A6BFF', glow: '#1E8FFF', light: 1 } },
+  { id: 'nuit', name: 'Nuit Heliance', c: { ...BASE, bg: '#05070E', bg2: '#0C1226', accent: '#54D8FF', accent2: '#7A6BFF', glow: '#1E8FFF', light: 1 } },
   { id: 'nuitpure', name: 'Nuit pure', c: { ...BASE, bg: '#05060C', bg2: '#0A0D1A', accent: '#54D8FF', accent2: '#7A6BFF', glow: '#1E8FFF', light: 0.45 } },
   { id: 'polaris', name: 'Polaris (victoire)', c: { ...BASE, bg: '#06050F', bg2: '#120E2C', accent: '#A99DFF', accent2: '#54D8FF', glow: '#7A6BFF', light: 1.1 } },
   { id: 'defaite', name: 'Défaite', c: { ...BASE, bg: '#07050A', bg2: '#170A12', accent: '#FF6B7A', accent2: '#FF9AA4', glow: '#D52C3D', light: 0.8 } },
@@ -67,10 +67,10 @@ export const RL_DEFAULTS = {
   recSub: 'Roster Rocket League · 3v3', rec1: 'Joueur — rang minimum', rec2: 'Remplaçant', rec3: 'Coach Rocket League', rec4: 'Caster / créateur de contenu',
 };
 
-// Kit officiel MyBad Esport (proposé dans l'assistant de démarrage)
+// Kit officiel Heliance Esport (proposé dans l'assistant de démarrage)
 export const MYBAD_KIT = {
-  v: 2, name: 'MyBad Esport', game: 'valorant', theme: 'nuit', logo: 'assets/brand/mybad-logo.png',
-  T: { org: 'MYBAD ESPORT', live: 'twitch.tv/mybad_esport', liveUrl: 'twitch.tv/mybad_esport', sig: 'POLARIS / NORTH STAR', coords: '48.8566° N — 2.3522° E', recCta: 'Candidature sur le Discord MyBad' },
+  v: 2, name: 'Heliance Esport', game: 'valorant', theme: 'nuit', logo: 'assets/brand/mybad-logo.png',
+  T: { org: 'HELIANCE ESPORT', live: 'twitch.tv/mybad_esport', liveUrl: 'twitch.tv/mybad_esport', sig: 'POLARIS / NORTH STAR', coords: '48.8566° N — 2.3522° E', recCta: 'Candidature sur le Discord Heliance Esport' },
   rosters: {},
 };
 

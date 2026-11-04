@@ -1,6 +1,6 @@
-# MyBad Creator
+# Heliance Creator
 
-L'éditeur d'affiches de MyBad Esport (Windows). Modèles Valorant et Rocket League, calques façon Photoshop,
+L'éditeur d'affiches de Heliance Esport (Windows). Modèles Valorant et Rocket League, calques façon Photoshop,
 effets, détourage automatique, modèles 3D (.glb) et mise à jour en un clic.
 
 ## Publier une mise à jour

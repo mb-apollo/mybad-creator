@@ -10,7 +10,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const ST = { lights: 'on', drag: null, open: false, id: 'nuit', def: null, car: 'octane', cam: { rotY: 330, camPitch: 10, zoom3d: 0.95, target: 0.5, offsetX: 0 }, sel: null, perCar: false, rename: false, hist: [], hi: -1, raf: 0, tries: 0, t: 0 };
 let root = null;
 
-const KIND = { logo: 'Logo MyBad', star: 'Étoile', image: 'Image', text: 'Texte', stripe: 'Bande' };
+const KIND = { logo: 'Logo Heliance', star: 'Étoile', image: 'Image', text: 'Texte', stripe: 'Bande' };
 const layerName = L => (L.kind === 'text' ? `Texte « ${(L.text || '').slice(0, 18)} »` : KIND[L.kind]) + ((L.face || 'side') === 'top' ? ' · dessus' : '');
 const lv = (L, k) => L.ov?.[ST.car]?.[k] ?? L[k];
 const PER_CAR = ['x', 'y', 'size', 'rot'];
@@ -87,7 +87,7 @@ function build() {
     if (a === 'restoreB') { restoreBuiltins(); refreshList(); status_('Livrées fournies restaurées'); return; }
     if (!ST.def) return;
     const L = ST.def.layers;
-    if (a.startsWith('add-')) { const k = a.slice(4); const nl = newLayer(k, k === 'text' ? { text: 'MYBAD' } : {}); L.push(nl); ST.sel = nl.id; if (k === 'image') { change(true); $('#llFile', root).click(); return; } change(true); return; }
+    if (a.startsWith('add-')) { const k = a.slice(4); const nl = newLayer(k, k === 'text' ? { text: 'HELIANCE' } : {}); L.push(nl); ST.sel = nl.id; if (k === 'image') { change(true); $('#llFile', root).click(); return; } change(true); return; }
     if (a === 'zone-reset') { delete ST.def.zones?.[b.dataset.k]; change(true); return; }
     if (a === 'pick') { ST.sel = L[i].id; renderControls(); return; }
     if (a === 'vis') { L[i].visible = L[i].visible === false; change(true); return; }

@@ -1,6 +1,6 @@
-# MyBad Creator — contexte pour Claude Code
+# Heliance Creator — contexte pour Claude Code
 
-Éditeur d'affiches esport (Windows, Electron) créé pour MyBad Esport, rendu générique pour d'autres structures.
+Éditeur d'affiches esport (Windows, Electron) créé pour Heliance Esport, rendu générique pour d'autres structures.
 Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « Apollo ») tutoie et parle français.
 
 ## Lancer et construire
@@ -11,7 +11,7 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   la proposent dans l'onglet **Mises à jour** (electron-updater, provider GitHub `mb-apollo/mybad-creator`).
   Mettre à jour `build/release-notes.md` à chaque version.
 - Installateur à tuiles (`installer-ui/`, voir son README) : fenêtre sur mesure en C# (csc.exe de Windows) qui embarque et pilote l'installateur NSIS. Le workflow le
-  construit après `npm run release` et l'ajoute à la release (`MyBad-Creator-Installateur-<version>.exe`). Il se publie **à côté** de l'installateur NSIS, jamais à sa place :
+  construit après `npm run release` et l'ajoute à la release (`Heliance-Creator-Installateur-<version>.exe`). Il se publie **à côté** de l'installateur NSIS, jamais à sa place :
   `latest.yml` (mises à jour automatiques) doit rester celui de l'installateur NSIS. Design : kit Liquid Glass (`src/renderer/kit/`), palette du logo MyBad Studio.
 
 ## Architecture

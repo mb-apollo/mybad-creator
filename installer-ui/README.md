@@ -5,7 +5,7 @@ Elle **pilote le vrai installateur NSIS en arrière-plan** : il est embarqué da
 (Paramètres Windows › Applications) et le dossier d'installation restent exactement ceux d'avant.
 
 ## Ce qui change, ce qui ne change pas
-- **Les mises à jour automatiques ne changent pas** : `electron-updater` continue d'utiliser l'installateur NSIS habituel (`MyBad-Creator-Setup-x.y.z.exe`, celui de `latest.yml`).
+- **Les mises à jour automatiques ne changent pas** : `electron-updater` continue d'utiliser l'installateur NSIS habituel (`Heliance-Creator-Setup-x.y.z.exe`, celui de `latest.yml`).
   Il ne faut **pas** publier l'installateur sur mesure à sa place (l'empreinte de `latest.yml` ne correspondrait plus). Il se publie à côté, comme un second fichier.
 - L'installateur sur mesure sert à la **première installation** : choix du dossier, deux raccourcis (Bureau, menu Démarrer), progression, bouton « Ouvrir ».
 - Lancé avec `/S` (silencieux), il relaie tel quel les options au moteur : un déploiement automatique marche comme avant.
@@ -14,9 +14,9 @@ Elle **pilote le vrai installateur NSIS en arrière-plan** : il est embarqué da
 1. Construire l'installateur NSIS comme d'habitude : `npm run dist` (il arrive dans `release/`).
 2. Puis :
    ```powershell
-   node installer-ui/build.js release\MyBad-Creator-Setup-<version>.exe
+   node installer-ui/build.js release\Heliance-Creator-Setup-<version>.exe
    ```
-   Le fichier `release\MyBad-Creator-Installateur-<version>.exe` est créé (≈ 120 Mo, comme l'installateur NSIS).
+   Le fichier `release\Heliance-Creator-Installateur-<version>.exe` est créé (≈ 120 Mo, comme l'installateur NSIS).
    Il se compile avec `csc.exe`, déjà présent dans Windows (.NET Framework 4.8) : rien à installer.
 
 ## Tester sans toucher à ton installation

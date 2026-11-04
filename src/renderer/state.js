@@ -114,7 +114,7 @@ export function resetHistory() { H.stack = []; H.index = -1; commit(true); }
 export function setDirty(v) {
   S.dirty = v;
   API?.setDirty(v);
-  API?.setTitle(`${S.projectName}${v ? ' •' : ''} — MyBad Creator`);
+  API?.setTitle(`${S.projectName}${v ? ' •' : ''} — Heliance Creator`);
   emit('dirty');
 }
 

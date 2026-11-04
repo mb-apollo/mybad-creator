@@ -1,4 +1,4 @@
-// Modèles d'affiches MyBad Creator. Chaque modèle génère des calques éditables,
+// Modèles d'affiches Heliance Creator. Chaque modèle génère des calques éditables,
 // reliés aux champs du contenu ({event}, {p1}…) pour rester modifiables depuis le panneau Contenu.
 import { EMBLEM_RATIO } from './scene.js';
 import { defaultLivery } from '../livery.js';

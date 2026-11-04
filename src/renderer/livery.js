@@ -15,13 +15,13 @@ export const newLayer = (kind, o = {}) => {
     logo: { face: 'side', x: 0.5, y: 0.55, size: 0.45, rot: 0, color: '#ffffff', color2: '#9fe3ff', opacity: 1, glow: 0.3, star: false },
     star: { face: 'side', x: 0.5, y: 0.5, size: 0.1, rot: 0, color: '#ffffff', opacity: 1, glow: 1 },
     image: { face: 'side', x: 0.5, y: 0.5, size: 0.4, rot: 0, opacity: 1, glow: 0, src: '' },
-    text: { face: 'side', x: 0.2, y: 0.2, size: 0.07, rot: 0, color: '#ffffff', opacity: 1, glow: 0.3, text: 'MYBAD', font: 'Montserrat', weight: 800, italic: true },
+    text: { face: 'side', x: 0.2, y: 0.2, size: 0.07, rot: 0, color: '#ffffff', opacity: 1, glow: 0.3, text: 'HELIANCE', font: 'Montserrat', weight: 800, italic: true },
     stripe: { face: 'side', x: 0.5, y: 0.6, rot: -18, len: 1.2, thick: 6, color: '#8fdcff', opacity: 0.8, glow: 0.5 },
   }[kind];
   return { id: 'l' + Date.now().toString(36) + (++LN), kind, ...base, ...o };
 };
 const nuit = () => ({
-  name: 'MyBad — Nuit', base: ['#070e30', '#03060f'], gloss: 0.7, metal: 0.45, glow: { color: '#3c96ff', amount: 0.38 }, zones: { chassis: '#0a1640' },
+  name: 'Heliance — Nuit', base: ['#070e30', '#03060f'], gloss: 0.7, metal: 0.45, glow: { color: '#3c96ff', amount: 0.38 }, zones: { chassis: '#0a1640' },
   layers: [
     newLayer('stripe', { x: 0.5, y: 0.55, rot: -18, len: 1.3, thick: 5, opacity: 0.75, glow: 0.6 }),
     newLayer('stripe', { x: 0.5, y: 0.66, rot: -18, len: 1.3, thick: 2.5, opacity: 0.5, glow: 0.4 }),
@@ -29,21 +29,21 @@ const nuit = () => ({
     ...[[0.2, 0.3, 0.018], [0.3, 0.52, 0.012], [0.74, 0.62, 0.014], [0.86, 0.3, 0.01], [0.62, 0.2, 0.009]].map(([x, y, r]) => newLayer('star', { x, y, size: r * 2, glow: 0.8 })),
     newLayer('logo', { x: 0.47, y: 0.575, size: 0.45, color: '#9db9dc', color2: '#5f8fc4', opacity: 0.88, glow: 0,
       ov: { octane: { x: 0.47, y: 0.575, size: 0.46 }, fennec: { x: 0.45, y: 0.575, size: 0.43 }, dominus: { x: 0.45, y: 0.575, size: 0.41 } } }),
-    newLayer('text', { x: 0.17, y: 0.2, size: 0.07, text: 'MYBAD ESPORT', color: '#9fc4e6', opacity: 0.9 }),
+    newLayer('text', { x: 0.17, y: 0.2, size: 0.07, text: 'HELIANCE ESPORT', color: '#9fc4e6', opacity: 0.9 }),
     newLayer('star', { face: 'top', x: 0.5, y: 0.25, size: 0.32, glow: 1 }),
     newLayer('stripe', { face: 'top', x: 0.461, y: 0.5, rot: 90, len: 1, thick: 12, opacity: 0.9, glow: 0.8 }),
     newLayer('stripe', { face: 'top', x: 0.539, y: 0.5, rot: 90, len: 1, thick: 12, opacity: 0.9, glow: 0.8 }),
   ],
 });
 const azur = () => ({
-  name: 'MyBad — Azur', base: ['#2a6bff', '#0b3bc4'], gloss: 0.7, metal: 0.45, glow: { color: '#a8d4ff', amount: 0.3 }, zones: { chassis: '#164fd6' },
+  name: 'Heliance — Azur', base: ['#2a6bff', '#0b3bc4'], gloss: 0.7, metal: 0.45, glow: { color: '#a8d4ff', amount: 0.3 }, zones: { chassis: '#164fd6' },
   layers: [
     newLayer('stripe', { x: 0.5, y: 0.5, rot: -16, len: 1.3, thick: 14, color: '#06143f', opacity: 0.85, glow: 0 }),
     newLayer('stripe', { x: 0.5, y: 0.42, rot: -16, len: 1.3, thick: 5, color: '#e9f6ff', opacity: 0.95, glow: 0.6 }),
     newLayer('stripe', { x: 0.5, y: 0.965, rot: 0, len: 1.1, thick: 5, color: '#e9f6ff', opacity: 0.9, glow: 0.4 }),
     newLayer('logo', { x: 0.47, y: 0.575, size: 0.45, color: '#ffffff', color2: '#cfeaff', opacity: 1, glow: 0.2,
       ov: { fennec: { x: 0.45, y: 0.575, size: 0.43 }, dominus: { x: 0.45, y: 0.575, size: 0.41 } } }),
-    newLayer('text', { x: 0.17, y: 0.2, size: 0.07, text: 'MYBAD ESPORT', color: '#ffffff', opacity: 0.95 }),
+    newLayer('text', { x: 0.17, y: 0.2, size: 0.07, text: 'HELIANCE ESPORT', color: '#ffffff', opacity: 0.95 }),
     newLayer('star', { face: 'top', x: 0.5, y: 0.25, size: 0.3, color: '#ffffff', glow: 1 }),
     newLayer('stripe', { face: 'top', x: 0.5, y: 0.5, rot: 90, len: 1, thick: 90, color: '#06143f', opacity: 0.8, glow: 0 }),
   ],
@@ -105,11 +105,11 @@ export function deleteLivery(id) {
   write(); dropTextures(id); REVALL++; notify();
 }
 export function resetLivery(id) { delete STORE.over[id]; if (BUILTIN[id]) delete BUILTIN[id]._c; write(); bump(id); }
-export const exportLiveries = () => JSON.stringify({ app: 'MyBad Creator', kind: 'liveries', version: 1, data: STORE }, null, 2);
+export const exportLiveries = () => JSON.stringify({ app: 'Heliance Creator', kind: 'liveries', version: 1, data: STORE }, null, 2);
 export function importLiveries(text) {
   const j0 = (() => { try { return JSON.parse(text); } catch { return null; } })(); if (j0?.data?.hidden) STORE.hidden = STORE.hidden.filter(h => j0.data.hidden.includes(h));
   const j = JSON.parse(text);
-  if (j?.kind !== 'liveries' || !j.data) throw new Error('Ce fichier n\'est pas une collection de livrées MyBad Creator.');
+  if (j?.kind !== 'liveries' || !j.data) throw new Error('Ce fichier n\'est pas une collection de livrées Heliance Creator.');
   (j.data.user || []).forEach(u => { STORE.user = STORE.user.filter(x => x.id !== u.id); STORE.user.push(u); });
   Object.assign(STORE.over, j.data.over || {});
   write(); REVALL++; CACHE.clear(); notify();

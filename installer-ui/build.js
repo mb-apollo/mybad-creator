@@ -10,14 +10,14 @@ const racine = path.join(__dirname, '..');
 const args = process.argv.slice(2);
 const val = (nom, defaut) => { const i = args.indexOf(nom); return i >= 0 ? args[i + 1] : defaut; };
 const moteur = args.find(a => !a.startsWith('--') && /\.exe$/i.test(a));
-if (!moteur || !fs.existsSync(moteur)) { console.error("Donne l'installateur NSIS à embarquer : node installer-ui/build.js <MyBad-Creator-Setup-x.y.z.exe>"); process.exit(1); }
+if (!moteur || !fs.existsSync(moteur)) { console.error("Donne l'installateur NSIS à embarquer : node installer-ui/build.js <Heliance-Creator-Setup-x.y.z.exe>"); process.exit(1); }
 
 const config = val('--config', path.join(racine, 'electron-builder.yml'));
 const yml = fs.readFileSync(config, 'utf8');
 const lire = (cle, defaut) => { const m = new RegExp('^\\s*' + cle + ':\\s*(.+?)\\s*$', 'm').exec(yml); return m ? m[1].replace(/^["']|["']$/g, '') : defaut; };
 const appId = lire('appId', 'fr.mybadesport.creator');
 const executable = lire('executableName', 'MyBadCreator');
-const nomRaccourci = lire('shortcutName', lire('productName', 'MyBad Creator'));
+const nomRaccourci = lire('shortcutName', lire('productName', 'Heliance Creator'));
 const version = require(path.join(racine, 'package.json')).version;
 
 // identifiant de la clé de registre du logiciel : UUID v5 de l'appId (même calcul qu'electron-builder)
@@ -35,7 +35,7 @@ function taille(dir) { let t = 0; for (const f of fs.readdirSync(dir, { withFile
 const unpacked = path.join(path.dirname(moteur), 'win-unpacked');
 const octets = fs.existsSync(unpacked) ? taille(unpacked) : 350000000;
 
-const sortie = val('--sortie', path.join(path.dirname(moteur), `MyBad-Creator-Installateur-${version}.exe`));
+const sortie = val('--sortie', path.join(path.dirname(moteur), `Heliance-Creator-Installateur-${version}.exe`));
 const travail = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mbc-inst-'));
 const constantes = path.join(travail, 'Constantes.cs');
 fs.writeFileSync(constantes, `namespace MyBadInstallateur { static class K {

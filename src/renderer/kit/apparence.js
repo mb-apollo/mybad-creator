@@ -126,7 +126,7 @@
   function texteConfig() {
     var sortie = {};
     Object.keys(DEF).forEach(function (k) { sortie[k] = etat[k]; });
-    return "Configuration d'apparence de MyBad Creator\n" + JSON.stringify(sortie, null, 1);
+    return "Configuration d'apparence de Heliance Creator\n" + JSON.stringify(sortie, null, 1);
   }
 
   function copier() {

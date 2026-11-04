@@ -1,5 +1,5 @@
 ; ------------------------------------------------------------------
-; Habillage MyBad Esport de l'installateur (NSIS / Modern UI 2)
+; Habillage Heliance Esport de l'installateur (NSIS / Modern UI 2)
 ; ------------------------------------------------------------------
 ; Texte net : police système moderne et prise en charge des écrans à forte densité (sinon Windows étire la fenêtre en flou)
 ManifestDPIAware true
@@ -13,16 +13,16 @@ SetFont "Segoe UI" 9
 !define MUI_CUSTOMFUNCTION_UNGUIINIT un.mbGuiInit
 
 !ifndef BUILD_UNINSTALLER
-  !define MUI_WELCOMEPAGE_TITLE "Bienvenue dans MyBad Creator"
-  !define MUI_WELCOMEPAGE_TEXT "L'éditeur d'affiches de MyBad Esport : roster, matchday, résultats, plannings, recrutement et tournois.$\r$\n$\r$\nCet assistant installe MyBad Creator ${VERSION} sur ton ordinateur, en quelques secondes.$\r$\n$\r$\nClique sur Suivant pour continuer."
+  !define MUI_WELCOMEPAGE_TITLE "Bienvenue dans Heliance Creator"
+  !define MUI_WELCOMEPAGE_TEXT "L'éditeur d'affiches de Heliance Esport : roster, matchday, résultats, plannings, recrutement et tournois.$\r$\n$\r$\nCet assistant installe Heliance Creator ${VERSION} sur ton ordinateur, en quelques secondes.$\r$\n$\r$\nClique sur Suivant pour continuer."
   !define MUI_FINISHPAGE_TITLE "C'est prêt !"
-  !define MUI_FINISHPAGE_TEXT "MyBad Creator est installé.$\r$\n$\r$\nUn raccourci a été ajouté sur ton Bureau et dans le menu Démarrer."
-  !define MUI_FINISHPAGE_RUN_TEXT "Lancer MyBad Creator"
+  !define MUI_FINISHPAGE_TEXT "Heliance Creator est installé.$\r$\n$\r$\nUn raccourci a été ajouté sur ton Bureau et dans le menu Démarrer."
+  !define MUI_FINISHPAGE_RUN_TEXT "Lancer Heliance Creator"
 !else
-  !define MUI_WELCOMEPAGE_TITLE "Désinstaller MyBad Creator"
-  !define MUI_WELCOMEPAGE_TEXT "Cet assistant va retirer MyBad Creator de ton ordinateur.$\r$\n$\r$\nTes projets .mybad et tes affiches exportées ne sont pas supprimés.$\r$\n$\r$\nClique sur Suivant pour continuer."
+  !define MUI_WELCOMEPAGE_TITLE "Désinstaller Heliance Creator"
+  !define MUI_WELCOMEPAGE_TEXT "Cet assistant va retirer Heliance Creator de ton ordinateur.$\r$\n$\r$\nTes projets .mybad et tes affiches exportées ne sont pas supprimés.$\r$\n$\r$\nClique sur Suivant pour continuer."
   !define MUI_FINISHPAGE_TITLE "Désinstallation terminée"
-  !define MUI_FINISHPAGE_TEXT "MyBad Creator a été retiré de ton ordinateur.$\r$\n$\r$\nÀ bientôt sur le serveur MyBad."
+  !define MUI_FINISHPAGE_TEXT "Heliance Creator a été retiré de ton ordinateur.$\r$\n$\r$\nÀ bientôt sur le serveur Heliance Esport."
 !endif
 
 !macro customWelcomePage
@@ -151,4 +151,10 @@ FunctionEnd
     !insertmacro MB_DARK_INNER
   FunctionEnd
 !endif
+!macroend
+
+; Mise à jour depuis l'ancien nom : on retire les anciens raccourcis « MyBad Creator » pour ne pas avoir deux raccourcis (celui-ci pointe vers le même programme).
+!macro customInstall
+  Delete "$DESKTOP\MyBad Creator.lnk"
+  Delete "$SMPROGRAMS\MyBad Creator.lnk"
 !macroend

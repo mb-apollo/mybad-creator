@@ -1,5 +1,5 @@
 /* Liaison entre l'interface existante (classe « on » sur l'option choisie) et le kit Liquid Glass (classe « actif »).
-   Le reste du code de MyBad Creator n'est pas modifié : on recopie « on » vers « actif » et on dit à la bulle de se replacer. */
+   Le reste du code de Heliance Creator n'est pas modifié : on recopie « on » vers « actif » et on dit à la bulle de se replacer. */
 (function () {
   var BARRES = ["#gameSeg", "#fmtSeg", ".tabs"];
 

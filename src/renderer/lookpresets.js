@@ -1,9 +1,9 @@
 // Préréglages de réglages d'ambiance (onglet Réglages › « Cette affiche »), par modèle d'affiche.
-// Chaque modèle a un préréglage fourni « MyBad Esport » (= ses réglages d'origine, ceux du premier lancement) ; les tiens sont enregistrés dans le navigateur.
+// Chaque modèle a un préréglage fourni « Heliance Esport » (= ses réglages d'origine, ceux du premier lancement) ; les tiens sont enregistrés dans le navigateur.
 import { TEMPLATES } from './engine/templates.js';
 
 const KEY = 'mbc.lookpresets';
-export const BASE_ID = 'base', BASE_NAME = 'MyBad Esport';
+export const BASE_ID = 'base', BASE_NAME = 'Heliance Esport';
 let STORE = (() => { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { return {}; } })();
 const write = () => { try { localStorage.setItem(KEY, JSON.stringify(STORE)); } catch (e) { console.error('Préréglages : enregistrement impossible', e); } };
 const clone = o => JSON.parse(JSON.stringify(o));

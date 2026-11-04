@@ -1,10 +1,12 @@
-// MyBad Creator — processus principal : fenêtre, menus, fichiers, bibliothèque, mises à jour.
+// Heliance Creator — processus principal : fenêtre, menus, fichiers, bibliothèque, mises à jour.
 const { app, BrowserWindow, Menu, ipcMain, dialog, clipboard, nativeImage, shell, protocol, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 
-app.setName('MyBad Creator');
+app.setName('Heliance Creator');
+// Le dossier des données (réglages, bibliothèque, brouillon, thème…) garde son ancien nom « MyBad Creator » : le renommer ferait perdre à chacun ses données lors de la mise à jour.
+if (!app.commandLine.hasSwitch('user-data-dir')) app.setPath('userData', path.join(app.getPath('appData'), 'MyBad Creator'));
 app.setAppUserModelId('fr.mybadesport.creator');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'mbc', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
@@ -72,9 +74,9 @@ function buildMenu() {
     { label: 'Aide', submenu: [
       { label: 'Raccourcis clavier', accelerator: 'F1', click: () => send('shortcuts') },
       { label: 'Rechercher des mises à jour…', click: () => send('updates') },
-      { label: 'Site MyBad Esport', click: () => shell.openExternal('https://mybadesport.fr') },
+      { label: 'Site Heliance Esport', click: () => shell.openExternal('https://mybadesport.fr') },
       { type: 'separator' },
-      { label: `À propos de MyBad Creator (v${app.getVersion()})`, click: () => send('about') },
+      { label: `À propos de Heliance Creator (v${app.getVersion()})`, click: () => send('about') },
     ] },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(tpl));
@@ -84,7 +86,7 @@ function addRecent(p) { const s = readStore(); s.recent = [p, ...(s.recent || []
 function createWindow() {
   win = new BrowserWindow({
     width: 1560, height: 940, minWidth: 1180, minHeight: 720,
-    backgroundColor: '#03071A', show: false, title: 'MyBad Creator',
+    backgroundColor: '#03071A', show: false, title: 'Heliance Creator',
     icon: path.join(RENDERER, 'assets', 'icon.png'),
     // barre de titre grise de Windows remplacée par la nôtre (index.html : .barre-titre) ; seuls les trois boutons de la fenêtre restent à Windows
     titleBarStyle: 'hidden', titleBarOverlay: { color: '#03071A', symbolColor: '#E8EBFA', height: 40 }, autoHideMenuBar: true,
@@ -143,7 +145,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => app.quit());
 
 // ---------------------------------------------------------------- IPC
-const PROJECT_FILTER = [{ name: 'Projet MyBad Creator', extensions: ['mybad'] }];
+const PROJECT_FILTER = [{ name: 'Projet Heliance Creator', extensions: ['mybad'] }];
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), pendingOpen, packaged: app.isPackaged }));
 ipcMain.on('doc:dirty', (_e, v) => { dirty = !!v; });
 ipcMain.on('win:title', (_e, t) => { if (win) win.setTitle(t); });

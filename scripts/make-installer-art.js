@@ -57,15 +57,15 @@ async function art(kind, tagline) {
     glass(x, w / 2 - 44, 56, 88, 88, 24);
     x.drawImage(icon, w / 2 - 28, 72, 56, 56);
     x.textAlign = 'center'; x.textBaseline = 'alphabetic';
-    x.fillStyle = '#F5F7FF'; x.font = '600 19px ' + UI; x.letterSpacing = '-0.2px'; x.fillText('MyBad Creator', w / 2, 188);
+    x.fillStyle = '#F5F7FF'; x.font = '600 19px ' + UI; x.letterSpacing = '-0.2px'; x.fillText('Heliance Creator', w / 2, 188);
     x.fillStyle = 'rgba(232,235,250,.66)'; x.font = '400 9.6px ' + UI; x.letterSpacing = '0px';
     tagline.forEach((t, i) => x.fillText(t, w / 2, 208 + i * 14));
-    x.fillStyle = 'rgba(165,171,203,.7)'; x.font = '500 6.2px P'; x.letterSpacing = '1.6px'; x.fillText('MYBAD ESPORT', w / 2, 296);
+    x.fillStyle = 'rgba(165,171,203,.7)'; x.font = '500 6.2px P'; x.letterSpacing = '1.6px'; x.fillText('HELIANCE ESPORT', w / 2, 296);
   } else {
     halo(x, 22, 28, 70, '30,167,255', 0.5); halo(x, w - 10, 40, 60, '122,107,255', 0.32);
     glass(x, 10, 9, 39, 39, 12);
     x.drawImage(icon, 15, 14, 29, 29);
-    x.textAlign = 'left'; x.fillStyle = '#F5F7FF'; x.font = '600 12.5px ' + UI; x.letterSpacing = '-0.1px'; x.fillText('MyBad Creator', 58, 32);
+    x.textAlign = 'left'; x.fillStyle = '#F5F7FF'; x.font = '600 12.5px ' + UI; x.letterSpacing = '-0.1px'; x.fillText('Heliance Creator', 58, 32);
   }
   return c.toDataURL('image/png');
 }
@@ -76,8 +76,8 @@ app.whenReady().then(async () => {
   fs.writeFileSync(path.join(__dirname, '.art.html'), PAGE);
   await win.loadFile(path.join(__dirname, '.art.html'));
   const jobs = [
-    ['installerSidebar', 'side', ["L'éditeur d'affiches", 'de MyBad Esport'], 164, 314],
-    ['uninstallerSidebar', 'side', ['À bientôt', 'sur le serveur MyBad'], 164, 314],
+    ['installerSidebar', 'side', ["L'éditeur d'affiches", 'de Heliance Esport'], 164, 314],
+    ['uninstallerSidebar', 'side', ['À bientôt', 'sur le serveur Heliance Esport'], 164, 314],
     ['installerHeader', 'head', [], 150, 57],
   ];
   for (const [name, kind, tag, w, h] of jobs) {

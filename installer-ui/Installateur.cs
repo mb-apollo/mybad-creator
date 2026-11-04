@@ -1,4 +1,4 @@
-// Installateur MyBad Creator : une fenêtre sur mesure (tuiles arrondies, verre, halos) qui pilote le vrai installateur NSIS en arrière-plan.
+// Installateur Heliance Creator : une fenêtre sur mesure (tuiles arrondies, verre, halos) qui pilote le vrai installateur NSIS en arrière-plan.
 // Le moteur (l'installateur NSIS habituel, intact : mises à jour, désinstallation, registre) est embarqué dans cet exe sous le nom « moteur.exe ».
 // Code volontairement en C# 5 : il se compile avec csc.exe, déjà présent dans Windows (.NET Framework 4.8), sans rien installer.
 using System;
@@ -96,7 +96,7 @@ namespace MyBadInstallateur
 
     class Fenetre : Window
     {
-        // ---- palette (celle du logo MyBad Studio) ----
+        // ---- palette (celle du logo Heliance Esport) ----
         const string Fond = "#FF090B17", Texte = "#FFE8EBFA", Doux = "#FFA5ABCB", Cyan = "#FF54D8FF";
         static readonly FontFamily Titres = new FontFamily("Segoe UI Variable Display, Segoe UI");
         static readonly FontFamily Corps = new FontFamily("Segoe UI Variable Text, Segoe UI");
@@ -119,7 +119,7 @@ namespace MyBadInstallateur
         public Fenetre(string pageApercu, string sortie)
         {
             sortieApercu = sortie;
-            Title = "Installation de MyBad Creator";
+            Title = "Installation de Heliance Creator";
             WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent; ResizeMode = ResizeMode.NoResize;
             Width = 808; Height = 548; WindowStartupLocation = WindowStartupLocation.CenterScreen;
             UseLayoutRounding = true; SnapsToDevicePixels = true;
@@ -189,7 +189,7 @@ namespace MyBadInstallateur
             var g = Page();
             g.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            var haut = ColonnesIdentite("MyBad Creator", "Version " + K.Version, false, "L'éditeur d'affiches de MyBad Esport");
+            var haut = ColonnesIdentite("Heliance Creator", "Version " + K.Version, false, "L'éditeur d'affiches de Heliance Esport");
             var droite = new StackPanel { VerticalAlignment = VerticalAlignment.Top };
             // emplacement
             var t1 = Matiere(26); var l1 = new Grid { Margin = new Thickness(20, 16, 20, 16) };
@@ -226,7 +226,7 @@ namespace MyBadInstallateur
             var g = Page();
             g.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             g.RowDefinitions.Add(new RowDefinition { Height = new GridLength(76) });
-            var haut = ColonnesIdentite("MyBad Creator", "Version " + K.Version, false, null);
+            var haut = ColonnesIdentite("Heliance Creator", "Version " + K.Version, false, null);
             var droite = new Grid();
             droite.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); droite.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) }); droite.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             var t1 = Matiere(26); var p1 = new StackPanel { Margin = new Thickness(24, 22, 24, 20) };
@@ -280,7 +280,7 @@ namespace MyBadInstallateur
             Grid.SetRow(haut, 0); g.Children.Add(haut);
             var bas = new Grid { Margin = new Thickness(0, 26, 0, 0) };
             var fermer = Pastille("Fermer", false, 36, 18, Close); fermer.HorizontalAlignment = HorizontalAlignment.Left; fermer.VerticalAlignment = VerticalAlignment.Center; bas.Children.Add(fermer);
-            FrameworkElement action = reussi ? Pastille("Ouvrir MyBad Creator", true, 50, 38, Ouvrir) : Pastille("Réessayer", true, 50, 38, PageOptions);
+            FrameworkElement action = reussi ? Pastille("Ouvrir Heliance Creator", true, 50, 38, Ouvrir) : Pastille("Réessayer", true, 50, 38, PageOptions);
             action.HorizontalAlignment = HorizontalAlignment.Right; bas.Children.Add(action);
             Grid.SetRow(bas, 1); g.Children.Add(bas);
             Afficher(g);
@@ -291,7 +291,7 @@ namespace MyBadInstallateur
         {
             using (var d = new System.Windows.Forms.FolderBrowserDialog())
             {
-                d.Description = "Choisis le dossier dans lequel installer MyBad Creator";
+                d.Description = "Choisis le dossier dans lequel installer Heliance Creator";
                 d.SelectedPath = IOPath.GetDirectoryName(dossier) ?? dossier;
                 if (d.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {

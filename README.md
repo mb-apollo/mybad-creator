@@ -1,5 +1,29 @@
 # MyBad Creator
 
+**An open-source poster editor for esports teams.** Create roster announcements, match day, victory and results graphics without needing a graphic designer.
+
+Built by and for [MyBad Esport](https://mybadesport.fr), a French amateur esports association, and free for any team to use.
+
+## Features
+- Ready-made templates for **Valorant** and **Rocket League**
+- Photoshop-style layers, effects and magnetic guides
+- Automatic background removal for player photos
+- 3D model layers (.glb) with posing
+- One-click updates
+
+## Install
+Download the latest Windows installer from the [Releases](../../releases/latest) page and run it.
+
+## Contributing
+Issues and pull requests are welcome, whether it's new game templates, bug fixes or translations.
+
+## License
+[AGPL-3.0](LICENSE)
+
+---
+
+# MyBad Creator
+
 L'éditeur d'affiches de MyBad Esport (Windows). Modèles Valorant et Rocket League, calques façon Photoshop,
 effets, détourage automatique, modèles 3D (.glb) et mise à jour en un clic.
 

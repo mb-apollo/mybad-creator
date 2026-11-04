@@ -1,2 +1,1 @@
-- Nouveau nom : le logiciel s'appelle maintenant **Heliance Creator** (Heliance Esport) et reprend la nouvelle icône Heliance
-- Tes réglages, ta bibliothèque et tes projets .mybad sont conservés tels quels ; l'ancien raccourci « MyBad Creator » est remplacé par « Heliance Creator »
+- Lien Twitch (twitch.tv/heliance_esport) et site (heliance-esport.fr) mis à jour pour Heliance Esport

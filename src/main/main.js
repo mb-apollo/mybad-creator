@@ -74,7 +74,7 @@ function buildMenu() {
     { label: 'Aide', submenu: [
       { label: 'Raccourcis clavier', accelerator: 'F1', click: () => send('shortcuts') },
       { label: 'Rechercher des mises à jour…', click: () => send('updates') },
-      { label: 'Site Heliance Esport', click: () => shell.openExternal('https://mybadesport.fr') },
+      { label: 'Site Heliance Esport', click: () => shell.openExternal('https://www.heliance-esport.fr') },
       { type: 'separator' },
       { label: `À propos de Heliance Creator (v${app.getVersion()})`, click: () => send('about') },
     ] },

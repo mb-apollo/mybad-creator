@@ -70,7 +70,7 @@ export const RL_DEFAULTS = {
 // Kit officiel Heliance Esport (proposé dans l'assistant de démarrage)
 export const MYBAD_KIT = {
   v: 2, name: 'Heliance Esport', game: 'valorant', theme: 'nuit', logo: 'assets/brand/mybad-logo.png',
-  T: { org: 'HELIANCE ESPORT', live: 'twitch.tv/mybad_esport', liveUrl: 'twitch.tv/mybad_esport', sig: 'POLARIS / NORTH STAR', coords: '48.8566° N — 2.3522° E', recCta: 'Candidature sur le Discord Heliance Esport' },
+  T: { org: 'HELIANCE ESPORT', live: 'twitch.tv/heliance_esport', liveUrl: 'twitch.tv/heliance_esport', sig: 'POLARIS / NORTH STAR', coords: '48.8566° N — 2.3522° E', recCta: 'Candidature sur le Discord Heliance Esport' },
   rosters: {},
 };
 

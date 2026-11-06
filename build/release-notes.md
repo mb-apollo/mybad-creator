@@ -1,1 +1,1 @@
-- La bulle de verre autour du logo et du nom en haut à gauche est retirée : le logo reste à nu dans la barre
+- Nouveau logo (ailes et étoile) sans le cadre cyan autour, en haut à gauche et dans les fenêtres de bienvenue et À propos

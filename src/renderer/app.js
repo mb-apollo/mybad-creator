@@ -8,8 +8,9 @@ import { GAMES, gameItems } from './engine/games.js';
 import { $, $$, esc, icon } from './ui.js';
 import { initEditor, requestRender, fit, zoomTo, getZoom, setTool, addLayer, pasteLayers, copySelected, togglePoseEdit, getPoseEdit, startPaint, addGuide, toggleRulers } from './editor.js';
 import * as P from './panels.js';
-import { initCustom, isCustom, scheduleSave as saveCustomModel } from './custom.js';
+import { initCustom, isCustom, scheduleSave as saveCustomModel, forkFromDefault, repairDefaults, renameCustom } from './custom.js';
 initCustom();
+repairDefaults(); // vérifie/répare les données locales des modèles avant le premier affichage de la galerie
 import { initModels, materialize, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels, poseHandles, startPoseDrag, dragPoseHandle } from './model3d.js';
 import { openPoseLab } from './poselab.js';
 import { openLiveryLab } from './liverylab.js';
@@ -66,8 +67,20 @@ function updateStatus() {
 }
 
 // ---------------------------------------------------------------- changements de modèle / format / jeu
-function switchTemplate(key) {
+async function switchTemplate(key) {
   if (key === S.doc.tpl) return;
+  // filet de sécurité : si des modifications sur un modèle par défaut n'ont pas encore été mises à l'abri
+  // (cas normalement déjà traité à la volée, voir le gestionnaire de l'événement « doc »), on propose de les
+  // enregistrer dans les Modèles personnalisés avant de les perdre en changeant de modèle.
+  if (!isCustom(S.doc.tpl) && S.dirty) {
+    const name = TEMPLATES[S.doc.tpl]?.name || S.doc.tpl;
+    const garder = await window.Dialogue.confirmer({
+      message: `Modifications non enregistrées sur « ${name} ».`,
+      detail: 'Pour ne rien perdre, enregistre une copie personnelle avant de changer de modèle. L\'original reste toujours disponible tel quel.',
+      ok: 'Enregistrer une copie et continuer', annuler: 'Changer sans enregistrer',
+    });
+    if (garder) { const k = forkFromDefault(); if (k) { P.renderGallery(); toast(`Enregistré dans « ${TEMPLATES[k].name} » (Modèles personnalisés)`); } }
+  }
   // les réglages propres à une affiche ne suivent pas quand on change d'affiche (seuls les réglages globaux restent)
   change(d => { d.finish = {}; applyTemplate(d, key); }, { immediate: true, full: true });
   select([]);
@@ -76,6 +89,28 @@ function switchTemplate(key) {
   if (tab === 'look') P.renderLook();
 }
 P.actions.switchTemplate = switchTemplate;
+
+// Repart du modèle d'origine (figé dans l'application) : si l'affiche actuelle est une copie personnelle créée
+// à partir d'un modèle par défaut, c'est CE modèle par défaut qui est rechargé (jamais la copie personnelle,
+// qui garde ses propres modifications intactes dans « Modèles personnalisés »).
+async function resetTemplate() {
+  const cur = TEMPLATES[S.doc.tpl]; if (!cur) return;
+  const originKey = cur.origin && TEMPLATES[cur.origin] ? cur.origin : S.doc.tpl;
+  const origin = TEMPLATES[originKey];
+  const ok = await window.Dialogue.confirmer({
+    message: `Réinitialiser « ${origin.name} » ?`,
+    detail: 'Les calques et réglages actuels de cette affiche seront remplacés par le modèle d\'origine. Rien n\'est supprimé de tes Modèles personnalisés.',
+    ok: 'Réinitialiser', annuler: 'Annuler', danger: true,
+  });
+  if (!ok) return;
+  change(d => { d.finish = {}; d.finishFor = undefined; applyTemplate(d, originKey, { keepUser: false }); }, { immediate: true, full: true });
+  select([]);
+  P.renderGallery(); P.markGallery(); updateStatus();
+  if (tab === 'content') P.renderContent();
+  if (tab === 'look') P.renderLook();
+  toast('Modèle réinitialisé à son état d\'origine');
+}
+P.actions.resetTemplate = resetTemplate;
 $('#fmtSeg').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.dataset.k === S.doc.fmt) return;
   change(d => { d.fmt = b.dataset.k; applyTemplate(d, d.tpl); }, { immediate: true, full: true });
@@ -383,6 +418,7 @@ document.addEventListener('click', closeMenus);
 $('#btnCopy').onclick = copyImage;
 $('#btnUndo').onclick = undo;
 $('#btnRedo').onclick = redo;
+$('#btnResetTpl').onclick = () => resetTemplate();
 
 // ---------------------------------------------------------------- kit de marque & assistant de démarrage
 const KIT_FIELDS = [['org', 'Nom de la structure', 'Ex. HELIANCE ESPORT'], ['live', 'Lien de stream', 'twitch.tv/ta-chaine'], ['coach', 'Coach', ''], ['sig', 'Signature (ligne 1)', 'Facultatif'], ['coords', 'Signature (ligne 2)', 'Facultatif']];
@@ -596,7 +632,12 @@ async function openUpdates(refreshOnly = false) {
         : `<button class="primary-btn solo" id="updCheck" ${update.state === 'checking' ? 'disabled' : ''}>Rechercher une mise à jour</button>`;
   if (refreshOnly) { $('#modalBody').innerHTML = body; $('#modalFoot').innerHTML = foot; }
   else openModal('Mises à jour', body, foot);
-  $('#updCheck')?.addEventListener('click', () => { update = { ...update, state: 'checking' }; renderUpdateBtn(); API?.updateCheck(false); });
+  $('#updCheck')?.addEventListener('click', () => {
+    update = { ...update, state: 'checking' }; renderUpdateBtn(); API?.updateCheck(false);
+    // le bouton « Mises à jour » répare aussi, en local, les modèles par défaut corrompus (sans réinstallation)
+    const fixed = repairDefaults();
+    if (fixed.length) { P.renderGallery(); toast('Modèles par défaut vérifiés et réparés (données locales corrompues réinitialisées).'); }
+  });
   $('#updGet')?.addEventListener('click', () => { update.state = 'downloading'; update.percent = 0; renderUpdateBtn(); API?.updateDownload(); });
   $('#updHide')?.addEventListener('click', closeModal);
   $('#updInstall')?.addEventListener('click', installUpdate);
@@ -719,13 +760,28 @@ on('pointer', p => { $('#stPos').textContent = `${Math.round(p[0])}, ${Math.roun
 // ---------------------------------------------------------------- réactions aux changements
 let layersRaf = 0;
 on('doc', o => {
-  updateUndo(); saveSession();
+  updateUndo();
+  // Immuabilité des modèles par défaut : la toute première modification d'un modèle du dossier « MODÈLES »
+  // part aussitôt dans une copie personnelle (« Modèles personnalisés ») — l'original figé dans l'application
+  // n'est jamais écrasé, et rien de modifié n'est enregistré sous sa clé. (Un changement « full » = on vient
+  // d'appliquer/réappliquer un modèle à neuf, pas une modification de l'utilisateur : rien à mettre à l'abri.)
+  if (S.doc && !isCustom(S.doc.tpl) && !(o && (o.live || o.full))) {
+    const forked = forkFromDefault();
+    if (forked) {
+      P.renderGallery(); updateStatus();
+      toast(`Enregistré automatiquement dans « ${TEMPLATES[forked].name} » (Modèles personnalisés) — le modèle d'origine reste inchangé.`, false, { label: 'Renommer', fn: () => renameFork(forked) });
+    }
+  }
+  saveSession();
   if (!layersRaf) layersRaf = requestAnimationFrame(() => { layersRaf = 0; P.renderLayers(); });
   if (o && o.live) return; // pendant un glisser, on ne reconstruit pas les panneaux
   if ((tab === 'props' || tab === 'model3d') && !(o && o.noProps)) P.renderProps();
   if (!(o && o.live)) { P.scheduleThumbs(); if (tab === 'theme') P.scheduleThemeThumbs(); if (S.doc && isCustom(S.doc.tpl)) saveCustomModel(); }
   if (o && o.full) { buildFormats(); buildGame(); P.markGallery(); updateStatus(); if (tab !== 'props') refreshTab(); }
 });
+function renameFork(key) {
+  P.actions.askName('Renommer le modèle personnalisé', TEMPLATES[key]?.name || '', name => { renameCustom(key, name); P.renderGallery(); toast('Modèle renommé'); });
+}
 on('selection', () => { P.renderLayers(); if (tab === 'props' || tab === 'model3d') P.renderProps(); else if (S.sel.length) setTab('props'); });
 on('history', updateUndo);
 on('dirty', updateTitle);

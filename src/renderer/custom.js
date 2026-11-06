@@ -21,8 +21,11 @@ export const customList = () => list;
 
 const unitOf = (W, H) => Math.min(W, H * 0.8) / 1080;
 function register(e) {
-  TEMPLATES[customKey(e.id)] = {
-    name: e.name, desc: 'Modèle personnalisé', custom: true, fields: e.fields, assets: e.assets,
+  const key = customKey(e.id);
+  // Un modèle personnalisé ne prend jamais la place d'un modèle par défaut (clé toujours préfixée « custom: »).
+  if (TEMPLATES[key] && !TEMPLATES[key].custom) return;
+  TEMPLATES[key] = {
+    name: e.name, desc: 'Modèle personnalisé', custom: true, fields: e.fields, assets: e.assets, origin: e.origin,
     ...(e.finish ? { look: () => JSON.parse(JSON.stringify(e.finish)) } : {}),
     build: ctx => {
       const kx = ctx.W / e.W, ky = ctx.H / e.H, ku = ctx.u / unitOf(e.W, e.H);
@@ -74,6 +77,16 @@ export function duplicateTemplate(key) {
   const { layers, assets } = snapshot(d);
   return add({ id: uid(), name: `${src.name} (copie)`, W: d.W, H: d.H, fields: src.fields?.length ? src.fields : ['org', 'event'], layers, assets, finish: JSON.parse(JSON.stringify(d.finish || {})) });
 }
+// Fourche automatique : la première modification d'un modèle par défaut (dossier « MODÈLES ») part dans une
+// copie personnelle sous « Modèles personnalisés », sans jamais toucher à l'original (figé dans l'application).
+export function forkFromDefault() {
+  const doc = S.doc; if (!doc || isCustom(doc.tpl)) return null;
+  const src = TEMPLATES[doc.tpl]; if (!src) return null;
+  const { layers, assets } = snapshot(doc);
+  const key = add({ id: uid(), name: `${src.name} (modifié)`, W: doc.W, H: doc.H, fields: src.fields?.length ? src.fields : ['org', 'event'], layers, assets, finish: JSON.parse(JSON.stringify(doc.finish || {})), origin: doc.tpl });
+  if (key) doc.tpl = key;
+  return key;
+}
 export function duplicateCustom(key) {
   const e = list.find(x => customKey(x.id) === key); if (!e) return null;
   return add({ ...JSON.parse(JSON.stringify(e)), id: uid(), name: `${e.name} (copie)` });
@@ -87,6 +100,28 @@ export function deleteCustom(key) {
   list = list.filter(x => customKey(x.id) !== key);
   delete TEMPLATES[key];
   persist();
+}
+
+// Vérifie les données locales liées aux modèles et répare ce qui est corrompu (JSON invalide, entrée sans
+// calques…), sans réinstallation : les modèles par défaut viennent toujours du bundle de l'application, jamais
+// de là, donc rien ici ne peut les abîmer — mais une entrée cassée pourrait empêcher la galerie de s'afficher.
+export function repairDefaults() {
+  const fixed = [];
+  const checkJSON = (key, fallback) => {
+    const raw = localStorage.getItem(key);
+    if (raw == null) return;
+    try { JSON.parse(raw); } catch { try { localStorage.setItem(key, JSON.stringify(fallback)); fixed.push(key); } catch { /* stockage indisponible */ } }
+  };
+  checkJSON('mbc.look', {});
+  checkJSON('mbc.themes', []);
+  checkJSON('mbc.lookpresets', {});
+  checkJSON(STORE, []);
+  const before = JSON.stringify(list);
+  list = read().filter(e => e && e.id && Array.isArray(e.layers));
+  for (const key of Object.keys(TEMPLATES)) if (isCustom(key) && !list.some(e => customKey(e.id) === key)) delete TEMPLATES[key];
+  list.forEach(register);
+  if (JSON.stringify(list) !== before) { persist(); fixed.push(STORE); }
+  return [...new Set(fixed)];
 }
 
 // Les modifications faites sur une affiche basée sur un modèle perso sont enregistrées dans ce modèle.

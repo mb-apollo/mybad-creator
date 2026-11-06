@@ -406,7 +406,7 @@ export function renderContent() {
   const box = $('#contentBody'); if (!box || !S.doc) return;
   const T = S.doc.T, tpl = TEMPLATES[S.doc.tpl], game = GAMES[S.doc.game], items = itemOptions(S.doc.game);
   const field = (k, label, half) => `<div class="field ${half ? '' : 'full'}"><label>${esc(label)}</label><input class="input" data-t="${k}" value="${esc(T[k] ?? '')}" spellcheck="false"></div>`;
-  let h = `<div class="content-head"><div><b>${esc(tpl.name)}</b><span class="muted">${esc(tpl.desc)}</span></div><button class="mini-btn" data-act="reapply" title="Recrée les calques du modèle avec le contenu actuel (tes calques ajoutés sont gardés)">${icon('refresh')} Réinitialiser</button></div>`;
+  let h = `<div class="content-head"><div><b>${esc(tpl.name)}</b><span class="muted">${esc(tpl.desc)}</span></div><button class="mini-btn" data-act="reapply" title="Revenir à l'état d'origine de ce modèle (après confirmation)">${icon('refresh')} Réinitialiser</button></div>`;
   h += `<div class="pad"><button class="mini-btn wide" data-act="kitRefresh" title="Reprend dans cette affiche la structure, les joueurs, rôles et agents du Kit de marque">${icon('refresh')} Actualiser avec le Kit de marque</button></div>`;
   const hasTitle = tpl.fields.some(f => TITLES[f] || f === 'resTitle');
   const hasRenders = tpl.fields.some(f => f === 'players' || AGENT_FIELDS[f] != null);
@@ -491,7 +491,7 @@ export function initContent() {
       renderContent();
       toast(v === 'loss' ? 'Thème « Défaite » appliqué' : 'Thème « Polaris » appliqué pour la victoire');
     }
-    if (b.dataset.act === 'reapply') { change(d => applyTemplate(d, d.tpl), { immediate: true }); select([]); toast('Mise en page du modèle réinitialisée'); }
+    if (b.dataset.act === 'reapply') { actions.resetTemplate?.(); }
     if (b.dataset.act === 'kitPlayers') actions.applyKitPlayers?.();
     if (b.dataset.act === 'kitRefresh') actions.applyKitAll?.();
   });

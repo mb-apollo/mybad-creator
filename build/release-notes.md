@@ -1,1 +1,1 @@
-- Nouveau logo (ailes et étoile) sans le cadre cyan autour, en haut à gauche et dans les fenêtres de bienvenue et À propos
+- Le logo en haut à gauche n'est plus dans une bulle de verre : logo et nom du projet sont à nu dans la barre

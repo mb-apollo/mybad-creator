@@ -1,1 +1,1 @@
-- Lien Twitch (twitch.tv/heliance_esport) et site (heliance-esport.fr) mis à jour pour Heliance Esport
+- La bulle de verre autour du logo et du nom en haut à gauche est retirée : le logo reste à nu dans la barre

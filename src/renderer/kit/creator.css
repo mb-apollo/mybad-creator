@@ -20,7 +20,7 @@ html, body { background: var(--da-fond); }
 
 /* groupes de verre de la barre du haut (chacun est un morceau de verre, jamais un verre dans un verre) */
 .grp { height: 46px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 23px; flex: none; }
-.grp-id { padding: 0 16px 0 6px; gap: 10px; }
+.grp-id { padding: 0 14px 0 2px; gap: 10px; } /* plus de bulle de verre autour du logo : logo et nom restent à nu dans la barre */
 .grp-id .logo { width: 34px; height: 34px; border-radius: 17px; background: none; border: 0; }
 .grp .tb-sep { background: var(--sep); margin: 0 3px; }
 .grp .icon-btn, .grp .ghost-btn { border-radius: 19px; }
@@ -72,7 +72,7 @@ html, body { background: var(--da-fond); }
 .statusbar .zoom-val:hover { color: var(--da-accent); }
 
 /* barres étroites : les pièces de verre se resserrent sans passer l'une sur l'autre */
-@media (max-width: 1500px) { .grp-id .proj { display: none; } .grp-id { padding: 0 6px; } }
+@media (max-width: 1500px) { .grp-id .proj { display: none; } .grp-id { padding: 0 4px; } }
 
 /* ---- finitions ---- */
 /* barre du haut : les côtés prennent la place dont ils ont besoin, le format occupe le milieu (plus de chevauchement) */

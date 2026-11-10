@@ -1,6 +1,6 @@
 {
  "pack": "mybad-creator-3d",
- "version": 3,
+ "version": 4,
  "files": [
   {
    "game": "valorant",
@@ -27,8 +27,8 @@
    "game": "valorant",
    "key": "chamber",
    "path": "valorant/chamber.glb",
-   "size": 6714292,
-   "sha256": "1e579d2366df1861838a672525a9ce20840fbdedb88bd4fd97f887c86eb44bfe"
+   "size": 3802624,
+   "sha256": "ab4f151a8ff4de442a180fc13d7ec61ee8e87dde6a9d0bb388feded60405e8c6"
   },
   {
    "game": "valorant",
@@ -174,8 +174,8 @@
    "game": "valorant",
    "key": "vyse",
    "path": "valorant/vyse.glb",
-   "size": 2181388,
-   "sha256": "b67e1d448c191bbf4f6717d0b62e0918b4fdf21e74db5b92a0871227f3de673c"
+   "size": 2476300,
+   "sha256": "d2b0b37eb60d9c124085d52a497fa2605be960375a5f40c3f5fd602e2486cb56"
   },
   {
    "game": "valorant",

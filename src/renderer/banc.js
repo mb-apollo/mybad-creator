@@ -35,7 +35,7 @@ function calque(nom, agent, pose, vue, w, h) {
     id: 'banc-' + nom, type: 'model', model: 'g:valorant:' + agent, x: 0, y: 0, w, h, rot: 0,
     rotY: (vue.rotY || 0) - agentRotY(agent),   // « face » = le personnage regarde la caméra, quelle que soit l'orientation enregistrée pour l'agent
     camPitch: vue.camPitch ?? 3, zoom3d: vue.zoom3d ?? 0.9, target: vue.target ?? 0.5, offsetX: vue.offsetX || 0, fov: vue.fov || 28,
-    frame: 'height', envLight: 0.45, anim: 0, animTime: 0, ...LUM,
+    frame: 'height', envLight: vue.reflets ?? 0.45, exposure: vue.exposition, anim: 0, animTime: 0, ...LUM,
     pose: { on: true, ...p }, weapon: weapon?.key ? weapon : null, face: vue.visage,
   };
 }
@@ -58,12 +58,13 @@ const poignees = (L, w, h) => Object.fromEntries(poseHandles(L).map(p => [p.key,
 
 async function vueDe(nom, def, agent, pose, w, h) {
   let L = calque(nom, agent, pose, def, w, h);
-  if (def.main) {
-    // gros plan : un premier rendu situe la main dans l'espace, le second la cadre (longue focale, pour qu'une main tendue vers la caméra ne grossisse pas)
+  const cible = def.cible || (def.main && 'hand' + def.main);   // gros plan sur une articulation : main (L / R) ou « cible » (head, chest, footL, kneeR…)
+  if (cible) {
+    // un premier rendu situe l'articulation dans l'espace, le second la cadre (longue focale, pour qu'une main tendue vers la caméra ne grossisse pas)
     await rendre({ ...L, id: L.id + '-rep' }, w, h);
-    const m = poseHandles({ id: L.id + '-rep' }).find(p => p.key === 'hand' + def.main);
-    if (!m) throw new Error('ce modèle n\'a pas de main ' + def.main);
-    L = { ...L, target: m.ref.world.y, offsetX: m.ref.world.x, zoom3d: def.zoom3d ?? 4.2, fov: def.fov || 8 };
+    const m = poseHandles({ id: L.id + '-rep' }).find(p => p.key === cible);
+    if (!m) throw new Error('articulation introuvable sur ce modèle : ' + cible);
+    L = { ...L, target: m.ref.world.y + (def.decalY || 0), offsetX: m.ref.world.x, zoom3d: def.zoom3d ?? (def.main ? 4.2 : 3.4), fov: def.fov || 8 };
   }
   const cv = await rendre(L, w, h);
   return { nom, image: figer(cv, w, h), poignees: poignees(L, w, h) };

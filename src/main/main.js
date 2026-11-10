@@ -90,14 +90,18 @@ function createWindow() {
     icon: path.join(RENDERER, 'assets', 'icon.png'),
     // barre de titre grise de Windows remplacée par la nôtre (index.html : .barre-titre) ; seuls les trois boutons de la fenêtre restent à Windows
     titleBarStyle: 'hidden', titleBarOverlay: { color: '#03071A', symbolColor: '#E8EBFA', height: 40 }, autoHideMenuBar: true,
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: !process.env.MBC_BANC },
   });
   win.setMenuBarVisibility(false); // la barre de menus grise n'apparaît plus : le menu est dans l'interface, les raccourcis clavier restent actifs
   win.loadURL('mbc://app/index.html');
   // La fenêtre naît cachée et s'affiche quand la page est prête. « ready-to-show » ne se déclenche pas toujours (constaté sur un PC après une mise à jour :
   // logiciel lancé, fenêtre invisible, rien ne s'ouvrait au double-clic) : on double la sécurité avec la fin du chargement, puis un délai maximal.
   let affichee = false;
-  const afficher = () => { if (affichee || !win) return; affichee = true; win.maximize(); win.show(); if (process.env.MBC_SHOT) devShot(); };
+  const afficher = () => {
+    if (affichee || !win) return; affichee = true;
+    if (process.env.MBC_BANC) { devBanc(); return; }   // banc de poses : la fenêtre reste cachée, les rendus se font hors écran
+    win.maximize(); win.show(); if (process.env.MBC_SHOT) devShot();
+  };
   win.once('ready-to-show', afficher);
   win.webContents.once('did-finish-load', () => setTimeout(afficher, 1500));
   setTimeout(afficher, 8000);
@@ -368,4 +372,36 @@ async function devShot() {
     i++;
   }
   app.exit(0);
+}
+
+// Banc de poses pour le développement (inactif en usage normal) : MBC_BANC=<dossier>. Le logiciel reste ouvert, fenêtre cachée, et traite
+// les fichiers « demande-<id>.json » déposés dans ce dossier ; il y écrit les images puis « reponse-<id>.json ».
+// Voir scripts/banc-poses.js (commandes) et src/renderer/banc.js (rendu).
+async function devBanc() {
+  const dir = process.env.MBC_BANC, wait = ms => new Promise(r => setTimeout(r, ms));
+  fs.mkdirSync(dir, { recursive: true });
+  const pret = path.join(dir, 'pret.json');
+  const ecrire = (p, o) => { fs.writeFileSync(p + '.tmp', JSON.stringify(o, null, 1)); fs.renameSync(p + '.tmp', p); };
+  win.webContents.on('console-message', (_e, level, msg) => { if (level >= 2) console.log('[renderer]', msg.slice(0, 300)); });
+  for (let i = 0; i < 150 && !(await win.webContents.executeJavaScript('!!(window.__creator && window.__creator.banc && !document.querySelector("#app").hidden)').catch(() => false)); i++) await wait(200);
+  ecrire(pret, { pid: process.pid, version: app.getVersion() });
+  console.log('banc de poses prêt :', dir);
+  for (;;) {
+    for (const f of fs.readdirSync(dir).filter(n => /^demande-.+\.json$/.test(n)).sort()) {
+      const p = path.join(dir, f), id = f.slice(8, -5);
+      let req, rep;
+      try { req = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { continue; }
+      fs.unlinkSync(p);
+      if (req.action === 'quitter') { try { fs.unlinkSync(pret); } catch { /* déjà retiré */ } ecrire(path.join(dir, `reponse-${id}.json`), { ok: true }); app.exit(0); return; }
+      try {
+        if (req.ref) req.refData = `data:image/${path.extname(req.ref).slice(1).toLowerCase().replace('jpg', 'jpeg') || 'png'};base64,` + fs.readFileSync(req.ref).toString('base64');
+        const { images = [], ...r } = await win.webContents.executeJavaScript(`window.__creator.banc(${JSON.stringify(req)})`);
+        const out = req.sortie || path.join(dir, id);
+        if (images.length) fs.mkdirSync(out, { recursive: true });
+        rep = { ok: true, id, ...r, images: images.map(im => { const q = path.join(out, im.nom + '.png'); fs.writeFileSync(q, Buffer.from(im.url.split(',')[1], 'base64')); return q; }) };
+      } catch (e) { rep = { ok: false, id, erreur: String(e && e.message || e) }; }
+      ecrire(path.join(dir, `reponse-${id}.json`), rep);
+    }
+    await wait(150);
+  }
 }

@@ -1,6 +1,7 @@
 // Heliance Creator — démarrage, barre d'outils, fichiers, export, kit de marque, bibliothèque et mises à jour.
 import { S, API, on, emit, change, setDoc, normalize, select, selected, layerById, undo, redo, canUndo, canRedo, flushHistory, setDirty, resetHistory, toast } from './state.js';
 import * as posereg from './posereg.js';
+import { banc } from './banc.js';
 import { newDocument, applyTemplate, renderDoc, FORMATS, THEMES, setGameDefaults, MYBAD_KIT } from './engine/render.js';
 import { TEMPLATES } from './engine/templates.js';
 import { versHeliance } from './renom.js';
@@ -848,7 +849,7 @@ async function boot() {
 boot();
 
 // Accès pour les tests automatisés
-window.__creator = { posereg, exportCanvas, modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles };
+window.__creator = { posereg, exportCanvas, modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles, banc };
 P.actions.togglePoseEdit = togglePoseEdit;
 P.actions.poseEditOn = () => !!getPoseEdit();
 void copySelected; void selected; void resetHistory; void emit; void icon;

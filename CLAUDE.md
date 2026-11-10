@@ -83,6 +83,11 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
 - Détourage hors ligne : @imgly/background-removal (licence AGPL, d'où la licence du projet).
 - Tester le rendu sans interface : `MBC_SHOT=<dossier> MBC_STEPS='[...]' electron .` (captures automatiques,
   voir `devShot` dans `main.js`) ; `window.__creator` expose l'état pour les tests.
+- **Banc de poses** (outil de développement, absent de l'interface) : régler une pose d'agent par essais successifs, d'après une image de référence, sans ouvrir le Studio.
+  `node scripts/banc-poses.js lancer` ouvre Creator caché dans un profil à part (`MBC_BANC`, par défaut `<temp>/heliance-banc` ; le pack 3D et la bibliothèque y sont copiés au
+  premier lancement) et le laisse tourner ; `rendre --agent jett --pose p.json [--ref image]` écrit une image par vue (face, trois-quarts, profils, dos, gros plan de chaque main)
+  et une planche avec la référence à côté ; `fichier` produit le JSON à importer dans le Studio ; `arreter` ferme. Rendu : `src/renderer/banc.js` (`window.__creator.banc`),
+  dialogue par fichiers `demande-*.json` / `reponse-*.json` : `devBanc` dans `main.js`. Rien n'est écrit dans le registre des poses. `rotY` > 0 = on voit le côté droit du personnage.
 - Fenêtre sans barre Windows (`titleBarOverlay`) : les 3 boutons réduire/agrandir/fermer (≈ 150 × 40 px, en haut à droite) recouvrent tout ce qui est
   dessous. Tout écran plein format (studio de poses, créateur de livrées…) doit laisser cette bande libre (`padding-top: 40px`) ; sinon des boutons sont cachés.
 - Les barres de choix (`#gameSeg`, `#fmtSeg`) sont reconstruites par `buildGame` / `buildFormats` : la bulle de verre doit être conservée (`refaireBarre`)

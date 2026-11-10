@@ -68,12 +68,18 @@ function updateStatus() {
 }
 
 // ---------------------------------------------------------------- changements de modèle / format / jeu
+// Vrai seulement quand une modification d'un modèle par défaut n'a PAS pu être mise à l'abri automatiquement
+// (copie personnelle impossible, ex. stockage plein). Ne pas utiliser S.dirty ici : changer d'affiche suffit à
+// marquer le projet « modifié », et la question revenait alors à chaque clic sur une autre affiche.
+let modifsNonAbritees = false;
 async function switchTemplate(key) {
   if (key === S.doc.tpl) return;
-  // filet de sécurité : si des modifications sur un modèle par défaut n'ont pas encore été mises à l'abri
+  // filet de sécurité : si des modifications sur un modèle par défaut n'ont pas pu être mises à l'abri
   // (cas normalement déjà traité à la volée, voir le gestionnaire de l'événement « doc »), on propose de les
   // enregistrer dans les Modèles personnalisés avant de les perdre en changeant de modèle.
-  if (!isCustom(S.doc.tpl) && S.dirty) {
+  const aProposer = !isCustom(S.doc.tpl) && modifsNonAbritees;
+  modifsNonAbritees = false;
+  if (aProposer) {
     const name = TEMPLATES[S.doc.tpl]?.name || S.doc.tpl;
     const garder = await window.Dialogue.confirmer({
       message: `Modifications non enregistrées sur « ${name} ».`,
@@ -768,6 +774,7 @@ on('doc', o => {
   // d'appliquer/réappliquer un modèle à neuf, pas une modification de l'utilisateur : rien à mettre à l'abri.)
   if (S.doc && !isCustom(S.doc.tpl) && !(o && (o.live || o.full))) {
     const forked = forkFromDefault();
+    modifsNonAbritees = !forked; // copie impossible : on le signalera au prochain changement d'affiche
     if (forked) {
       P.renderGallery(); updateStatus();
       toast(`Enregistré automatiquement dans « ${TEMPLATES[forked].name} » (Modèles personnalisés) — le modèle d'origine reste inchangé.`, false, { label: 'Renommer', fn: () => renameFork(forked) });

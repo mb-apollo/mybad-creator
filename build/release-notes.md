@@ -1,1 +1,1 @@
-- Changement de nom : tes données enregistrées avant le renommage passent automatiquement de « MyBad Esport » à « Heliance Esport » (kit de marque, brouillon, projets ouverts, modèles personnalisés, livrées), avec le nouveau lien Twitch
+- Changer d'affiche ne pose plus la question « Modifications non enregistrées » à chaque clic : elle ne revient que si la copie automatique dans les Modèles personnalisés a échoué

@@ -48,7 +48,9 @@ export function rigOf(root) {
   const lat0 = lateral(rig.upperL, rig.upperR);
   for (const s of ['L', 'R']) {
     for (const f of FINGERS) rig.finger[s][f] = [1, 2, 3].map(j => findBone(root, fingerPat(s, f, j)));
-    const hand = rig['hand' + s], mid = rig.finger[s].Middle[0], idx = rig.finger[s].Index[0], pin = rig.finger[s].Pinky[0];
+    // certains squelettes n'ont que trois doigts (pouce, index, annulaire : Chamber) : l'annulaire tient lieu de majeur et d'auriculaire pour le repère de la main
+    const F0 = k => rig.finger[s][k][0];
+    const hand = rig['hand' + s], idx = F0('Index'), pin = F0('Pinky') || F0('Ring'), mid = F0('Middle') || F0('Ring') || idx;
     if (!hand || !mid || !idx || !pin) continue;
     const hp = worldPos(hand), hq = worldQuat(hand), hqi = hq.clone().invert();
     const d = worldPos(mid).sub(hp).normalize();
@@ -336,7 +338,7 @@ export function setFingerCurl(rig, s, f, c) {
     if (!b) return;
     b.quaternion.copy(rig.rest.get(b) || b.quaternion);
     if (j === 0 && ex?.spread && SPREAD[f] && rig.fingerN?.[s]?.[f]) b.quaternion.multiply(q.setFromAxisAngle(rig.fingerN[s][f], SPREAD[f] * (ex.spread / 100) * SPREAD_DEG * RAD * (rig.handFrame?.[s]?.sgnSide || 1)));
-    let ax = rig.fingerAxis[s][f][j];
+    let ax = rig.fingerAxis[s][f]?.[j];   // main sans repère (doigts manquants) : le doigt garde sa pose de repos
     const cj = (c + (ex?.H?.[key + (j + 1)] || 0)) / 100;
     if (f === 'Thumb' && ax && rig.thumbAcross?.[s]?.[j]) { const phi = (THUMB_TILT[j]) * RAD; ax = ax.clone().multiplyScalar(Math.cos(phi)).addScaledVector(rig.thumbAcross[s][j], Math.sin(phi)).normalize(); }
     if (ax && cj) b.quaternion.multiply(q.setFromAxisAngle(ax, CURL[f][j] * cj * RAD));

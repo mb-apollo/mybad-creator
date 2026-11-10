@@ -1,13 +1,13 @@
-/* Thème MyBad : la palette du logo (bleu nuit, blanc lunaire, bleu MyBad eSport, cyan) — voir « MyBad Studio / LISEZ-MOI.txt ». */
+/* Thème MyBad : la palette du logo (bleu nuit, blanc lunaire, bleu Heliance Esport, cyan) — voir « MyBad Studio / LISEZ-MOI.txt ». */
 :root {
   --da-fond: #04081A;            /* bleu nuit, plus sombre (choix d'Axel : maquette E) */
   --da-texte: #E8EBFA;
   --da-doux: #A5ABCB;
-  --da-accent: #54D8FF;          /* cyan MyBad : action principale */
+  --da-accent: #54D8FF;          /* cyan Heliance : action principale */
   --da-sur-accent: #04121C;      /* texte foncé sur le cyan (clair) */
   --da-reflet: #F5F7FF;          /* blanc lunaire */
   --da-voile-force: 38%; --da-luminosite: .82;
-  --da-halo-1: rgba(20,80,200,.30);   /* bleu MyBad eSport */
+  --da-halo-1: rgba(20,80,200,.30);   /* bleu Heliance Esport */
   --da-halo-2: rgba(30,120,230,.17);   /* bleu clair */
   --da-halo-3: rgba(45,60,185,.28);  /* indigo */
 }

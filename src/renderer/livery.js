@@ -1,6 +1,7 @@
 // Livrées des voitures Rocket League. Une livrée est une définition JSON (couleurs de base, lueur, calques : logo, image, texte, étoile, bande)
 // dessinée sur deux textures (flanc, dessus) projetées sur la carrosserie à partir de sa boîte englobante, avec un shader injecté dans la matière « Body ».
-// Les livrées sont enregistrées dans le navigateur (localStorage « mbc.liveries ») ; « MyBad — Nuit » et « Azur » sont fournies et modifiables.
+// Les livrées sont enregistrées dans le navigateur (localStorage « mbc.liveries ») ; « Heliance — Nuit » et « Azur » sont fournies et modifiables.
+import { versHeliance, texteHeliance } from './renom.js';
 import * as THREE from 'three';
 import TRACE from './assets/brand/logo-trace.json';
 
@@ -53,6 +54,15 @@ const BUILTIN = { nuit, azur };
 // ------------------------------------------------------------------ enregistrement
 let STORE = (() => { try { return { user: [], over: {}, hidden: [], ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { user: [], over: {}, hidden: [] }; } })();
 const write = () => { try { localStorage.setItem(KEY, JSON.stringify(STORE)); } catch (e) { console.error('Livrées : enregistrement impossible', e); } };
+// Livrées enregistrées avant le changement de nom : textes et noms « MyBad » → « Heliance » (une seule fois, marque STORE.renom)
+if (!STORE.renom) {
+  for (const d of [...STORE.user.map(u => u && u.def), ...Object.values(STORE.over || {})]) {
+    if (!d || typeof d !== 'object') continue;
+    versHeliance(d); delete d.renom;
+    if (typeof d.name === 'string') d.name = texteHeliance(d.name);
+  }
+  STORE.renom = 1; write();
+}
 const REV = new Map(); let REVALL = 0;
 const LISTEN = []; export const onLiveryChange = fn => LISTEN.push(fn);
 const notify = () => LISTEN.forEach(f => { try { f(); } catch (e) { console.error(e); } });

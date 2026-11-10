@@ -46,7 +46,7 @@ export function beam(g, cx, y0, len, amt) {
   c.restore();
 }
 
-// Grande étoile lumineuse en arrière-plan (signature MyBad).
+// Grande étoile lumineuse en arrière-plan (signature Heliance).
 export function bigStar(g, cx, cy, r, amt) {
   const { c, P, u } = g;
   c.save();
@@ -298,7 +298,7 @@ export function keyartPlaceholder(g, c, x, y, w, h, seed, figures = 1) {
   }
 }
 
-// Logo MyBad par défaut : étoile du Nord.
+// Logo Heliance par défaut : étoile du Nord.
 export function brandMark(g, cx, cy, size) {
   const { c, P, u, IM } = g;
   if (IM.logo) { drawContain(c, IM.logo, cx, cy, size * 2, size * 2); return; }

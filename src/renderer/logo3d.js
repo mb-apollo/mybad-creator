@@ -1,4 +1,4 @@
-// Logo MyBad en 3D (ailes + étoile), tenu en main comme une arme : objet fabriqué ici, sans fichier .glb.
+// Logo Heliance en 3D (ailes + étoile), tenu en main comme une arme : objet fabriqué ici, sans fichier .glb.
 // Les ailes viennent du contour du logo (assets/brand/logo-trace.json, en pixels d'une image de 2000 px), l'étoile est dessinée à la main.
 // Repère d'une arme : l'avant est −X, le haut +Y ; le centre de la poignée est l'origine (nœud « Root_01 »).
 import * as THREE from 'three';

@@ -191,7 +191,7 @@ ipcMain.handle('project:open', async () => {
 });
 // Fichiers texte simples (configuration du Studio de poses)
 ipcMain.handle('text:save', async (_e, { data, suggested }) => {
-  const r = await dialog.showSaveDialog(win, { title: 'Enregistrer la configuration de poses', defaultPath: path.join(app.getPath('documents'), suggested || 'poses-mybad.json'), filters: [{ name: 'Configuration de poses', extensions: ['json'] }] });
+  const r = await dialog.showSaveDialog(win, { title: 'Enregistrer la configuration de poses', defaultPath: path.join(app.getPath('documents'), suggested || 'poses-heliance.json'), filters: [{ name: 'Configuration de poses', extensions: ['json'] }] });
   if (r.canceled || !r.filePath) return null;
   fs.writeFileSync(r.filePath, data, 'utf8'); return r.filePath;
 });

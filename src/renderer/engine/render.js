@@ -69,7 +69,7 @@ export const RL_DEFAULTS = {
 
 // Kit officiel Heliance Esport (proposé dans l'assistant de démarrage)
 export const MYBAD_KIT = {
-  v: 2, name: 'Heliance Esport', game: 'valorant', theme: 'nuit', logo: 'assets/brand/mybad-logo.png',
+  v: 2, renom: 1, name: 'Heliance Esport', game: 'valorant', theme: 'nuit', logo: 'assets/brand/mybad-logo.png',
   T: { org: 'HELIANCE ESPORT', live: 'twitch.tv/heliance_esport', liveUrl: 'twitch.tv/heliance_esport', sig: 'POLARIS / NORTH STAR', coords: '48.8566° N — 2.3522° E', recCta: 'Candidature sur le Discord Heliance Esport' },
   rosters: {},
 };
@@ -78,7 +78,7 @@ export function newDocument(kit) {
   const k = kit || {};
   const theme = THEMES.find(t => t.id === (k.theme || 'nuit')) || THEMES[0];
   const doc = {
-    app: 'mybad-creator', version: 2,
+    app: 'mybad-creator', version: 2, renom: 1,
     fmt: '4x5', W: 1080, H: 1350, game: k.game || 'valorant', tpl: 'roster',
     themeId: theme.id, theme: { ...theme.c },
     script: true,

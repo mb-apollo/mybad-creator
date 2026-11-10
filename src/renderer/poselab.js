@@ -309,7 +309,7 @@ function preview() {
 async function doExport() {
   const data = exportConfig();
   try {
-    const p = API?.saveText ? await API.saveText({ data, suggested: 'poses-mybad.json' }) : null;
+    const p = API?.saveText ? await API.saveText({ data, suggested: 'poses-heliance.json' }) : null;
     if (p) $('#plStatus', root).textContent = 'Exporté : ' + p;
     else if (!API?.saveText) { await navigator.clipboard.writeText(data); $('#plStatus', root).textContent = 'Configuration copiée dans le presse-papiers'; }
   } catch (err) { $('#plStatus', root).textContent = 'Export impossible : ' + err.message; }

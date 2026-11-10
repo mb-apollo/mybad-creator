@@ -3,6 +3,7 @@ import { S, API, on, emit, change, setDoc, normalize, select, selected, layerByI
 import * as posereg from './posereg.js';
 import { newDocument, applyTemplate, renderDoc, FORMATS, THEMES, setGameDefaults, MYBAD_KIT } from './engine/render.js';
 import { TEMPLATES } from './engine/templates.js';
+import { versHeliance } from './renom.js';
 import { makeEnv, docImageUrls, whenLoaded, onImageLoaded } from './engine/assets.js';
 import { GAMES, gameItems } from './engine/games.js';
 import { $, $$, esc, icon } from './ui.js';
@@ -810,6 +811,7 @@ async function boot() {
   let doc = null;
   if (API) {
     S.kit = (await API.storeGet('kit')) || null;
+    if (versHeliance(S.kit)) await API.storeSet('kit', S.kit); // kit enregistré avant le changement de nom : MyBad Esport → Heliance Esport
     const eo = await API.storeGet('exportOpt'); if (eo) exportOpt = { ...exportOpt, ...eo };
     await refreshLibrary();
     const info = await API.info();

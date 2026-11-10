@@ -1,4 +1,4 @@
-// Créateur de livrées (plein écran) pour les voitures Rocket League : couleurs, brillance, lueur, logo MyBad, images, textes, étoiles et bandes.
+// Créateur de livrées (plein écran) pour les voitures Rocket League : couleurs, brillance, lueur, logo Heliance, images, textes, étoiles et bandes.
 // Chaque modification est enregistrée tout de suite ; les livrées se choisissent ensuite dans l'onglet 3D (section Voiture) de chaque voiture.
 import { S, change as docChange, toast } from './state.js';
 import { esc, setPath, getPath, section, range, select, toggle, textInput, syncRange, pct, deg } from './ui.js';
@@ -304,7 +304,7 @@ function preview() {
 async function doExport() {
   const data = exportLiveries(), st = $('#llStatus', root);
   try {
-    const p = API?.saveText ? await API.saveText({ data, suggested: 'liverees-mybad.json' }) : null;
+    const p = API?.saveText ? await API.saveText({ data, suggested: 'livrees-heliance.json' }) : null;
     if (p) st.textContent = 'Exporté : ' + p;
     else if (!API?.saveText) { await navigator.clipboard.writeText(data); st.textContent = 'Livrées copiées dans le presse-papiers'; }
   } catch (err) { st.textContent = 'Export impossible : ' + err.message; }

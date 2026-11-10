@@ -2,6 +2,7 @@
 import { newDocument, applyTemplate, FORMATS, THEMES, TEXT_DEFAULTS, DEFAULT_FONTS } from './engine/render.js';
 import { TEMPLATES } from './engine/templates.js';
 import { setDocFonts, uid, migrateFade } from './engine/scene.js';
+import { versHeliance } from './renom.js';
 
 export const API = window.studio || null;
 
@@ -33,6 +34,7 @@ export function setDoc(doc, opts = {}) {
   emit('selection');
 }
 export function normalize(d) {
+  versHeliance(d); // projets et brouillons d'avant le changement de nom : « MyBad Esport » devient « Heliance Esport » (une seule fois)
   if (!d || d.app !== 'mybad-creator' || !Array.isArray(d.layers)) {
     // ancien projet MyBad Poster Studio : on garde les textes et on reconstruit
     const doc = newDocument(S.kit);

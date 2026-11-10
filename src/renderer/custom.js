@@ -4,6 +4,7 @@ import { TEMPLATES, blankLayers } from './engine/templates.js';
 import { S, toast } from './state.js';
 import { uid } from './engine/scene.js';
 import { applyTemplate } from './engine/render.js';
+import { versHeliance } from './renom.js';
 
 const STORE = 'mbc.customTemplates';
 let list = [];
@@ -39,7 +40,12 @@ function register(e) {
     },
   };
 }
-export function initCustom() { list = read(); list.forEach(register); }
+export function initCustom() {
+  list = read();
+  // modèles enregistrés avant le changement de nom : « MyBad Esport » devient « Heliance Esport » (une seule fois)
+  if (list.map(versHeliance).some(Boolean)) { try { localStorage.setItem(STORE, JSON.stringify(list)); } catch { /* stockage plein : la conversion sera refaite au prochain lancement */ } }
+  list.forEach(register);
+}
 
 // Copie les calques du document (sans identifiants) et les images qu'ils utilisent.
 function snapshot(doc = S.doc) {

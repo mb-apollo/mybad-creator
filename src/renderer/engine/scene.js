@@ -152,14 +152,14 @@ function drawText(c, L, env, b) {
   c.letterSpacing = '0px';
 }
 
-// Emblème MyBad (repère d'origine 1932 × 1932, contenu entre x 8–1924 et y 92–1832)
+// Emblème Heliance (repère d'origine 1932 × 1932, contenu entre x 8–1924 et y 92–1832)
 const EMB = {
   wings: [[[8, 435], [780, 1072], [792, 1095], [915, 1730], [812, 1460], [712, 1108], [700, 1098], [195, 770]],
     [[218, 882], [680, 1110], [730, 1255], [350, 1080]], [[630, 1278], [738, 1308], [815, 1462], [912, 1732]]],
   diamond: [[968, 625], [1072, 1155], [966, 1820], [862, 1155]],
   box: { x: 8, y: 92, w: 1916, h: 1740 },
 };
-export const EMBLEM_RATIO = 1982 / 1799; // proportions du logo officiel MyBad
+export const EMBLEM_RATIO = 1982 / 1799; // proportions du logo officiel Heliance
 // Logo de la structure (image du Kit de marque). Sans logo : emplacement à remplir.
 function drawEmblem(c, L, env, b) {
   const img = env.image(L.asset || 'u:logo');

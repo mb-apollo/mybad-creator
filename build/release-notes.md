@@ -1,1 +1,1 @@
-- Le logo en haut à gauche n'est plus dans une bulle de verre : logo et nom du projet sont à nu dans la barre
+- Changement de nom : tes données enregistrées avant le renommage passent automatiquement de « MyBad Esport » à « Heliance Esport » (kit de marque, brouillon, projets ouverts, modèles personnalisés, livrées), avec le nouveau lien Twitch

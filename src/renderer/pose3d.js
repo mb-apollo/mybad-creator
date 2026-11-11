@@ -44,6 +44,14 @@ export function rigOf(root) {
   rig.rest = new Map();
   root.traverse(o => { if (o.isBone) rig.rest.set(o, o.quaternion.clone()); });
   rig.finger = { L: {}, R: {} }; rig.fingerAxis = { L: {}, R: {} }; rig.handFrame = {};
+  // os de vrille de l'avant-bras (enfants directs du coude, nommés …_Twst1…3), avec leur position entre le coude (0) et le poignet (1)
+  rig.twist = {};
+  for (const s of ['L', 'R']) {
+    const fore = rig['fore' + s], hand = rig['hand' + s];
+    if (!fore || !hand || hand.parent !== fore) continue;
+    const ax = hand.position.clone(), L2 = ax.lengthSq(); if (L2 < 1e-18) continue;
+    rig.twist[s] = fore.children.filter(b => b.isBone && b !== hand && /_Twst\d+$/i.test(b.name || '')).map(b => [b, Math.max(0, Math.min(1, b.position.dot(ax) / L2))]).filter(x => x[1] > 0.02);
+  }
   root.updateMatrixWorld(true);
   const lat0 = lateral(rig.upperL, rig.upperR);
   for (const s of ['L', 'R']) {
@@ -91,6 +99,13 @@ export function cleanSkinWeights(root) {
     const bones = o.skeleton.bones, inv = o.skeleton.boneInverses;
     const pos = o.geometry.attributes.position, idx = o.geometry.attributes.skinIndex, wt = o.geometry.attributes.skinWeight;
     if (!idx || !wt || !inv.length) return;
+    // Sommets liés à une cible de cinématique inverse (L_IK_FootTarget : sangles de cheville, bas de pantalon) : cet os reste au sol
+    // quand la jambe bouge. On les rattache à l'os du pied ou de la main qu'il représente.
+    const ik = bones.map(b => { const m = /^([LR])_IK_(Foot|Hand)Target/i.exec(b.name || ''); return m ? bones.findIndex(x => new RegExp('^' + m[1] + '_' + m[2] + '$', 'i').test(x.name || '')) : -1; });
+    if (ik.some(x => x >= 0)) {
+      for (let v = 0; v < idx.count; v++) for (let k = 0; k < 4; k++) { const t = ik[idx.getComponent(v, k)]; if (t >= 0 && wt.getComponent(v, k) > 0) idx.setComponent(v, k, t); }
+      idx.needsUpdate = true;
+    }
     const bp = inv.map(m => new THREE.Vector3().setFromMatrixPosition(m.clone().invert()));
     const chain = bones.map(b => { const c = []; for (let p = b; p; p = p.parent) c.push(p); return c; });
     const cache = new Map();
@@ -105,6 +120,10 @@ export function cleanSkinWeights(root) {
     for (let v = 0; v < pos.count; v++) box.expandByPoint(p.fromBufferAttribute(pos, v));
     const far = (box.max.y - box.min.y) * 0.035, loin = (box.max.y - box.min.y) * 0.2;
     let recolle = false;
+    // os qui portent réellement de la peau : seuls candidats pour rattacher un sommet perdu (pas les cibles de cinématique inverse,
+    // repères d'arme ou de caméra, qui restent immobiles quand le corps bouge)
+    const porte = new Uint8Array(bones.length);
+    for (let v = 0; v < idx.count; v++) for (let k = 0; k < 4; k++) if (wt.getComponent(v, k) > 0) porte[idx.getComponent(v, k)]++;
     for (let v = 0; v < idx.count; v++) {
       p.fromBufferAttribute(pos, v);
       const ks = [], ds = [];
@@ -120,7 +139,7 @@ export function cleanSkinWeights(root) {
       // s'il y en a un nettement plus près.
       if (near >= 0 && ds[near] > loin) {
         let b = -1, bd = Infinity;
-        for (let j = 0; j < bp.length; j++) { const d = p.distanceTo(bp[j]); if (d < bd) { bd = d; b = j; } }
+        for (let j = 0; j < bp.length; j++) { if (!porte[j]) continue; const d = p.distanceTo(bp[j]); if (d < bd) { bd = d; b = j; } }
         if (bd < ds[near] / 5) { idx.setComponent(v, 0, b); wt.setComponent(v, 0, 1); for (let k = 1; k < 4; k++) wt.setComponent(v, k, 0); recolle = true; continue; }
       }
       if (ks.length < 2) continue;
@@ -133,34 +152,95 @@ export function cleanSkinWeights(root) {
       }
       if (sum > 0) for (let k = 0; k < 4; k++) wt.setComponent(v, k, wt.getComponent(v, k) / sum);
     }
+    // Îlots de sommets liés à un seul os sans rapport avec ce qui les entoure (indices d'os perdus à l'export, rabattus sur un os parfois
+    // proche : gant droit de Reyna lié au bassin, à 30 cm de la main). Ils restent en arrière dès que le membre bouge. Chaque sommet
+    // reprend les poids de son voisin de maillage le plus proche qui, lui, est lié à cette partie du corps ; l'îlot se comble de proche en proche.
+    const I = o.geometry.index ? o.geometry.index.array : null;
+    if (I) {
+      const n = idx.count, seul = new Int32Array(n).fill(-1), dom = new Int32Array(n);
+      for (let v = 0; v < n; v++) {
+        let b = -1, w = 0, un = true;
+        for (let k = 0; k < 4; k++) { const x = wt.getComponent(v, k); if (x <= 0) continue; const j = idx.getComponent(v, k); if (b >= 0 && j !== b && x > 0.02) un = false; if (x > w) { w = x; b = j; } }
+        dom[v] = b; if (un && b >= 0) seul[v] = b;
+      }
+      const vois = new Map();
+      for (let t = 0; t < I.length; t += 3) for (let e = 0; e < 3; e++) {
+        const a = I[t + e], b = I[t + (e + 1) % 3];
+        if (seul[a] >= 0) { let l = vois.get(a); if (!l) vois.set(a, l = []); l.push(b); }
+        if (seul[b] >= 0) { let l = vois.get(b); if (!l) vois.set(b, l = []); l.push(a); }
+      }
+      const q = new THREE.Vector3();
+      for (let passe = 0, fait = true; fait && passe < 12; passe++) {
+        fait = false;
+        const maj = [];
+        for (const [v, l] of vois) {
+          if (seul[v] < 0) continue;
+          let best = -1, bd = Infinity, proche = false;
+          p.fromBufferAttribute(pos, v);
+          const dv = p.distanceTo(bp[seul[v]]);
+          if (dv <= far) continue;                                       // le sommet est contre son os : il est à sa place
+          for (const y of l) {
+            if (dom[y] < 0 || dom[y] === seul[v]) continue;
+            if (hops(seul[v], dom[y]) <= 5) { proche = true; break; }   // voisin d'une partie du corps liée à cet os : le sommet est à sa place
+            if (p.distanceTo(bp[dom[y]]) * 3 > dv) continue;             // l'os du voisin n'est pas nettement plus près : rien ne dit que c'est le sommet qui est mal lié
+            const d = p.distanceTo(q.fromBufferAttribute(pos, y)); if (d < bd) { bd = d; best = y; }
+          }
+          if (!proche && best >= 0) maj.push([v, best]);
+        }
+        for (const [v, y] of maj) {
+          for (let k = 0; k < 4; k++) { idx.setComponent(v, k, idx.getComponent(y, k)); wt.setComponent(v, k, wt.getComponent(y, k)); }
+          dom[v] = dom[y]; seul[v] = -1; fait = true; recolle = true;
+        }
+      }
+    }
     wt.needsUpdate = true;
     if (recolle) idx.needsUpdate = true;
   });
 }
 
 // Garde-fou contre les triangles étirés : certains modèles ont des surfaces repliées à plat dans leur pose
-// d'origine (lames, rabats…) qui s'étirent en pointes dès qu'un membre bouge. On mémorise les longueurs d'arêtes
-// de la pose d'origine, puis, après chaque pose, on masque les triangles dont une arête est devenue démesurée.
+// d'origine (lames, rabats…) ou des sommets liés à un os sans rapport (cape cousue aux doigts, orbe au pouce), qui s'étirent en
+// pointes dès qu'un membre bouge. On mémorise les longueurs d'arêtes de la pose d'origine, puis, après chaque pose, on masque les
+// triangles dont une arête est devenue démesurée ET relie deux parties du corps sans lien direct (os dominants éloignés dans le
+// squelette). Entre os voisins (aisselle, coude, cou), un tissu qui s'étire est une déformation normale : le masquer y creusait des trous.
+const STRETCH_HOPS = 5;   // au-delà de ce nombre de liens entre les deux os, l'arête étirée est une anomalie
 export function recordRestShape(root) {
   root.updateMatrixWorld(true);
+  let H = 0;
   root.traverse(o => {
-    if (!o.isSkinnedMesh || !o.geometry.index || o.userData.stretch) return;
-    // référence = forme d'origine du maillage (sans déformation), pas la pose du fichier qui peut déjà être étirée
-    const P0 = o.geometry.attributes.position, n = P0.count, rest = new Float32Array(n * 3);
-    let min = Infinity, max = -Infinity;
-    for (let i = 0; i < n; i++) { rest[i * 3] = P0.getX(i); rest[i * 3 + 1] = P0.getY(i); rest[i * 3 + 2] = P0.getZ(i); min = Math.min(min, P0.getY(i)); max = Math.max(max, P0.getY(i)); }
-    o.userData.stretch = { rest, orig: o.geometry.index.array.slice(), H: max - min, pos: new Float32Array(n * 3), cur: null };
+    if (!o.isSkinnedMesh || !o.geometry.index) return;
+    if (!o.userData.stretch) {
+      // référence = forme d'origine du maillage (sans déformation), pas la pose du fichier qui peut déjà être étirée
+      const P0 = o.geometry.attributes.position, n = P0.count, rest = new Float32Array(n * 3);
+      let min = Infinity, max = -Infinity;
+      for (let i = 0; i < n; i++) { rest[i * 3] = P0.getX(i); rest[i * 3 + 1] = P0.getY(i); rest[i * 3 + 2] = P0.getZ(i); min = Math.min(min, P0.getY(i)); max = Math.max(max, P0.getY(i)); }
+      // os dominant de chaque sommet (après nettoyage des poids)
+      const si = o.geometry.attributes.skinIndex, sw = o.geometry.attributes.skinWeight, dom = new Uint16Array(n);
+      if (si && sw) for (let i = 0; i < n; i++) { let b = 0, w = -1; for (let k = 0; k < 4; k++) { const x = sw.getComponent(i, k); if (x > w) { w = x; b = si.getComponent(i, k); } } dom[i] = b; }
+      o.userData.stretch = { rest, orig: o.geometry.index.array.slice(), H0: max - min, H: max - min, pos: new Float32Array(n * 3), cur: null, dom, hops: new Map() };
+    }
+    H = Math.max(H, o.userData.stretch.H0);
   });
+  // hauteur du personnage : celle de son plus grand maillage (un maillage partiel — tête, accessoire — ne doit pas abaisser le seuil)
+  root.traverse(o => { if (o.isSkinnedMesh && o.userData.stretch) o.userData.stretch.H = H; });
 }
 export function cullStretched(root) {
   root.updateMatrixWorld(true);
   root.traverse(o => {
     const st = o.isSkinnedMesh && o.userData.stretch; if (!st) return;
-    const n = st.rest.length / 3, v = new THREE.Vector3(), P = st.pos, R = st.rest, I = st.orig;
+    const n = st.rest.length / 3, v = new THREE.Vector3(), P = st.pos, R = st.rest, I = st.orig, bones = o.skeleton.bones;
     for (let i = 0; i < n; i++) { o.getVertexPosition(i, v); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; }
     const len = (A, a, b) => Math.hypot(A[a * 3] - A[b * 3], A[a * 3 + 1] - A[b * 3 + 1], A[a * 3 + 2] - A[b * 3 + 2]);
-    const minLen = st.H * 0.06, keep = [];
-    const bad = (a, b) => { const p = len(P, a, b); return p > minLen && p > 2 * len(R, a, b); };
+    const hops = (x, y) => {
+      if (x === y) return 0;
+      const key = x < y ? x * 65536 + y : y * 65536 + x; let d = st.hops.get(key);
+      if (d !== undefined) return d;
+      const up = new Map(); let i = 0; for (let p = bones[x]; p; p = p.parent) up.set(p, i++);
+      d = 99; i = 0; for (let p = bones[y]; p; p = p.parent, i++) { const k = up.get(p); if (k !== undefined) { d = k + i; break; } }
+      st.hops.set(key, d); return d;
+    };
+    const minLen = st.H * 0.06, maxLen = st.H * 0.22, keep = [];
+    const bad = (a, b) => { const p = len(P, a, b); return p > minLen && p > 2 * len(R, a, b) && (p > maxLen || hops(st.dom[a], st.dom[b]) > STRETCH_HOPS); };
     for (let t = 0; t < I.length; t += 3) {
       const a = I[t], b = I[t + 1], c = I[t + 2];
       if (!(bad(a, b) || bad(b, c) || bad(c, a))) keep.push(a, b, c);
@@ -248,12 +328,29 @@ function turnToward(bone, axis, ang, probe, want) {
 // Poignet : flexion (vers la paume), inclinaison (vers le pouce) et rotation de la main, dans le repère de la main.
 export function applyWrist(rig, s, H) {
   const hand = rig['hand' + s], F = rig.handFrame?.[s];
-  if (!hand || !F || !(H.flex || H.side || H.twist)) return;
-  const q = new THREE.Quaternion().setFromAxisAngle(F.a, (H.flex || 0) * RAD * F.sgnFlex)
-    .multiply(new THREE.Quaternion().setFromAxisAngle(F.n, (H.side || 0) * RAD * F.sgnSide))
-    .multiply(new THREE.Quaternion().setFromAxisAngle(F.d, (H.twist || 0) * RAD));
-  hand.quaternion.multiply(q);
-  hand.updateWorldMatrix(true, true);
+  if (hand && F && (H.flex || H.side || H.twist)) {
+    const q = new THREE.Quaternion().setFromAxisAngle(F.a, (H.flex || 0) * RAD * F.sgnFlex)
+      .multiply(new THREE.Quaternion().setFromAxisAngle(F.n, (H.side || 0) * RAD * F.sgnSide))
+      .multiply(new THREE.Quaternion().setFromAxisAngle(F.d, (H.twist || 0) * RAD));
+    hand.quaternion.multiply(q);
+    hand.updateWorldMatrix(true, true);
+  }
+  spreadForearmTwist(rig, s);   // dernière étape de toute orientation de la main : l'avant-bras accompagne
+}
+
+// Vrille de l'avant-bras : quand la main tourne autour de l'avant-bras (paume vers le haut, arme tenue de côté), toute la rotation se
+// concentrait au poignet, qui se tordait « en papillote ». Les modèles ont des os de vrille le long de l'avant-bras (Elbow_Twst1…3,
+// enfants du coude) : chacun prend la part de la rotation qui correspond à sa position entre le coude et le poignet.
+export function spreadForearmTwist(rig, s) {
+  const tw = rig.twist?.[s], hand = rig['hand' + s], q0 = hand && rig.rest.get(hand);
+  if (!tw?.length || !q0) return;
+  const L = hand.position.length(); if (L < 1e-9) return;
+  const ax = hand.position.clone().normalize();                           // axe de l'avant-bras, dans le repère du coude
+  const d = hand.quaternion.clone().multiply(q0.clone().invert());        // rotation de la main depuis le repos, dans ce repère
+  let t = 2 * Math.atan2(d.x * ax.x + d.y * ax.y + d.z * ax.z, d.w);
+  if (t > Math.PI) t -= 2 * Math.PI; else if (t < -Math.PI) t += 2 * Math.PI;
+  const q = new THREE.Quaternion();
+  for (const [b, f] of tw) { b.quaternion.copy(q.setFromAxisAngle(ax, t * f)).multiply(rig.rest.get(b)); b.updateWorldMatrix(false, true); }
 }
 
 export function applyPose(root, P) {

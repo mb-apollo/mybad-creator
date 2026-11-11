@@ -444,6 +444,9 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 #liverylab .llzone .llcol { flex: 1; }
 #liverylab .pl-top .input { width: auto; max-width: 190px; }
 #liverylab #llOver { pointer-events: none; }
+#liverylab .ll-from { padding: 0 4px 4px; }
+#liverylab .ll-from label { font-size: 11px; color: var(--muted); }
+#liverylab .ll-from .input { width: 100%; }
 #liverylab .pl-top .seg button { padding: 6px 14px; }
 #liverylab .pl-list button small.ll-def { color: var(--cyan); }
 #liverylab .ll-see { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 2; }

@@ -1,0 +1,706 @@
+{
+  "app": "Heliance Creator",
+  "kind": "liveries",
+  "version": 1,
+  "data": {
+    "user": [
+      {
+        "id": "umvu7tdpq",
+        "def": {
+          "name": "Octane Heliance",
+          "base": [
+            "#006eff",
+            "#000e47"
+          ],
+          "gloss": 0,
+          "metal": 1,
+          "glow": {
+            "color": "#955cff",
+            "amount": 0
+          },
+          "layers": [
+            {
+              "id": "lmvsxobjr1",
+              "kind": "stripe",
+              "face": "side",
+              "x": 0.4099857283402966,
+              "y": 0.36339153484431497,
+              "rot": -18,
+              "len": 1.3,
+              "thick": 5,
+              "color": "#8fdcff",
+              "opacity": 0.75,
+              "glow": 0.6,
+              "ov": {
+                "octane": {
+                  "x": 0.82,
+                  "rot": 0,
+                  "y": 0.525
+                }
+              }
+            },
+            {
+              "id": "lmvsxobjr2",
+              "kind": "stripe",
+              "face": "side",
+              "x": 0.47924003419882566,
+              "y": 0.29623062489848373,
+              "rot": -18,
+              "len": 1.3,
+              "thick": 2.5,
+              "color": "#8fdcff",
+              "opacity": 0.5,
+              "glow": 0.4,
+              "ov": {
+                "octane": {
+                  "rot": 180
+                }
+              }
+            },
+            {
+              "id": "lmvsxobjr3",
+              "kind": "stripe",
+              "face": "side",
+              "x": 0.5,
+              "y": 0.965,
+              "rot": 0,
+              "len": 1.1,
+              "thick": 4,
+              "color": "#8fdcff",
+              "opacity": 0.8,
+              "glow": 0.5,
+              "ov": {
+                "octane": {
+                  "x": 0.520198155675739,
+                  "y": 0.970698305215361
+                }
+              }
+            },
+            {
+              "id": "lmvsxobjr4",
+              "kind": "star",
+              "face": "side",
+              "x": 0.6716817447113295,
+              "y": 0.6370804356476368,
+              "size": 0.036,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 0.8
+            },
+            {
+              "id": "lmvsxobjr5",
+              "kind": "star",
+              "face": "side",
+              "x": 0.6569009988504707,
+              "y": 0.6034739922284835,
+              "size": 0.024,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 0.8
+            },
+            {
+              "id": "lmvsxobjr6",
+              "kind": "star",
+              "face": "side",
+              "x": 0.74,
+              "y": 0.62,
+              "size": 0.028,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 0.8
+            },
+            {
+              "id": "lmvsxobjr7",
+              "kind": "star",
+              "face": "side",
+              "x": 0.86,
+              "y": 0.3,
+              "size": 0.02,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 0.8
+            },
+            {
+              "id": "lmvsxobjr8",
+              "kind": "star",
+              "face": "side",
+              "x": 0.62,
+              "y": 0.2,
+              "size": 0.018,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 0.8
+            },
+            {
+              "id": "lmvsxobjr10",
+              "kind": "text",
+              "face": "side",
+              "x": 0.38205589056802725,
+              "y": 0.5864075635507545,
+              "size": 0.062,
+              "rot": 3,
+              "color": "#ffffff",
+              "opacity": 0.9,
+              "glow": 0.3,
+              "text": "HELIANCE ESPORT",
+              "font": "Montserrat",
+              "weight": 800,
+              "italic": true
+            },
+            {
+              "id": "lmvsxobjs11",
+              "kind": "star",
+              "face": "top",
+              "x": 0.1616614194630042,
+              "y": 0.03194618230916524,
+              "size": 0.32,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 1,
+              "ov": {
+                "octane": {
+                  "y": 0.105,
+                  "x": 0.49,
+                  "size": 0.148
+                }
+              }
+            },
+            {
+              "id": "lmvsxobjs12",
+              "kind": "stripe",
+              "face": "top",
+              "x": 0.6233141715797099,
+              "y": 0.18914370886367365,
+              "rot": 90,
+              "len": 1,
+              "thick": 12,
+              "color": "#8fdcff",
+              "opacity": 0.9,
+              "glow": 0.8,
+              "ov": {
+                "octane": {}
+              }
+            },
+            {
+              "id": "lmvsxobjs13",
+              "kind": "stripe",
+              "face": "top",
+              "x": 0.366347429430045,
+              "y": 0.5059843723703257,
+              "rot": 90,
+              "len": 1,
+              "thick": 12,
+              "color": "#8fdcff",
+              "opacity": 0.9,
+              "glow": 0.8,
+              "ov": {
+                "octane": {}
+              }
+            },
+            {
+              "id": "lmvsxpk1421",
+              "kind": "logo",
+              "face": "top",
+              "x": 0.46657254435266127,
+              "y": 0.10131565890030825,
+              "size": 0.424,
+              "rot": 0,
+              "color": "#ffffff",
+              "color2": "#ffffff",
+              "opacity": 0.98,
+              "glow": 0.21,
+              "star": false,
+              "ov": {
+                "octane": {}
+              }
+            }
+          ],
+          "lamps": {
+            "glow": 0.66,
+            "front": "#6bbaff"
+          },
+          "zones": {
+            "rim": "#141414",
+            "glass": "#000000",
+            "tires": "#000000"
+          },
+          "only": "fennec"
+        }
+      },
+      {
+        "id": "umvu7wsv4",
+        "def": {
+          "name": "Ma livrée",
+          "base": [
+            "#00011f",
+            "#170c36"
+          ],
+          "gloss": 0.35,
+          "metal": 0.59,
+          "glow": {
+            "color": "#955cff",
+            "amount": 0.31
+          },
+          "layers": [
+            {
+              "id": "lmvsxobjr1",
+              "kind": "stripe",
+              "face": "side",
+              "x": 0.5488991990140608,
+              "y": 0.6173482412865099,
+              "rot": -18,
+              "len": 1.3,
+              "thick": 5,
+              "color": "#8fdcff",
+              "opacity": 0.75,
+              "glow": 0.6,
+              "ov": {
+                "octane": {
+                  "x": 0.82,
+                  "rot": 0,
+                  "y": 0.525
+                }
+              }
+            },
+            {
+              "id": "lmvsxobjr2",
+              "kind": "stripe",
+              "face": "side",
+              "x": 0.5,
+              "y": 0.66,
+              "rot": -18,
+              "len": 1.3,
+              "thick": 2.5,
+              "color": "#8fdcff",
+              "opacity": 0.5,
+              "glow": 0.4,
+              "ov": {
+                "octane": {
+                  "y": 0.555,
+                  "x": 0.615,
+                  "rot": 180
+                }
+              }
+            },
+            {
+              "id": "lmvsxobjr3",
+              "kind": "stripe",
+              "face": "side",
+              "x": 0.5,
+              "y": 0.965,
+              "rot": 0,
+              "len": 1.1,
+              "thick": 4,
+              "color": "#8fdcff",
+              "opacity": 0.8,
+              "glow": 0.5,
+              "ov": {
+                "octane": {
+                  "x": 0.520198155675739,
+                  "y": 0.970698305215361
+                }
+              }
+            },
+            {
+              "id": "lmvsxobjr4",
+              "kind": "star",
+              "face": "side",
+              "x": 0.2,
+              "y": 0.3,
+              "size": 0.036,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 0.8
+            },
+            {
+              "id": "lmvsxobjr5",
+              "kind": "star",
+              "face": "side",
+              "x": 0.3,
+              "y": 0.52,
+              "size": 0.024,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 0.8
+            },
+            {
+              "id": "lmvsxobjr6",
+              "kind": "star",
+              "face": "side",
+              "x": 0.74,
+              "y": 0.62,
+              "size": 0.028,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 0.8
+            },
+            {
+              "id": "lmvsxobjr7",
+              "kind": "star",
+              "face": "side",
+              "x": 0.86,
+              "y": 0.3,
+              "size": 0.02,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 0.8
+            },
+            {
+              "id": "lmvsxobjr8",
+              "kind": "star",
+              "face": "side",
+              "x": 0.62,
+              "y": 0.2,
+              "size": 0.018,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 0.8
+            },
+            {
+              "id": "lmvsxobjr10",
+              "kind": "text",
+              "face": "side",
+              "x": 0.17,
+              "y": 0.2,
+              "size": 0.07,
+              "rot": 0,
+              "color": "#9fc4e6",
+              "opacity": 0.9,
+              "glow": 0.3,
+              "text": "HELIANCE ESPORT",
+              "font": "Montserrat",
+              "weight": 800,
+              "italic": true
+            },
+            {
+              "id": "lmvsxobjs11",
+              "kind": "star",
+              "face": "top",
+              "x": 0.1616614194630042,
+              "y": 0.03194618230916524,
+              "size": 0.32,
+              "rot": 0,
+              "color": "#ffffff",
+              "opacity": 1,
+              "glow": 1,
+              "ov": {
+                "octane": {
+                  "y": 0.105,
+                  "x": 0.49,
+                  "size": 0.148
+                }
+              }
+            },
+            {
+              "id": "lmvsxobjs12",
+              "kind": "stripe",
+              "face": "top",
+              "x": 0.7143188297022673,
+              "y": 0.5293307729781588,
+              "rot": 90,
+              "len": 1,
+              "thick": 12,
+              "color": "#8fdcff",
+              "opacity": 0.9,
+              "glow": 0.8,
+              "ov": {
+                "octane": {
+                  "y": 0.19,
+                  "x": 0.62
+                }
+              }
+            },
+            {
+              "id": "lmvsxobjs13",
+              "kind": "stripe",
+              "face": "top",
+              "x": 0.3711142434165287,
+              "y": 0.5166005723177233,
+              "rot": 90,
+              "len": 1,
+              "thick": 12,
+              "color": "#8fdcff",
+              "opacity": 0.9,
+              "glow": 0.8,
+              "ov": {
+                "octane": {
+                  "x": 0.37
+                }
+              }
+            },
+            {
+              "id": "lmvsxpk1421",
+              "kind": "logo",
+              "face": "side",
+              "x": 0.51,
+              "y": 0.6787962993842153,
+              "size": 0.392,
+              "rot": 0,
+              "color": "#ffffff",
+              "color2": "#ffffff",
+              "opacity": 0.98,
+              "glow": 0.21,
+              "star": false,
+              "ov": {
+                "octane": {
+                  "x": 0.5116000190698385,
+                  "y": 0.6786148370829904
+                }
+              }
+            }
+          ],
+          "lamps": {
+            "glow": 0.25,
+            "front": "#e5f3ff"
+          },
+          "zones": {
+            "chassis": "#010a28",
+            "rim": "#1c1c1c",
+            "glass": "#000000",
+            "tires": "#000000"
+          }
+        }
+      }
+    ],
+    "over": {
+      "nuit": {
+        "name": "Heliance — Nuit",
+        "base": [
+          "#070e30",
+          "#03060f"
+        ],
+        "gloss": 0.27,
+        "metal": 0.59,
+        "glow": {
+          "color": "#543dff",
+          "amount": 0.5
+        },
+        "layers": [
+          {
+            "id": "lmvsxobjr1",
+            "kind": "stripe",
+            "face": "side",
+            "x": 0.5488991990140608,
+            "y": 0.6173482412865099,
+            "rot": -18,
+            "len": 1.3,
+            "thick": 5,
+            "color": "#8fdcff",
+            "opacity": 0.75,
+            "glow": 0.6,
+            "ov": {
+              "octane": {
+                "x": 0.82,
+                "rot": 0,
+                "y": 0.525
+              }
+            }
+          },
+          {
+            "id": "lmvsxobjr2",
+            "kind": "stripe",
+            "face": "side",
+            "x": 0.5,
+            "y": 0.66,
+            "rot": -18,
+            "len": 1.3,
+            "thick": 2.5,
+            "color": "#8fdcff",
+            "opacity": 0.5,
+            "glow": 0.4,
+            "ov": {
+              "octane": {
+                "y": 0.555,
+                "x": 0.615,
+                "rot": 180
+              }
+            }
+          },
+          {
+            "id": "lmvsxobjr3",
+            "kind": "stripe",
+            "face": "side",
+            "x": 0.5,
+            "y": 0.965,
+            "rot": 0,
+            "len": 1.1,
+            "thick": 4,
+            "color": "#8fdcff",
+            "opacity": 0.8,
+            "glow": 0.5,
+            "ov": {
+              "octane": {
+                "x": 0.520198155675739,
+                "y": 0.970698305215361
+              }
+            }
+          },
+          {
+            "id": "lmvsxobjr4",
+            "kind": "star",
+            "face": "side",
+            "x": 0.2,
+            "y": 0.3,
+            "size": 0.036,
+            "rot": 0,
+            "color": "#ffffff",
+            "opacity": 1,
+            "glow": 0.8
+          },
+          {
+            "id": "lmvsxobjr5",
+            "kind": "star",
+            "face": "side",
+            "x": 0.3,
+            "y": 0.52,
+            "size": 0.024,
+            "rot": 0,
+            "color": "#ffffff",
+            "opacity": 1,
+            "glow": 0.8
+          },
+          {
+            "id": "lmvsxobjr6",
+            "kind": "star",
+            "face": "side",
+            "x": 0.74,
+            "y": 0.62,
+            "size": 0.028,
+            "rot": 0,
+            "color": "#ffffff",
+            "opacity": 1,
+            "glow": 0.8
+          },
+          {
+            "id": "lmvsxobjr7",
+            "kind": "star",
+            "face": "side",
+            "x": 0.86,
+            "y": 0.3,
+            "size": 0.02,
+            "rot": 0,
+            "color": "#ffffff",
+            "opacity": 1,
+            "glow": 0.8
+          },
+          {
+            "id": "lmvsxobjr8",
+            "kind": "star",
+            "face": "side",
+            "x": 0.62,
+            "y": 0.2,
+            "size": 0.018,
+            "rot": 0,
+            "color": "#ffffff",
+            "opacity": 1,
+            "glow": 0.8
+          },
+          {
+            "id": "lmvsxobjr10",
+            "kind": "text",
+            "face": "side",
+            "x": 0.17,
+            "y": 0.2,
+            "size": 0.07,
+            "rot": 0,
+            "color": "#9fc4e6",
+            "opacity": 0.9,
+            "glow": 0.3,
+            "text": "HELIANCE ESPORT",
+            "font": "Montserrat",
+            "weight": 800,
+            "italic": true
+          },
+          {
+            "id": "lmvsxobjs11",
+            "kind": "star",
+            "face": "top",
+            "x": 0.08567418847863162,
+            "y": 0.1502635481202932,
+            "size": 0.32,
+            "rot": 0,
+            "color": "#ffffff",
+            "opacity": 1,
+            "glow": 1,
+            "ov": {
+              "octane": {
+                "size": 0.148
+              }
+            }
+          },
+          {
+            "id": "lmvsxobjs12",
+            "kind": "stripe",
+            "face": "top",
+            "x": 0.39823882322419846,
+            "y": 0.17079637084202698,
+            "rot": 90,
+            "len": 1,
+            "thick": 12,
+            "color": "#8fdcff",
+            "opacity": 0.9,
+            "glow": 0.8,
+            "ov": {
+              "octane": {}
+            }
+          },
+          {
+            "id": "lmvsxobjs13",
+            "kind": "stripe",
+            "face": "top",
+            "x": 0.5896525162214311,
+            "y": 0.5283077162144239,
+            "rot": 90,
+            "len": 1,
+            "thick": 12,
+            "color": "#8fdcff",
+            "opacity": 0.9,
+            "glow": 0.8,
+            "ov": {
+              "octane": {}
+            }
+          },
+          {
+            "id": "lmvsxpk1421",
+            "kind": "logo",
+            "face": "side",
+            "x": 0.7764448842292637,
+            "y": 0.553658798936483,
+            "size": 0.392,
+            "rot": 0,
+            "color": "#ffffff",
+            "color2": "#ffffff",
+            "opacity": 0.98,
+            "glow": 0.21,
+            "star": false,
+            "ov": {
+              "octane": {}
+            }
+          }
+        ],
+        "lamps": {
+          "glow": 0.25,
+          "front": "#e5f3ff"
+        },
+        "zones": {
+          "chassis": "#010a28",
+          "rim": "#000524",
+          "glass": "#000000",
+          "tires": "#000000"
+        }
+      }
+    },
+    "active": "umvu7tdpq"
+  }
+}

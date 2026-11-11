@@ -1,10 +1,13 @@
 // Livrées des voitures Rocket League. Une livrée est une définition JSON (couleurs de base, lueur, calques : logo, image, texte, étoile, bande)
 // dessinés sur trois textures (flanc gauche, flanc droit, dessus) projetées sur la carrosserie à partir de sa boîte englobante, avec un shader injecté dans la matière « Body »
 // qui calcule aussi la couleur de la carrosserie (dégradé).
-// Les livrées sont enregistrées dans le navigateur (localStorage « mbc.liveries ») ; « Heliance — Nuit » et « Azur » sont fournies et modifiables.
+// Les livrées sont enregistrées dans le navigateur (localStorage « mbc.liveries »). Les livrées fournies, modifiables, sont « Heliance — Nuit » et « Azur »
+// (ci-dessous) et celles de liveries-default.json : un export du créateur de livrées, dont les livrées deviennent des livrées fournies (même identifiant),
+// dont la « Nuit » retouchée remplace celle du code, et dont la livrée active est posée d'office sur les nouvelles affiches.
 import { versHeliance, texteHeliance } from './renom.js';
 import * as THREE from 'three';
 import TRACE from './assets/brand/logo-trace.json';
+import FOURNIES from './liveries-default.json';
 
 const KEY = 'mbc.liveries', SH = 800, TW = 1024;
 export const FONTS = ['Montserrat', 'Arial Black', 'Impact', 'Georgia', 'Courier New'];
@@ -50,7 +53,9 @@ const azur = () => ({
     newLayer('stripe', { face: 'top', x: 0.5, y: 0.5, rot: 90, len: 1, thick: 90, color: '#06143f', opacity: 0.8, glow: 0 }),
   ],
 });
-const BUILTIN = { nuit, azur };
+const F = FOURNIES?.data || {}, copie = o => JSON.parse(JSON.stringify(o));
+const BUILTIN = { nuit: F.over?.nuit ? () => copie(F.over.nuit) : nuit, azur: F.over?.azur ? () => copie(F.over.azur) : azur, ...Object.fromEntries((F.user || []).map(u => [u.id, () => copie(u.def)])) };
+const PAR_DEFAUT = F.active && BUILTIN[F.active] ? F.active : 'nuit';   // livrée posée d'office tant qu'on n'en a pas choisi
 
 // ------------------------------------------------------------------ enregistrement
 let STORE = (() => { try { return { user: [], over: {}, hidden: [], ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { user: [], over: {}, hidden: [] }; } })();
@@ -70,7 +75,8 @@ const notify = () => LISTEN.forEach(f => { try { f(); } catch (e) { console.erro
 const cloneJ = o => JSON.parse(JSON.stringify(o));
 const CACHE = new Map();
 
-export const isBuiltin = id => !!BUILTIN[id];
+const isUser = id => STORE.user.some(x => x.id === id);   // une livrée de l'utilisateur qui porte l'identifiant d'une livrée fournie la remplace (celui qui a fourni la sienne)
+export const isBuiltin = id => !!BUILTIN[id] && !isUser(id);
 export const hasOverride = id => !!STORE.over[id];
 export function getDef(id) {
   if (!id) return null;
@@ -86,13 +92,13 @@ export const liveryMetal = id => getDef(id)?.metal;
 export const liveryZone = (id, k) => getDef(id)?.zones?.[k] || null;
 export const liveryLamp = (id, k) => getDef(id)?.lamps?.[k] ?? null;
 export const allLiveries = () => [
-  ...Object.keys(BUILTIN).filter(id => !STORE.hidden.includes(id)).map(id => ({ id, name: getDef(id).name, builtin: true, modified: hasOverride(id) })),
+  ...Object.keys(BUILTIN).filter(id => !STORE.hidden.includes(id) && !isUser(id)).map(id => ({ id, name: getDef(id).name, builtin: true, modified: hasOverride(id) })),
   ...STORE.user.map(u => ({ id: u.id, name: u.def.name, builtin: false })),
 ];
 export const hiddenCount = () => STORE.hidden.length;
 export function restoreBuiltins() { STORE.hidden = []; write(); REVALL++; notify(); }
-// Livrée posée d'office sur les voitures des nouvelles affiches (celle qu'on a « enregistrée »), « nuit » tant qu'on n'a rien choisi.
-export const defaultLivery = () => { const a = STORE.active; return a === '' ? '' : (a && getDef(a) && !STORE.hidden.includes(a) ? a : (STORE.hidden.includes('nuit') ? '' : 'nuit')); };
+// Livrée posée d'office sur les voitures des nouvelles affiches (celle qu'on a « enregistrée »), celle du fichier fourni tant qu'on n'a rien choisi.
+export const defaultLivery = () => { const a = STORE.active; return a === '' ? '' : (a && getDef(a) && !STORE.hidden.includes(a) ? a : (STORE.hidden.includes(PAR_DEFAUT) ? '' : PAR_DEFAUT)); };
 export function setDefaultLivery(id) { STORE.active = id; write(); }
 // Livrée réservée à une voiture (« Octane uniquement ») : sur les autres voitures, la peinture d'origine reste.
 export const liveryOnly = id => getDef(id)?.only || '';
@@ -113,7 +119,8 @@ export function createLivery(name, from) {
 }
 export function renameLivery(id, name) { const d = cloneJ(getDef(id)); d.name = name; saveDef(id, d); }
 export function deleteLivery(id) {
-  if (BUILTIN[id]) { if (!STORE.hidden.includes(id)) STORE.hidden.push(id); delete STORE.over[id]; delete BUILTIN[id]._c; } else STORE.user = STORE.user.filter(x => x.id !== id);
+  if (isUser(id)) STORE.user = STORE.user.filter(x => x.id !== id);
+  else if (BUILTIN[id]) { if (!STORE.hidden.includes(id)) STORE.hidden.push(id); delete STORE.over[id]; delete BUILTIN[id]._c; }
   if (STORE.active === id) delete STORE.active;
   write(); dropTextures(id); REVALL++; notify();
 }

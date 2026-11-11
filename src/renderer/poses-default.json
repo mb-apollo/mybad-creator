@@ -4,150 +4,273 @@
   "version": 2,
   "data": {
     "agents": {
-      "jett": {
+      "astra": {
         "armL": {
-          "out": 11,
-          "fwd": 3,
-          "elbow": 18,
-          "roll": 11
+          "out": 41,
+          "fwd": -12,
+          "elbow": 79,
+          "roll": 46
         },
         "armR": {
-          "out": 13,
-          "fwd": -19,
-          "elbow": 75,
-          "roll": 12
+          "out": 44,
+          "fwd": 32,
+          "elbow": 145,
+          "roll": -79
         },
         "handL": {
-          "curl": 15,
-          "thumb": 0,
-          "pinky": 0,
-          "ring": 0,
-          "middle": 0,
-          "index": 11,
+          "curl": 0,
+          "thumb": 15,
+          "index": 0,
           "spread": -100,
-          "flex": -5,
-          "twist": 2,
-          "thumb1": -16
+          "flex": -12,
+          "side": 21,
+          "twist": 9,
+          "pinky": 14,
+          "ring": 0,
+          "thumb1": 5,
+          "index1": 11,
+          "index2": 3,
+          "index3": 64,
+          "middle3": 79,
+          "ring1": -10,
+          "ring2": -17,
+          "ring3": -30,
+          "pinky1": -47,
+          "pinky2": -11,
+          "pinky3": -35
         },
         "handR": {
-          "curl": 22,
-          "thumb": 24,
-          "pinky": 10,
-          "ring": 28,
-          "spread": -73,
-          "middle": 29,
-          "index": 31,
-          "thumb1": -24,
-          "thumb2": -7,
-          "index1": 22,
-          "index2": -59,
-          "index3": 20,
-          "middle1": -13,
-          "middle2": -12,
-          "ring1": -48,
-          "ring2": -32,
-          "pinky1": -65,
-          "pinky2": -12,
-          "pinky3": -42
+          "curl": 0,
+          "thumb": 12,
+          "thumb1": -100,
+          "thumb2": 14
         },
         "torso": {
-          "twist": 0,
+          "twist": 10,
           "bend": -5,
           "lean": 0
         },
         "head": {
-          "tilt": -1,
-          "turn": -46,
-          "nod": 10
+          "tilt": 1,
+          "turn": 6,
+          "nod": 15,
+          "eyeYaw": 14,
+          "eyePitch": -8
+        },
+        "rotY": -32,
+        "weapon": {
+          "key": "vandal",
+          "hand": "R",
+          "x": 0.015,
+          "y": -0.02,
+          "rx": -10,
+          "ry": -7,
+          "rz": -11,
+          "z": 0.01
         },
         "shL": {
-          "up": -12,
-          "fwd": -6
+          "up": 19,
+          "fwd": -20
         },
         "shR": {
-          "up": 12,
-          "fwd": 7
-        },
-        "legR": {
-          "out": 6,
-          "fwd": 27,
-          "knee": 29
+          "up": -4,
+          "fwd": -10
         },
         "legL": {
           "out": 0,
-          "fwd": 0,
+          "fwd": -27,
           "knee": 0
+        },
+        "legR": {
+          "out": 10,
+          "fwd": -7,
+          "knee": 0
+        },
+        "footR": {
+          "pitch": -5,
+          "yaw": 14
+        },
+        "footL": {
+          "pitch": -11,
+          "yaw": 9
         }
       },
       "breach": {
         "rotY": -12,
         "armR": {
-          "out": 32,
-          "fwd": 45,
-          "elbow": 90,
-          "roll": 40
+          "out": 21,
+          "fwd": 47,
+          "elbow": 113,
+          "roll": 51
         },
         "armL": {
-          "out": 32,
-          "fwd": 45,
-          "elbow": 84,
-          "roll": 40
+          "out": 17,
+          "fwd": 38,
+          "elbow": 117,
+          "roll": 29
         },
         "handR": {
           "curl": 100,
           "thumb": 70
         },
         "handL": {
-          "curl": 55,
-          "thumb": 20
+          "curl": 0,
+          "thumb": 20,
+          "thumb1": -100,
+          "index1": 46,
+          "middle1": 31,
+          "ring1": 27,
+          "pinky1": 51
         },
         "legL": {
-          "out": 15,
-          "fwd": -3,
+          "out": 11,
+          "fwd": -2,
           "knee": 0
         },
         "legR": {
-          "out": 15,
-          "fwd": 8,
-          "knee": 4
+          "out": 25,
+          "fwd": -13,
+          "knee": 33
         },
         "footL": {
-          "pitch": 0,
-          "yaw": 14
+          "pitch": 9,
+          "yaw": 10
         },
         "footR": {
           "pitch": 0,
-          "yaw": 14
+          "yaw": 16
         },
         "torso": {
           "twist": 0,
-          "bend": 4,
+          "bend": -1,
+          "lean": 1
+        },
+        "head": {
+          "turn": -1,
+          "nod": 0,
+          "tilt": -9,
+          "eyeYaw": 7,
+          "eyePitch": -10
+        },
+        "shL": {
+          "up": -17,
+          "fwd": -18
+        },
+        "shR": {
+          "up": 9,
+          "fwd": 13
+        }
+      },
+      "brimstone": {
+        "armL": {
+          "out": 14,
+          "fwd": 55,
+          "elbow": 86,
+          "roll": 66
+        },
+        "armR": {
+          "out": 23,
+          "fwd": 69,
+          "elbow": 102,
+          "roll": 39
+        },
+        "handL": {
+          "curl": 77,
+          "thumb": 0,
+          "thumb1": 3,
+          "thumb2": -13,
+          "thumb3": 100
+        },
+        "handR": {
+          "curl": 22,
+          "thumb": 12,
+          "index": 0,
+          "middle": 0,
+          "ring": 100,
+          "pinky": 100,
+          "spread": -100,
+          "flex": -8,
+          "side": 2,
+          "twist": -13,
+          "thumb1": -22,
+          "index1": 18,
+          "index2": -26,
+          "index3": -22,
+          "middle2": -22,
+          "middle3": -27,
+          "middle1": 20
+        },
+        "torso": {
+          "twist": 4,
+          "bend": 11,
           "lean": 0
         },
         "head": {
-          "turn": 6,
-          "nod": 10,
-          "tilt": 0
-        }
+          "tilt": 5,
+          "turn": 4,
+          "nod": 15,
+          "eyeYaw": 13,
+          "eyePitch": -9
+        },
+        "shL": {
+          "up": 2,
+          "fwd": 5
+        },
+        "shR": {
+          "up": 6,
+          "fwd": 11
+        },
+        "legL": {
+          "out": 9,
+          "knee": 11,
+          "fwd": 11
+        },
+        "legR": {
+          "out": 8,
+          "knee": 13,
+          "fwd": 4
+        },
+        "footL": {
+          "pitch": 0,
+          "yaw": 17
+        },
+        "footR": {
+          "yaw": 4,
+          "pitch": -1
+        },
+        "rotY": 0
       },
       "chamber": {
-        "rotY": -10,
+        "rotY": -30,
         "armR": {
-          "out": 15,
-          "fwd": 8,
-          "elbow": 20,
-          "roll": 20
+          "out": 32,
+          "fwd": -21,
+          "elbow": 150,
+          "roll": 13
         },
         "handR": {
           "curl": 85,
           "index": 40,
-          "thumb": 55
+          "thumb": 55,
+          "thumb1": -39,
+          "thumb2": -2,
+          "index1": 14,
+          "index2": 74,
+          "index3": -1,
+          "middle1": -1,
+          "middle2": 17,
+          "flex": 12,
+          "side": 17,
+          "spread": -100,
+          "pinky2": 31,
+          "ring3": -10,
+          "ring2": 8
         },
         "armL": {
-          "out": 26,
-          "fwd": -0.5,
-          "elbow": 66,
-          "roll": 31.0
+          "out": 41,
+          "fwd": 11,
+          "elbow": 92,
+          "roll": 100
         },
         "handL": {
           "curl": 55,
@@ -177,82 +300,205 @@
           "yaw": 12
         },
         "torso": {
-          "twist": 4,
-          "bend": -3,
-          "lean": -3
+          "twist": 3,
+          "bend": -7,
+          "lean": -1
         },
         "head": {
-          "turn": 8,
-          "nod": 2,
-          "tilt": 6
+          "turn": 26,
+          "nod": 15,
+          "tilt": 7
         },
-        "weapon": {
-          "key": "sheriff",
-          "hand": "R",
-          "scale": 1
+        "shL": {
+          "up": 4,
+          "fwd": 3
+        },
+        "shR": {
+          "up": -6,
+          "fwd": 2
         }
       },
       "clove": {
-        "rotY": -16,
         "armL": {
-          "out": 21,
-          "fwd": 8,
-          "elbow": 16,
-          "roll": 25
-        },
-        "handL": {
-          "curl": 85,
-          "index": 40,
-          "thumb": 55
+          "out": 31,
+          "fwd": 11,
+          "elbow": 146,
+          "roll": 26
         },
         "armR": {
-          "out": 38,
-          "fwd": 12,
-          "elbow": 28,
-          "roll": 15
+          "out": 27,
+          "fwd": 21,
+          "elbow": 79,
+          "roll": 41
+        },
+        "handL": {
+          "curl": 0,
+          "thumb": 12,
+          "flex": -7,
+          "side": -13,
+          "twist": -24,
+          "thumb1": -71,
+          "spread": -100,
+          "thumb2": -29,
+          "thumb3": -38,
+          "index1": 31,
+          "middle1": 27,
+          "ring1": 30,
+          "pinky1": 21,
+          "index2": -15,
+          "index3": -13,
+          "middle2": -11,
+          "middle3": 45,
+          "ring2": 17,
+          "ring3": 18,
+          "pinky": 3,
+          "ring": 2,
+          "middle": 2,
+          "index": 0
         },
         "handR": {
-          "curl": 6,
+          "curl": 22,
+          "thumb": 12,
+          "spread": -100,
+          "middle": 35,
+          "side": -28,
+          "twist": 11,
+          "thumb1": 20,
+          "thumb2": 0,
+          "thumb3": -50,
+          "index1": -65,
+          "ring1": 28,
+          "pinky1": 41,
+          "middle3": 27,
+          "middle1": -2,
+          "flex": 32,
+          "index2": 1,
+          "index3": 36,
+          "middle2": -32,
+          "ring2": -31,
+          "ring3": -70,
+          "pinky3": -86,
+          "pinky2": -100
+        },
+        "torso": {
+          "twist": 4,
+          "bend": 0,
+          "lean": 3
+        },
+        "head": {
+          "tilt": -10,
+          "turn": 4,
+          "nod": 5,
+          "eyeYaw": -4,
+          "eyePitch": -2
+        },
+        "shL": {
+          "up": -7,
+          "fwd": -14
+        },
+        "shR": {
+          "up": 9,
+          "fwd": 2
+        },
+        "weapon": {
+          "key": "ghost",
+          "hand": "R",
+          "scale": 1.55,
+          "x": 0.015,
+          "y": -0.02,
+          "z": 0.01,
+          "rx": 2,
+          "ry": 12,
+          "rz": -6
+        }
+      },
+      "cypher": {
+        "armL": {
+          "out": 55,
+          "fwd": 56,
+          "elbow": 25,
+          "roll": -4
+        },
+        "armR": {
+          "out": 17,
+          "fwd": -7,
+          "elbow": 30,
+          "roll": 4
+        },
+        "handL": {
+          "curl": 0,
           "thumb": 0,
-          "index": 2,
-          "middle": 6,
-          "ring": 10,
-          "pinky": 14,
-          "spread": 70,
-          "flex": -12
+          "index": 20,
+          "spread": -99,
+          "side": -3,
+          "twist": -11,
+          "thumb1": 99,
+          "thumb2": 100,
+          "thumb3": 100,
+          "index1": -32,
+          "index2": -63,
+          "index3": -42,
+          "middle1": 100,
+          "middle2": 91,
+          "middle3": 19,
+          "ring1": 100,
+          "ring2": 79,
+          "pinky1": 100,
+          "pinky2": 97
+        },
+        "handR": {
+          "curl": 22,
+          "thumb": 12,
+          "twist": 42,
+          "side": -9,
+          "flex": 14
+        },
+        "torso": {
+          "twist": -4,
+          "lean": -4,
+          "bend": -6
+        },
+        "head": {
+          "tilt": -4,
+          "turn": 36,
+          "nod": 7,
+          "eyeYaw": 3,
+          "eyePitch": 0
+        },
+        "rotY": -25,
+        "weapon": {
+          "key": "ghost",
+          "hand": "R",
+          "scale": 1.79,
+          "lx": 0,
+          "x": 0.02,
+          "z": 0.015,
+          "y": 0.005
+        },
+        "shL": {
+          "up": 20,
+          "fwd": 2
+        },
+        "shR": {
+          "up": -2,
+          "fwd": 3
         },
         "legL": {
-          "out": 10,
-          "fwd": 8,
-          "knee": 8
+          "out": 8,
+          "fwd": 1,
+          "knee": 2
         },
         "legR": {
-          "out": 8,
-          "fwd": -4,
+          "out": 6,
+          "fwd": -6,
           "knee": 0
         },
         "footL": {
-          "pitch": 0,
-          "yaw": 18
+          "pitch": 2,
+          "yaw": 19
         },
         "footR": {
-          "pitch": 0,
-          "yaw": 10
-        },
-        "torso": {
-          "twist": -6,
-          "bend": 2,
-          "lean": -4
-        },
-        "head": {
-          "turn": 8,
-          "nod": 5,
-          "tilt": 12
-        },
-        "weapon": {
-          "key": "classic",
-          "hand": "L",
-          "scale": 1
+          "yaw": 30
         }
       },
       "deadlock": {
@@ -260,7 +506,7 @@
         "armL": {
           "out": 30,
           "fwd": 30,
-          "elbow": 140.0,
+          "elbow": 140,
           "roll": -10
         },
         "handL": {
@@ -323,7 +569,7 @@
         "armR": {
           "out": 22,
           "fwd": 15.75,
-          "elbow": 138.0,
+          "elbow": 138,
           "roll": 0
         },
         "armL": {
@@ -376,10 +622,10 @@
           "thumb": 55
         },
         "armL": {
-          "out": 134.0,
-          "fwd": 5.0,
-          "elbow": 142.0,
-          "roll": 84.0
+          "out": 134,
+          "fwd": 5,
+          "elbow": 142,
+          "roll": 84
         },
         "handL": {
           "curl": 30,
@@ -427,8 +673,8 @@
         "rotY": -45,
         "armL": {
           "out": 22,
-          "fwd": 51.0,
-          "elbow": 95.0,
+          "fwd": 51,
+          "elbow": 95,
           "roll": 62
         },
         "handL": {
@@ -559,7 +805,7 @@
         },
         "armR": {
           "out": 18,
-          "fwd": 76.0,
+          "fwd": 76,
           "elbow": 124.5,
           "roll": 58
         },
@@ -595,6 +841,94 @@
           "nod": 4,
           "tilt": -6
         }
+      },
+      "jett": {
+        "armL": {
+          "out": 16,
+          "fwd": 4,
+          "elbow": 7,
+          "roll": 20
+        },
+        "armR": {
+          "out": 13,
+          "fwd": -19,
+          "elbow": 75,
+          "roll": 12
+        },
+        "handL": {
+          "curl": 15,
+          "thumb": 0,
+          "pinky": 0,
+          "ring": 0,
+          "middle": 0,
+          "index": 0,
+          "spread": -100,
+          "flex": 9,
+          "twist": -7,
+          "thumb1": -16,
+          "side": -3,
+          "middle1": -7,
+          "index1": -41,
+          "index2": 52
+        },
+        "handR": {
+          "curl": 22,
+          "thumb": 24,
+          "pinky": 10,
+          "ring": 28,
+          "spread": -73,
+          "middle": 29,
+          "index": 30,
+          "thumb1": -24,
+          "thumb2": -7,
+          "index1": 22,
+          "index2": -59,
+          "index3": 20,
+          "middle1": -13,
+          "middle2": -12,
+          "ring1": -48,
+          "ring2": -32,
+          "pinky1": -65,
+          "pinky2": -12,
+          "pinky3": -42
+        },
+        "torso": {
+          "twist": 0,
+          "bend": -5,
+          "lean": 0
+        },
+        "head": {
+          "tilt": -9,
+          "turn": -70,
+          "nod": 1,
+          "eyePitch": 1,
+          "eyeYaw": -28
+        },
+        "shL": {
+          "up": -12,
+          "fwd": -6
+        },
+        "shR": {
+          "up": 12,
+          "fwd": 7
+        },
+        "legR": {
+          "out": 6,
+          "fwd": 27,
+          "knee": 29
+        },
+        "legL": {
+          "out": 0,
+          "fwd": 0,
+          "knee": 0
+        },
+        "weapon": {
+          "key": "phantom",
+          "hand": "L",
+          "x": 0.035,
+          "y": -0.015
+        },
+        "rotY": 111
       },
       "kayo": {
         "rotY": -8,
@@ -658,7 +992,7 @@
         "armL": {
           "out": 22,
           "fwd": 58,
-          "elbow": 143.0,
+          "elbow": 143,
           "roll": 5
         },
         "handL": {
@@ -704,7 +1038,7 @@
           "out": 16.5,
           "fwd": 60,
           "elbow": 140,
-          "roll": -6.0
+          "roll": -6
         },
         "handR": {
           "curl": 100,
@@ -748,15 +1082,15 @@
         }
       },
       "omen": {
-        "rotY": 25,
+        "rotY": -26,
         "armL": {
           "out": 14,
-          "fwd": 6,
-          "elbow": 28,
+          "fwd": -29,
+          "elbow": 35,
           "roll": 10
         },
         "handL": {
-          "curl": 35,
+          "curl": 89,
           "thumb": 10,
           "spread": 50
         },
@@ -766,9 +1100,9 @@
           "thumb": 55
         },
         "legL": {
-          "out": 6,
-          "fwd": 3,
-          "knee": 2
+          "out": 10,
+          "fwd": -2,
+          "knee": 0
         },
         "legR": {
           "out": 6,
@@ -776,25 +1110,39 @@
           "knee": 0
         },
         "torso": {
-          "twist": -10,
-          "bend": 6,
-          "lean": 0
+          "twist": -9,
+          "bend": -1,
+          "lean": -1
         },
         "head": {
-          "turn": 15,
-          "nod": 15,
-          "tilt": 0
+          "turn": 27,
+          "nod": 17,
+          "tilt": -4,
+          "eyeYaw": 6
         },
         "weapon": {
-          "key": "vandal",
+          "key": "phantom",
           "hand": "R",
-          "aim": {
-            "x": 0.06,
-            "y": -0.26,
-            "z": 0.14,
-            "pitch": 55,
-            "yaw": -75
-          }
+          "scale": 1.08,
+          "x": 0.045,
+          "y": -0.01,
+          "z": 0.015
+        },
+        "armR": {
+          "fwd": -19
+        },
+        "shL": {
+          "fwd": -22,
+          "up": -2
+        },
+        "shR": {
+          "fwd": -1
+        },
+        "footL": {
+          "yaw": 16
+        },
+        "footR": {
+          "yaw": 10
         }
       },
       "phoenix": {
@@ -1110,9 +1458,9 @@
         }
       },
       "sova": {
-        "rotY": 14,
+        "rotY": 52,
         "handL": {
-          "curl": 55,
+          "curl": 58,
           "thumb": 25,
           "index": 45,
           "middle": 55,
@@ -1122,12 +1470,16 @@
         "handR": {
           "curl": 85,
           "index": 45,
-          "thumb": 55
+          "thumb": 55,
+          "side": -16,
+          "flex": 3,
+          "twist": 55,
+          "spread": -6
         },
         "legL": {
-          "out": 7,
+          "out": 26,
           "fwd": 6,
-          "knee": 6
+          "knee": 50
         },
         "legR": {
           "out": 7,
@@ -1135,45 +1487,56 @@
           "knee": 0
         },
         "footL": {
-          "pitch": 0,
-          "yaw": 10
+          "pitch": 6,
+          "yaw": 23
         },
         "footR": {
           "pitch": 0,
-          "yaw": 12
+          "yaw": 32
         },
         "torso": {
-          "twist": -6,
-          "bend": 0,
-          "lean": 2
+          "twist": 11,
+          "bend": 1,
+          "lean": -4
         },
         "head": {
-          "turn": -18,
-          "nod": 8,
-          "tilt": -3
+          "turn": -58,
+          "nod": -2,
+          "tilt": -13,
+          "eyeYaw": -1,
+          "eyePitch": -8
         },
         "weapon": {
-          "key": "vandal",
+          "key": "classic",
           "hand": "R",
-          "aim": {
-            "x": 0.1,
-            "y": -0.26,
-            "z": 0.16,
-            "pitch": 45,
-            "yaw": -45
-          }
+          "scale": 1.09,
+          "x": 0.055,
+          "y": -0.03
         },
         "armL": {
-          "out": 20,
-          "fwd": 14,
-          "elbow": 58,
-          "roll": 48
+          "out": 12,
+          "fwd": -12,
+          "elbow": 0,
+          "roll": 59
+        },
+        "armR": {
+          "out": 62,
+          "fwd": 50,
+          "elbow": 29,
+          "roll": -15
+        },
+        "shL": {
+          "up": -5
+        },
+        "shR": {
+          "up": 13,
+          "fwd": -17
         }
       },
       "tejo": {
         "rotY": -20,
         "armL": {
-          "out": 20.0,
+          "out": 20,
           "fwd": 14,
           "elbow": 30,
           "roll": 60
@@ -1185,9 +1548,9 @@
         },
         "armR": {
           "out": 22,
-          "fwd": 16.0,
+          "fwd": 16,
           "elbow": 78.75,
-          "roll": 54.0
+          "roll": 54
         },
         "handR": {
           "curl": 50,
@@ -1381,7 +1744,7 @@
         "armR": {
           "out": 35,
           "fwd": 72.25,
-          "elbow": 121.0,
+          "elbow": 121,
           "roll": 30
         },
         "handR": {
@@ -1470,6 +1833,38 @@
             "z": 0.09,
             "pitch": 86,
             "yaw": 4.5
+          }
+        }
+      }
+    },
+    "stances": {
+      "pistol": {
+        "pret": {
+          "both": false,
+          "armR": {
+            "out": 12,
+            "fwd": 18,
+            "elbow": 85,
+            "roll": 25
+          },
+          "armL": {
+            "out": 12,
+            "fwd": 18,
+            "elbow": 85,
+            "roll": 25
+          },
+          "handR": {
+            "curl": 85,
+            "index": 45,
+            "thumb": 55
+          },
+          "handL": {
+            "curl": 85,
+            "index": 45,
+            "thumb": 55
+          },
+          "torso": {
+            "twist": -4
           }
         }
       }

@@ -109,9 +109,12 @@ export function traversees({ inst, arme, def }, opt = {}) {
   paires.sort((x, y) => y.prof - x.prof);
   // repères du squelette dans le monde (mains, coudes, tête, genoux, pieds) : pour mesurer de combien une retouche déplace une pose
   const v = new THREE.Vector3(), reperes = {};
-  for (const [k, o] of Object.entries({ handL: rig.handL, handR: rig.handR, elbowL: rig.foreL, elbowR: rig.foreR, head: rig.head, kneeL: rig.kneeL, kneeR: rig.kneeR, footL: rig.footL, footR: rig.footR })) {
+  for (const [k, o] of Object.entries({ handL: rig.handL, handR: rig.handR, elbowL: rig.foreL, elbowR: rig.foreR, epauleL: rig.upperL, epauleR: rig.upperR, head: rig.head, kneeL: rig.kneeL, kneeR: rig.kneeR, footL: rig.footL, footR: rig.footR })) {
     if (!o) continue; o.updateWorldMatrix(true, false); v.setFromMatrixPosition(o.matrixWorld); reperes[k] = [+v.x.toFixed(4), +v.y.toFixed(4), +v.z.toFixed(4)];
   }
+  // arme : où se trouve le point de prise de la seconde main, et où est le centre de la paume de chaque main (pour vérifier une tenue à deux mains)
+  if (arme?.leftBone) { arme.leftBone.updateWorldMatrix(true, false); v.setFromMatrixPosition(arme.leftBone.matrixWorld); reperes.armeSeconde = [+v.x.toFixed(4), +v.y.toFixed(4), +v.z.toFixed(4)]; }
+  for (const s of ['L', 'R']) { const h = rig['hand' + s], m = rig.finger?.[s]?.Middle?.[0]; if (!h || !m) continue; const a = new THREE.Vector3().setFromMatrixPosition(h.matrixWorld), b = new THREE.Vector3().setFromMatrixPosition(m.matrixWorld); a.lerp(b, 0.55); reperes['paume' + s] = [+a.x.toFixed(4), +a.y.toFixed(4), +a.z.toFixed(4)]; }
   // diagnostic des poids de peau (option peau) : sommets de la tête qui gardent une influence d'un os étranger à la tête
   let peau, exemples;
   if (opt.peau) {
@@ -143,5 +146,48 @@ export function traversees({ inst, arme, def }, opt = {}) {
     });
     peau = [...cpt].sort((x, y) => y[1][0] - x[1][0]).slice(0, 25).map(([n, [c, w]]) => `${n} : ${c} sommets, poids moyen ${(w / c).toFixed(2)}`).concat(exemples || []);
   }
-  return { sommets: C.n, arme: A ? A.n : 0, paires, reperes, peau };
+  // diagnostic des étirements (option etire) : arêtes de la peau devenues bien plus longues qu'au repos (tissu qui se déchire en pointe
+  // parce que ses sommets suivent des os différents), regroupées par paire d'os dominants, avec le centre de chaque groupe (monde) ;
+  // « trous » : triangles que le moteur masque parce qu'il les juge trop étirés
+  let etire, trous;
+  if (opt.etire) {
+    const G2 = new Map(); trous = 0;
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), ra = new THREE.Vector3(), rb = new THREE.Vector3();
+    inst.root.traverse(o => {
+      if (!o.isSkinnedMesh || o.visible === false || dansArme(o) || !o.geometry.attributes.skinIndex) return;
+      const g = o.geometry, P = g.attributes.position, I = o.userData.stretch?.orig || (g.index ? g.index.array : null), bones = o.skeleton.bones, si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
+      if (o.userData.stretch && g.index) trous += (o.userData.stretch.orig.length - g.index.count) / 3;
+      if (!g.boundingBox) g.computeBoundingBox();
+      const haut = g.boundingBox.max.y - g.boundingBox.min.y, nt = (I ? I.length : P.count) / 3, vus = new Set();
+      const dom = i => { let os = 0, w = -1; for (let k = 0; k < 4; k++) { const x = sw.getComponent(i, k); if (x > w) { w = x; os = si.getComponent(i, k); } } return bones[os].name; };
+      for (let t = 0; t < nt; t++) for (let e = 0; e < 3; e++) {
+        const i = I ? I[t * 3 + e] : t * 3 + e, j = I ? I[t * 3 + (e + 1) % 3] : t * 3 + (e + 1) % 3, c = Math.min(i, j) * 1e6 + Math.max(i, j);
+        if (vus.has(c)) continue; vus.add(c);
+        const l0 = ra.fromBufferAttribute(P, i).distanceTo(rb.fromBufferAttribute(P, j));
+        const l1 = o.getVertexPosition(i, a).distanceTo(o.getVertexPosition(j, b));
+        if (!(l1 > haut * (opt.etireMin ?? 0.06) && l1 > l0 * (opt.etireRatio ?? 2))) continue;
+        const cle = [dom(i), dom(j)].sort().join(' ~ '); let q = G2.get(cle); if (!q) G2.set(cle, q = { os: cle, n: 0, k: 0, cm: 0, c: [0, 0, 0] });
+        a.add(b).multiplyScalar(0.5).applyMatrix4(o.matrixWorld);
+        q.n++; q.k = Math.max(q.k, +(l1 / l0).toFixed(1)); q.cm = Math.max(q.cm, +(l1 / haut * 175).toFixed(1)); q.c[0] += a.x; q.c[1] += a.y; q.c[2] += a.z;
+      }
+    });
+    etire = [...G2.values()].sort((x, y) => y.n - x.n).map(q => ({ ...q, c: q.c.map(x => +(x / q.n).toFixed(3)) }));
+  }
+  // flexion réelle de chaque doigt (degrés à la première articulation, par rapport au repos) : pour vérifier qu'une main serre bien une arme
+  const doigts = {};
+  if (rig.finger) for (const s of ['L', 'R']) doigts[s] = Object.fromEntries(Object.entries(rig.finger[s]).map(([f, bs]) => [f, bs.map(b => { const q0 = b && rig.rest.get(b); return q0 ? Math.round(2 * Math.acos(Math.min(1, Math.abs(q0.clone().invert().multiply(b.quaternion).w))) / Math.PI * 180) : null; })]));
+  // pliure de chaque poignet (degrés entre l'avant-bras et la main) : au-delà de ~60°, le poignet se casse et le vêtement s'y froisse
+  const poignets = {};
+  for (const s of ['L', 'R']) {
+    const fo = rig['fore' + s], ha = rig['hand' + s], mi = rig.finger?.[s]?.Middle?.[0] || rig.finger?.[s]?.Ring?.[0];
+    if (!fo || !ha || !mi) continue;
+    const pf = new THREE.Vector3(), ph = new THREE.Vector3(), pm = new THREE.Vector3();
+    fo.updateWorldMatrix(true, false); ha.updateWorldMatrix(true, false); mi.updateWorldMatrix(true, false);
+    pf.setFromMatrixPosition(fo.matrixWorld); ph.setFromMatrixPosition(ha.matrixWorld); pm.setFromMatrixPosition(mi.matrixWorld);
+    poignets[s] = Math.round(ph.clone().sub(pf).angleTo(pm.sub(ph)) / Math.PI * 180);
+    // torsion de la main autour de l'avant-bras, par rapport au repos (au-delà de ~70°, le poignet se vrille « en papillote »)
+    const q0 = rig.rest.get(ha);
+    if (q0 && ha.position.lengthSq() > 1e-12) { const d = q0.clone().invert().multiply(ha.quaternion), ax = ha.position.clone().normalize().applyQuaternion(q0.clone().invert()); let t = 2 * Math.atan2(d.x * ax.x + d.y * ax.y + d.z * ax.z, d.w) / Math.PI * 180; if (t > 180) t -= 360; if (t < -180) t += 360; (poignets.torsion ||= {})[s] = Math.round(t); }
+  }
+  return { sommets: C.n, arme: A ? A.n : 0, paires, reperes, peau, etire, trous, doigts, poignets };
 }

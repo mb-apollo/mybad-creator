@@ -77,9 +77,10 @@ function copierModeles() {
     if (opt.poses) req.poses = lireJson(path.resolve(opt.poses));   // fichier contenant une liste de poses : une mesure par pose
     if (opt.rot !== undefined) req.rotY = +opt.rot;
     if (opt.peau) req.options = { peau: true };
+    if (opt.etire) req.options = { ...req.options, etire: true };   // arêtes de la peau étirées (tissu déchiré en pointe)
     const r = await demander(req, 600000);
     if (!r.ok) fin('Échec : ' + r.erreur);
-    console.log(JSON.stringify(r.resultats ? { resultats: r.resultats } : { rotY: r.rotY, sommets: r.sommets, arme: r.arme, paires: r.paires, reperes: r.reperes, peau: r.peau }));
+    console.log(JSON.stringify(r.resultats ? { resultats: r.resultats } : { rotY: r.rotY, sommets: r.sommets, arme: r.arme, paires: r.paires, reperes: r.reperes, peau: r.peau, etire: r.etire, trous: r.trous, doigts: r.doigts, poignets: r.poignets }));
     return;
   }
   if (cmd === 'rendre') {

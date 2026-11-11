@@ -9,6 +9,7 @@
 //   node scripts/banc-poses.js presets                        poses prédéfinies et vues disponibles
 //   node scripts/banc-poses.js fichier --agent jett --pose p.json --vers poses.json
 //                                                             écrit / complète un fichier à importer dans le Studio de poses
+//   node scripts/banc-poses.js js --code essai.js [--sortie dossier] [--capture nom]   exécute un bout de code dans la fenêtre du banc (essais des studios)
 //   node scripts/banc-poses.js arreter
 //
 // « rendre » écrit une image par vue et une planche (toutes les vues, avec l'image de référence si --ref) et affiche leur chemin.
@@ -69,6 +70,11 @@ function copierModeles() {
   }
   if (cmd === 'arreter') { if (!enMarche()) fin('Le banc ne tourne pas.', 0); await demander({ action: 'quitter' }, 10000); console.log('banc arrêté'); return; }
   if (cmd === 'agents' || cmd === 'presets') { console.log(JSON.stringify(await demander({ action: cmd }), null, 1)); return; }
+  if (cmd === 'js') {   // essais d'un studio : exécute le fichier donné dans la fenêtre du banc (il se termine par « return { … } »)
+    if (!opt.code) fin('Il manque --code <fichier.js>.');
+    const r = await demander({ action: 'js', code: fs.readFileSync(path.resolve(opt.code), 'utf8'), sortie: opt.sortie && path.resolve(opt.sortie), capture: opt.capture }, 600000);
+    console.log(JSON.stringify(r, null, 1)); return;
+  }
   if (cmd === 'lire') { console.log(JSON.stringify(await demander({ action: 'lire', id: opt.id }), null, 1)); return; }
   if (cmd === 'traversees') {
     if (!opt.agent) fin('Il manque --agent.');

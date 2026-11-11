@@ -10,7 +10,7 @@ import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
 import { sceneDefaults, DEFAULT_POSE } from './engine/templates.js';
 import { LOGO_URL, makeLogoGltf, setLogoLook } from './logo3d.js';
-import { applyLivery, applyGloss, applyZones, surfaceAt, liveriesList, liveryKey, liveryGloss, liveryMetal, liveryZone, liveryLamp, liveryOnly } from './livery.js';
+import { applyLivery, applyGloss, applyZones, surfaceAt, surfacePoint, bodyDims, liveriesList, liveryKey, liveryGloss, liveryMetal, liveryZone, liveryLamp, liveryOnly } from './livery.js';
 import { applyLamps, LAMP_DEFAULT } from './carlamps.js';
 import { addLayer } from './editor.js';
 import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf, agentRotY } from './posereg.js';
@@ -451,19 +451,40 @@ function renderModel(L, w, h, theme, exporting) {
   inst.pivot.removeFromParent();
   if (flr) flr.dispose();
   if (L.lights === 'on' && wdoc.game === 'rl') feather(c, pw, ph);   // les halos dépassent du cadre du rendu : fondu des bords pour qu'ils ne finissent pas en carré
-  RENDERS.set(L.id, { key: params, canvas: out, cam, inst });
+  RENDERS.set(L.id, { key: params, canvas: out, cam, inst, pose: [inst.pivot.position.clone(), inst.pivot.quaternion.clone(), inst.pivot.scale.clone()], echelle: 2 * dist * Math.tan(fov * Math.PI / 360) / ph });
   return out;
 }
 
-// Point de la carrosserie sous un point de l'aperçu (nx, ny entre 0 et 1) : face (flanc / dessus) et position dans sa texture, ou null.
-export function pickBody(layerId, nx, ny) {
+// Carrosserie d'un rendu gardé en mémoire, remise dans la position de ce rendu (une même voiture sert à tous les rendus : une affiche a pu la tourner depuis).
+function bodyOf(layerId) {
   const rec = RENDERS.get(layerId); if (!rec?.cam || !rec.inst) return null;
-  const { cam, inst } = rec;
+  const { cam, inst, pose } = rec;
+  if (pose) { inst.pivot.position.copy(pose[0]); inst.pivot.quaternion.copy(pose[1]); inst.pivot.scale.copy(pose[2]); }
   cam.updateMatrixWorld(true); inst.pivot.updateMatrixWorld(true);
-  const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(nx * 2 - 1, -(ny * 2 - 1)), cam);
-  const meshes = []; inst.root.traverse(o => { if (o.isMesh && [].concat(o.material || []).some(m => /body/i.test(m.name || ''))) meshes.push(o); });
-  const hit = rc.intersectObjects(meshes, false)[0]; if (!hit || !hit.face) return null;
+  const meshes = [], all = []; inst.root.traverse(o => { if (!o.isMesh) return; all.push(o); if ([].concat(o.material || []).some(m => /body/i.test(m.name || ''))) meshes.push(o); });
+  return meshes.length ? { cam, meshes, all } : null;
+}
+// Point de la carrosserie sous un point de l'aperçu (nx, ny entre 0 et 1) : face (dessus, flanc gauche ou droit) et position dans sa texture, ou null.
+export function pickBody(layerId, nx, ny) {
+  const b = bodyOf(layerId); if (!b) return null;
+  const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(nx * 2 - 1, -(ny * 2 - 1)), b.cam);
+  const hit = rc.intersectObjects(b.meshes, false)[0]; if (!hit || !hit.face) return null;
   return surfaceAt(hit.object, hit.point, hit.face.normal);
+}
+// Chemin inverse : place à l'écran (0..1) du point de la carrosserie qui porte la position (x, y) de la texture d'une face ('left', 'right', 'top') ;
+// « vu » dit si cette face regarde la caméra. Sert à dessiner le cadre et les poignées du calque sélectionné.
+export function projectBody(layerId, face, x, y) {
+  const b = bodyOf(layerId); if (!b) return null;
+  const sp = surfacePoint(b.meshes[0], face, x, y, b.all), vu = sp.normal.dot(b.cam.position.clone().sub(sp.point)) > 0, v = sp.point.project(b.cam);
+  return { nx: (v.x + 1) / 2, ny: (1 - v.y) / 2, vu };
+}
+// Taille d'un pixel du rendu, en hauteurs de modèle, à la distance du point visé : sert à déplacer la vue à la souris.
+export const viewScale = layerId => RENDERS.get(layerId)?.echelle || 0;
+// Proportions des textures de la carrosserie d'un rendu : flanc (longueur / hauteur) et dessus (longueur / largeur).
+export function bodyAspect(layerId) {
+  const b = bodyOf(layerId); if (!b) return null;
+  const d = bodyDims(b.meshes[0]);
+  return { side: { ax: d.len / d.hei, ay: 1 }, top: { ax: 1, ay: d.len / d.wid } };
 }
 
 // Fournit au moteur 2D la fonction de rendu des calques 3D.

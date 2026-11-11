@@ -15,9 +15,11 @@ initCustom();
 repairDefaults(); // vérifie/répare les données locales des modèles avant le premier affichage de la galerie
 import { initModels, materialize, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels, poseHandles, startPoseDrag, dragPoseHandle } from './model3d.js';
 import { openPoseLab } from './poselab.js';
-import { openLiveryLab } from './liverylab.js';
+import { openLiveryLab, labState } from './liverylab.js';
 import { initContextMenu } from './ctxmenu.js';
 import { onLiveryChange } from './livery.js';
+import * as livery from './livery.js';
+import * as model3d from './model3d.js';
 
 // ---------------------------------------------------------------- environnement de rendu
 function env(doc = S.doc, exporting = false, thumb = false) {
@@ -849,7 +851,7 @@ async function boot() {
 boot();
 
 // Accès pour les tests automatisés
-window.__creator = { posereg, exportCanvas, modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles, banc };
+window.__creator = { posereg, exportCanvas, modelPropAction, S, change, select, applyTemplate, renderDoc, env, TEMPLATES, P, setTab, addLayer, poseHandles, banc, openLiveryLab, labState, livery, model3d };
 P.actions.togglePoseEdit = togglePoseEdit;
 P.actions.poseEditOn = () => !!getPoseEdit();
 void copySelected; void selected; void resetHistory; void emit; void icon;

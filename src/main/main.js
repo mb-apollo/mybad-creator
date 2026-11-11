@@ -395,7 +395,9 @@ async function devBanc() {
       if (req.action === 'quitter') { try { fs.unlinkSync(pret); } catch { /* déjà retiré */ } ecrire(path.join(dir, `reponse-${id}.json`), { ok: true }); app.exit(0); return; }
       try {
         if (req.ref) req.refData = `data:image/${path.extname(req.ref).slice(1).toLowerCase().replace('jpg', 'jpeg') || 'png'};base64,` + fs.readFileSync(req.ref).toString('base64');
-        const { images = [], ...r } = await win.webContents.executeJavaScript(`window.__creator.banc(${JSON.stringify(req)})`);
+        // « js » : exécute un bout de code dans la fenêtre (essais d'un studio) ; il rend { images: [{ nom, url }], … }
+        const { images = [], ...r } = (await win.webContents.executeJavaScript(req.action === 'js' ? `(async () => { ${req.code} })()` : `window.__creator.banc(${JSON.stringify(req)})`)) || {};
+        if (req.capture) { const im = await win.webContents.capturePage(); if (!im.isEmpty()) images.push({ nom: req.capture === true ? 'page' : String(req.capture), url: 'data:image/png;base64,' + im.toPNG().toString('base64') }); }   // image de la fenêtre entière
         const out = req.sortie || path.join(dir, id);
         if (images.length) fs.mkdirSync(out, { recursive: true });
         rep = { ok: true, id, ...r, images: images.map(im => { const q = path.join(out, im.nom + '.png'); fs.writeFileSync(q, Buffer.from(im.url.split(',')[1], 'base64')); return q; }) };

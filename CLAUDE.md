@@ -88,6 +88,14 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   premier lancement) et le laisse tourner ; `rendre --agent jett --pose p.json [--ref image]` écrit une image par vue (face, trois-quarts, profils, dos, gros plan de chaque main)
   et une planche avec la référence à côté ; `fichier` produit le JSON à importer dans le Studio ; `arreter` ferme. Rendu : `src/renderer/banc.js` (`window.__creator.banc`),
   dialogue par fichiers `demande-*.json` / `reponse-*.json` : `devBanc` dans `main.js`. Rien n'est écrit dans le registre des poses. `rotY` > 0 = on voit le côté droit du personnage.
+- **Livrées Rocket League** (`livery.js`, créateur : `liverylab.js`) : la couleur de la carrosserie est calculée par le shader (dégradé `def.grad` lu dans une rampe
+  de couleurs, d'après la position du point sur la voiture vue de profil ; sans `grad`, les deux couleurs `def.base` comme avant) ; les calques sont dessinés sur trois
+  textures transparentes prémultipliées : flanc droit, flanc gauche, dessus. Face d'un calque : `side` (les deux flancs ; `mirror` = même endroit de la voiture des deux
+  côtés), `left`, `right`, `top`. Un flanc se lit de l'extérieur (avant à droite sur le flanc droit, à gauche sur le gauche) ; x, y, rot d'un calque `side` sont ceux du
+  flanc droit. `def.fmt = 2` : dessus dessiné à l'endroit (avant, il était retourné ; les livrées sans `fmt` sont converties au vol, sans changer d'aspect).
+  Le cadre et les poignées du calque sélectionné passent par `projectBody` (model3d.js) : position de texture → point de la voiture (relief relevé sur tous ses
+  maillages) → écran. Essais sans interface : `node scripts/banc-poses.js js --code essai.js [--capture nom]` exécute un bout de code dans la fenêtre du banc
+  (`window.__creator.labState()`, `.livery`, `.model3d`) et peut garder une image de la fenêtre ; dans le banc, `requestAnimationFrame` ne passe qu'une fois par seconde.
 - Fenêtre sans barre Windows (`titleBarOverlay`) : les 3 boutons réduire/agrandir/fermer (≈ 150 × 40 px, en haut à droite) recouvrent tout ce qui est
   dessous. Tout écran plein format (studio de poses, créateur de livrées…) doit laisser cette bande libre (`padding-top: 40px`) ; sinon des boutons sont cachés.
 - Les barres de choix (`#gameSeg`, `#fmtSeg`) sont reconstruites par `buildGame` / `buildFormats` : la bulle de verre doit être conservée (`refaireBarre`)

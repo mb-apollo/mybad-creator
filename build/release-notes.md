@@ -1,1 +1,8 @@
-- Changer d'affiche ne pose plus la question « Modifications non enregistrées » à chaque clic : elle ne revient que si la copie automatique dans les Modèles personnalisés a échoué
+- Créateur de livrées, un seul côté : chaque élément se pose sur le flanc gauche, le flanc droit, les deux ou le dessus ; « Passer de l'autre côté » le déplace au même endroit de la voiture, et « Symétrie » le pose au même endroit des deux côtés, texte lisible
+- Créateur de livrées, calques à la souris : clique un élément sur la voiture pour le sélectionner, glisse-le (même du flanc vers le toit), agrandis-le et tourne-le avec ses poignées ; dans la liste, glisse une ligne pour changer l'ordre, double-clic pour la renommer, cadenas pour la verrouiller ; flèches, Suppr et Ctrl+D au clavier
+- Créateur de livrées, peinture : couleur unie, dégradé (jusqu'à 6 couleurs, sens libre, décalage, étendue, bandes nettes) ou dégradé rond ; il suit la carrosserie, toit et capot compris
+- Créateur de livrées, vue : glisser à côté de la voiture la tourne et l'incline, la molette zoome plus près, clic droit (ou Maj) + glisser déplace la vue
+- Sur le dessus de la voiture, un texte ou une image se lit maintenant à l'endroit (il sortait en miroir)
+- Livrées fournies : « Octane Heliance » et « Ma livrée » s'ajoutent, « Heliance — Nuit » est retouchée ; « Octane Heliance » est posée d'office sur les Fennec des nouvelles affiches
+- Valorant : les 28 agents ont leur pose d'origine, d'après leur portrait officiel et les réglages du studio
+- Modèles 3D posés : plus de trous aux aisselles, aux coudes et aux chevilles, poignets qui ne se vrillent plus

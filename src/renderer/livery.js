@@ -55,7 +55,6 @@ const azur = () => ({
 });
 const F = FOURNIES?.data || {}, copie = o => JSON.parse(JSON.stringify(o));
 const BUILTIN = { nuit: F.over?.nuit ? () => copie(F.over.nuit) : nuit, azur: F.over?.azur ? () => copie(F.over.azur) : azur, ...Object.fromEntries((F.user || []).map(u => [u.id, () => copie(u.def)])) };
-const PAR_DEFAUT = F.active && BUILTIN[F.active] ? F.active : 'nuit';   // livrée posée d'office tant qu'on n'en a pas choisi
 
 // ------------------------------------------------------------------ enregistrement
 let STORE = (() => { try { return { user: [], over: {}, hidden: [], ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { user: [], over: {}, hidden: [] }; } })();
@@ -92,17 +91,30 @@ export const liveryMetal = id => getDef(id)?.metal;
 export const liveryZone = (id, k) => getDef(id)?.zones?.[k] || null;
 export const liveryLamp = (id, k) => getDef(id)?.lamps?.[k] ?? null;
 export const allLiveries = () => [
-  ...Object.keys(BUILTIN).filter(id => !STORE.hidden.includes(id) && !isUser(id)).map(id => ({ id, name: getDef(id).name, builtin: true, modified: hasOverride(id) })),
-  ...STORE.user.map(u => ({ id: u.id, name: u.def.name, builtin: false })),
+  ...Object.keys(BUILTIN).filter(id => !STORE.hidden.includes(id) && !isUser(id)).map(id => ({ id, name: getDef(id).name, only: getDef(id).only || '', builtin: true, modified: hasOverride(id) })),
+  ...STORE.user.map(u => ({ id: u.id, name: u.def.name, only: u.def.only || '', builtin: false })),
 ];
 export const hiddenCount = () => STORE.hidden.length;
 export function restoreBuiltins() { STORE.hidden = []; write(); REVALL++; notify(); }
-// Livrée posée d'office sur les voitures des nouvelles affiches (celle qu'on a « enregistrée »), celle du fichier fourni tant qu'on n'a rien choisi.
-export const defaultLivery = () => { const a = STORE.active; return a === '' ? '' : (a && getDef(a) && !STORE.hidden.includes(a) ? a : (STORE.hidden.includes(PAR_DEFAUT) ? '' : PAR_DEFAUT)); };
-export function setDefaultLivery(id) { STORE.active = id; write(); }
-// Livrée réservée à une voiture (« Octane uniquement ») : sur les autres voitures, la peinture d'origine reste.
+// Livrée réservée à une voiture (« Octane uniquement ») : elle n'est proposée et posée que sur cette voiture.
 export const liveryOnly = id => getDef(id)?.only || '';
-export const liveriesList = () => [['', 'Peinture d\'origine'], ...allLiveries().map(l => [l.id, l.name])];
+const fits = (id, car) => !!id && !!getDef(id) && !STORE.hidden.includes(id) && (!car || !liveryOnly(id) || liveryOnly(id) === car);
+// Livrée par défaut d'une voiture : celle qu'on a enregistrée pour elle dans le créateur (STORE.actives), sinon l'ancien choix unique (STORE.active)
+// s'il lui va, sinon celle du fichier fourni, sinon « Nuit ». Les voitures des affiches réglées sur « Automatique » la portent.
+export function defaultLivery(car) {
+  const own = STORE.actives?.[car];
+  if (own === '' || (own == null && STORE.active === '')) return '';
+  for (const id of [own, STORE.active, F.actives?.[car], F.active, 'nuit']) if (fits(id, car)) return id;
+  return '';
+}
+export function setDefaultLivery(id, car) { (STORE.actives ||= {})[car] = id; write(); REVALL++; notify(); }
+// Livrée réellement portée par une voiture : « auto » = sa livrée par défaut ; une livrée faite pour une autre voiture ne s'applique pas (peinture d'origine).
+export const resolveLivery = (v, car) => { const id = v === 'auto' ? defaultLivery(car) : v || ''; return fits(id, car) ? id : ''; };
+// Choix proposés pour une voiture d'affiche : automatique, peinture d'origine, puis les livrées faites pour elle et celles valables pour toutes.
+export function liveriesList(car) {
+  const d = defaultLivery(car), all = allLiveries().filter(l => !car || !l.only || l.only === car);
+  return [['auto', 'Automatique : ' + (d ? getDef(d).name : 'peinture d\'origine')], ['', 'Peinture d\'origine'], ...all.filter(l => l.only).map(l => [l.id, l.name]), ...all.filter(l => !l.only).map(l => [l.id, l.name + ' · toutes voitures'])];
+}
 
 const dispose = t => new Set(Object.values(t)).forEach(x => x.dispose());
 function dropTextures(id) { for (const k of [...CACHE.keys()]) if (k.startsWith(id + '|')) { dispose(CACHE.get(k)); CACHE.delete(k); } }
@@ -122,6 +134,7 @@ export function deleteLivery(id) {
   if (isUser(id)) STORE.user = STORE.user.filter(x => x.id !== id);
   else if (BUILTIN[id]) { if (!STORE.hidden.includes(id)) STORE.hidden.push(id); delete STORE.over[id]; delete BUILTIN[id]._c; }
   if (STORE.active === id) delete STORE.active;
+  for (const c of Object.keys(STORE.actives || {})) if (STORE.actives[c] === id) delete STORE.actives[c];
   write(); dropTextures(id); REVALL++; notify();
 }
 export function resetLivery(id) { delete STORE.over[id]; if (BUILTIN[id]) delete BUILTIN[id]._c; write(); bump(id); }

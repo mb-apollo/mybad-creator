@@ -96,6 +96,13 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   Le cadre et les poignées du calque sélectionné passent par `projectBody` (model3d.js) : position de texture → point de la voiture (relief relevé sur tous ses
   maillages) → écran. Essais sans interface : `node scripts/banc-poses.js js --code essai.js [--capture nom]` exécute un bout de code dans la fenêtre du banc
   (`window.__creator.labState()`, `.livery`, `.model3d`) et peut garder une image de la fenêtre ; dans le banc, `requestAnimationFrame` ne passe qu'une fois par seconde.
+- **Une livrée par voiture** : `def.only` réserve une livrée à une voiture ; chaque voiture a sa livrée par défaut (`STORE.actives[voiture]`, réglée par « Enregistrer et
+  appliquer aux … » dans l'onglet de la voiture). Un calque de voiture porte `livery: 'auto'` (livrée par défaut de sa voiture, résolue au rendu par `resolveLivery`),
+  `''` (peinture d'origine) ou un identifiant ; une livrée faite pour une autre voiture ne s'applique pas. Le panneau 3D ne propose que les livrées qui vont à la voiture.
+- **Changer de jeu** (`#gameSeg`, `tplPourJeu` dans app.js) remet l'affiche aux réglages du jeu : un modèle personnalisé est figé pour le jeu où il a été fait (`game`, noté à
+  la création, deviné d'après les calques pour les anciens : `customGame`) ; on passe au modèle d'origine pour l'autre jeu et on retrouve la copie en revenant (`doc.tplBy`).
+  Le nombre de joueurs est gardé par jeu (`doc.playersBy`). « Réinitialiser » remet aussi le roster d'origine (`resetRoster`) : Chamber, Astra, Omen, Jett, Sova ; Fennec,
+  Octane, Dominus.
 - Fenêtre sans barre Windows (`titleBarOverlay`) : les 3 boutons réduire/agrandir/fermer (≈ 150 × 40 px, en haut à droite) recouvrent tout ce qui est
   dessous. Tout écran plein format (studio de poses, créateur de livrées…) doit laisser cette bande libre (`padding-top: 40px`) ; sinon des boutons sont cachés.
 - Les barres de choix (`#gameSeg`, `#fmtSeg`) sont reconstruites par `buildGame` / `buildFormats` : la bulle de verre doit être conservée (`refaireBarre`)

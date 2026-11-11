@@ -1,11 +1,12 @@
 // Créateur de livrées (plein écran) pour les voitures Rocket League : peinture (couleur unie, dégradé libre), brillance, lueur, et calques
 // (logo Heliance, images, textes, étoiles, bandes) posés sur un flanc, sur les deux, ou sur le dessus, comme dans un logiciel de dessin :
 // on clique un calque sur la voiture, on le déplace, on l'agrandit et on le tourne avec ses poignées, on change l'ordre dans la liste.
+// Chaque voiture a ses livrées (onglets Octane / Fennec / Dominus) et sa livrée par défaut, portée par les voitures des affiches réglées sur « Automatique ».
 // Chaque modification est enregistrée tout de suite ; les livrées se choisissent ensuite dans l'onglet 3D (section Voiture) de chaque voiture.
 import { S, change as docChange, toast } from './state.js';
 import { esc, setPath, section, range, select, toggle, textInput, syncRange, pct, deg } from './ui.js';
 import { renderModelPreview, pickBody, projectBody, viewScale, agentKeyOf, solActif, solRegler, solStudio, fitCanvas } from './model3d.js';
-import { hiddenCount, restoreBuiltins, setDefaultLivery, allLiveries, getDef, cloneDef, saveDef, createLivery, renameLivery, deleteLivery, resetLivery, isBuiltin, hasOverride, newLayer, exportLiveries, importLiveries, onLiveryChange, FONTS, CARS,
+import { hiddenCount, restoreBuiltins, setDefaultLivery, defaultLivery, allLiveries, getDef, cloneDef, saveDef, createLivery, renameLivery, deleteLivery, resetLivery, isBuiltin, hasOverride, newLayer, exportLiveries, importLiveries, onLiveryChange, FONTS, CARS,
   upgradeDef, layerBox, placed, mirrorPos, boxCenter, anchorOf, isMirrored, onFlank, faceAspect, gradOf, gradRamp, gradT } from './livery.js';
 
 const API = window.studio;
@@ -36,7 +37,7 @@ function build() {
       <span class="pl-status" id="llStatus">Rocket League · tout est enregistré tout de suite</span>
       <span class="spacer"></span>
       <select class="input" id="llLights" title="Feux de la voiture (aperçu seulement)"><option value="on">Feux allumés</option><option value="off">Feux éteints</option><option value="auto">Feux : selon le modèle</option></select>
-      <select class="input" id="llCar" title="Voiture d'aperçu">${CARS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
+      <div class="seg" id="llCar" title="Chaque voiture a ses propres livrées">${CARS.map(([k, n]) => `<button type="button" data-car="${k}">${n}</button>`).join('')}</div>
       <button class="ghost-btn" id="llUndo" title="Annuler (Ctrl+Z)">↶ Annuler</button>
       <button class="ghost-btn" id="llRedo" title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
       <button class="ghost-btn" id="llExport" title="Enregistrer toutes tes livrées dans un fichier">Exporter</button>
@@ -60,12 +61,12 @@ function build() {
   $('#llUndo', root).onclick = () => step(-1); $('#llRedo', root).onclick = () => step(1);
   $('#llExport', root).onclick = doExport; $('#llImport', root).onclick = doImport;
   $('#llLights', root).onchange = e => { ST.lights = e.target.value; preview(); };
-  $('#llCar', root).onchange = e => { ST.car = e.target.value; renderControls(); preview(); };
+  $('#llCar', root).onclick = e => { const b = e.target.closest('[data-car]'); if (b) setCar(b.dataset.car); };
   $('#llSee', root).onclick = () => { const L = selected(); if (L) showLayer(L, true); };
 
   $('#llList', root).onclick = e => {
     const n = e.target.closest('[data-new]');
-    if (n) { const name = ($('#llNewName', root).value || '').trim() || 'Ma livrée'; const id = createLivery(name, ST.def); refreshList(); select_(id); return; }
+    if (n) { const name = ($('#llNewName', root).value || '').trim() || 'Livrée ' + carName(); const id = createLivery(name, { ...ST.def, only: ST.car }); refreshList(); select_(id); return; }   // la nouvelle livrée est faite pour la voiture de l'onglet
     const b = e.target.closest('[data-id]'); if (b) select_(b.dataset.id);
   };
   $('#llList', root).onkeydown = e => { if (e.key === 'Enter' && e.target.id === 'llNewName') $('[data-new]', root).click(); };
@@ -381,6 +382,10 @@ function apply(el, structural) {
     if (el.type === 'range') syncRange(el, el.dataset.deg ? deg(v) : pct(v));
     gradChanged(structural); return;
   }
+  if (p === 'd:only') {   // la livrée change de voiture : on la suit dans son onglet
+    ST.def.only = v; if (v && v !== ST.car) { ST.car = v; syncCar(); }
+    change(true); refreshList(); return;
+  }
   if (scope === 'd') setPath(ST.def, key, v);
   else {
     const L = selected(); if (!L) return;
@@ -438,30 +443,43 @@ function drawGrad() {
 }
 
 // ------------------------------------------------------------------ liste et sélection
+const carName = (car = ST.car) => (CARS.find(c => c[0] === car) || [])[1] || car;
+const syncCar = () => root.querySelectorAll('#llCar [data-car]').forEach(b => { const on = b.dataset.car === ST.car; b.classList.toggle('on', on); b.classList.toggle('actif', on); });
+// Onglet d'une voiture : ses livrées, sa livrée par défaut. Une livrée faite pour une autre voiture ne reste pas ouverte.
+function setCar(car) {
+  if (car === ST.car) return;
+  ST.car = car; syncCar();
+  if (ST.def?.only && ST.def.only !== car) { select_(defaultLivery(car) || allLiveries().find(l => !l.only || l.only === car)?.id); return; }
+  refreshList(); renderControls(); preview();
+}
 function refreshList() {
-  const list = $('#llList', root), keep = list.scrollTop, all = allLiveries();
-  const row = l => `<button data-id="${esc(l.id)}" class="${l.id === ST.id ? 'on' : ''} ${l.modified ? 'mod' : ''}">${esc(l.name)}</button>`;
-  list.innerHTML = `<div class="pl-group">Livrées fournies</div>${all.filter(l => l.builtin).map(row).join('')}
-    <div class="pl-group">Mes livrées</div>
-    <div class="pl-new"><input class="input" id="llNewName" placeholder="Nom de la nouvelle livrée" maxlength="30" spellcheck="false"><button class="mini-btn" data-new>+ Créer</button></div>
-    <p class="hint" style="padding:0 6px 6px">La nouvelle livrée est une copie de celle qui est ouverte.</p>
-    ${all.filter(l => !l.builtin).map(row).join('') || '<p class="hint" style="padding:0 6px">Aucune pour l\'instant.</p>'}${hiddenCount() ? '<div class="btnrow" style="padding:8px 6px"><button class="mini-btn" data-a="restoreB">Restaurer les livrées fournies</button></div>' : ''}`;
+  const list = $('#llList', root), keep = list.scrollTop, all = allLiveries(), def = defaultLivery(ST.car), nom = carName();
+  const row = l => `<button data-id="${esc(l.id)}" class="${l.id === ST.id ? 'on' : ''} ${l.modified ? 'mod' : ''}" title="${l.id === def ? 'Livrée par défaut des ' + esc(nom) + ' (affiches en « Automatique »)' : ''}">${esc(l.name)}${l.id === def ? ' <small class="ll-def">★ par défaut</small>' : ''}${l.builtin ? ' <small>fournie</small>' : ''}</button>`;
+  const siennes = all.filter(l => l.only === ST.car), toutes = all.filter(l => !l.only);
+  list.innerHTML = `<div class="pl-group">Livrées ${esc(nom)}</div>
+    ${siennes.map(row).join('') || `<p class="hint" style="padding:0 6px">Aucune livrée faite pour ${esc(nom)} pour l'instant.</p>`}
+    <div class="pl-new"><input class="input" id="llNewName" placeholder="Nouvelle livrée ${esc(nom)}" maxlength="30" spellcheck="false"><button class="mini-btn" data-new>+ Créer</button></div>
+    <p class="hint" style="padding:0 6px 6px">La nouvelle livrée est une copie de celle qui est ouverte, réservée à ${esc(nom)}.</p>
+    ${toutes.length ? `<div class="pl-group">Pour toutes les voitures</div>${toutes.map(row).join('')}` : ''}${hiddenCount() ? '<div class="btnrow" style="padding:8px 6px"><button class="mini-btn" data-a="restoreB">Restaurer les livrées fournies</button></div>' : ''}`;
   list.scrollTop = keep;
 }
 function loadDef() { ST.def = upgradeDef(cloneDef(ST.id)); ST.hist = [JSON.stringify(ST.def)]; ST.hi = 0; if (!selected()) ST.sel = null; }
 function select_(id) {
   if (!getDef(id)) id = allLiveries()[0]?.id || 'nuit';
-  ST.id = id; ST.rename = false; ST.nameEdit = null; loadDef(); refreshList(); renderHead(); renderControls(); status(); preview();
+  ST.id = id; ST.rename = false; ST.nameEdit = null; loadDef();
+  if (ST.def.only && ST.def.only !== ST.car) ST.car = ST.def.only;   // livrée faite pour une autre voiture : on passe dans son onglet
+  syncCar(); refreshList(); renderHead(); renderControls(); status(); preview();
 }
 const status_ = msg => { const st = $('#llStatus', root); if (st) st.textContent = msg; toast(msg); };
-// Enregistre la livrée, en fait la livrée des nouvelles affiches et la pose sur les voitures de l'affiche ouverte (« Octane uniquement » : sur les Octane seulement).
+// Enregistre la livrée, en fait la livrée par défaut de la voiture de l'onglet (affiches en « Automatique », nouvelles affiches) et la pose sur les
+// voitures de ce modèle dans l'affiche ouverte. Les autres voitures ne sont pas touchées : chacune a sa livrée par défaut.
 function saveAndApply() {
-  clearTimeout(ST.t); commit(); saveDef(ST.id, ST.def); setDefaultLivery(ST.id);
-  const only = ST.def.only || '', doc = S.doc;
-  const hit = doc && doc.game === 'rl' ? doc.layers.filter(L => L.type === 'model' && !L.actors && (!only || agentKeyOf(doc, L.model) === only)) : [];
+  clearTimeout(ST.t); commit(); saveDef(ST.id, ST.def); setDefaultLivery(ST.id, ST.car);
+  const doc = S.doc, nom = carName();
+  const hit = doc && doc.game === 'rl' ? doc.layers.filter(L => L.type === 'model' && !L.actors && agentKeyOf(doc, L.model) === ST.car) : [];
   if (hit.length) docChange(d => { for (const L of d.layers) if (hit.some(h => h.id === L.id)) L.livery = ST.id; }, { immediate: true });
-  const car = only ? (CARS.find(c => c[0] === only) || [])[1] : '';
-  status_(hit.length ? `Livrée enregistrée et posée sur ${hit.length} voiture(s) de l'affiche${car ? ' (' + car + ' uniquement)' : ''}` : `Livrée enregistrée${car ? ' pour ' + car : ''} ; elle sera posée sur les nouvelles affiches Rocket League`);
+  refreshList(); renderControls();
+  status_(`Livrée par défaut des ${nom}` + (hit.length ? `, posée sur ${hit.length} ${nom} de l'affiche` : ' ; elle sera posée sur les ' + nom + ' des affiches Rocket League'));
 }
 async function delLivery() {
   const ok = API?.confirm ? await window.Dialogue.confirmer({ danger: true, message: `Supprimer la livrée « ${ST.def.name} » ?`, detail: (isBuiltin(ST.id) ? 'Elle disparaît de la liste (un bouton permet de restaurer les livrées fournies). ' : '') + 'Les voitures qui l\'utilisent reviennent à la peinture d\'origine.', ok: 'Supprimer' }) : confirm('Supprimer cette livrée ?');
@@ -544,7 +562,8 @@ function layerRows(d) {
 function renderControls() {
   const d = ST.def; if (!d) return;
   const sel = selected(), i = sel ? d.layers.indexOf(sel) : -1;
-  let h = `<div class="pad llsave">${select('d:only', 'Appliquer à', d.only || '', [['', 'Toutes les voitures'], ...CARS.map(([k, n]) => [k, n + ' uniquement'])], { raw: true }).replace('<select', '<select data-p="d:only"')}<button class="primary-btn solo" data-a="save" title="Enregistre la livrée et la pose sur les voitures de l'affiche ouverte et des nouvelles affiches">Enregistrer et appliquer aux affiches</button></div>`;
+  const estDefaut = defaultLivery(ST.car) === ST.id;
+  let h = `<div class="pad llsave">${select('d:only', 'Cette livrée est faite pour', d.only || '', [...CARS.map(([k, n]) => [k, n + ' uniquement']), ['', 'Toutes les voitures']], { raw: true }).replace('<select', '<select data-p="d:only"')}<button class="primary-btn solo" data-a="save" title="Enregistre la livrée, en fait la livrée par défaut des ${carName()} et la pose sur les ${carName()} de l'affiche ouverte">Enregistrer et appliquer aux ${carName()}</button><div class="hint" style="margin:0">${estDefaut ? '★ Livrée par défaut des ' + carName() + ' : les ' + carName() + ' des affiches réglées sur « Automatique » la portent.' : 'Ce bouton en fait la livrée par défaut des ' + carName() + '. Dans une affiche, chaque voiture ne propose que les livrées faites pour elle.'}</div></div>`;
   const tools = `<div class="ll-tools"><button class="mini-btn" data-a="up" ${sel && i < d.layers.length - 1 ? '' : 'disabled'} title="Passer devant (Ctrl+])">↑ Devant</button><button class="mini-btn" data-a="down" ${sel && i > 0 ? '' : 'disabled'} title="Passer derrière (Ctrl+[)">↓ Derrière</button><button class="mini-btn" data-a="dup" ${sel ? '' : 'disabled'} title="Dupliquer (Ctrl+D)">⧉ Dupliquer</button><button class="mini-btn danger" data-a="del" ${sel ? '' : 'disabled'} title="Supprimer (Suppr)">✕ Supprimer</button></div>`;
   h += sec('calques', 'Calques', `<div class="ll-add">${Object.entries(KIND).map(([k, n]) => `<button class="mini-btn" data-a="add-${k}">+ ${n}</button>`).join('')}</div><div class="ll-rows">${layerRows(d) || '<p class="hint">Aucun calque.</p>'}</div>${tools}<div class="hint">Le calque du haut de la liste passe devant les autres. Glisse une ligne pour changer l'ordre ; double-clic pour la renommer.</div>`);
   if (sel) h += sec('calque', 'Calque : ' + layerName(sel), layerPanel(sel));
@@ -595,11 +614,13 @@ async function doImport() {
 }
 
 export const labState = () => ST;   // banc d'essai (développement) : état du créateur, poignées du calque sélectionné
-export function openLiveryLab(id) {
+// id : livrée à ouvrir ; car : voiture de l'affiche d'où l'on vient (son onglet s'ouvre).
+export function openLiveryLab(id, car) {
   if (!root) build();
   ST.open = true; root.hidden = false; window.Transitions?.entrer(root);
-  $('#llCar', root).value = ST.car;
-  select_(id && getDef(id) ? id : (getDef(ST.id) ? ST.id : 'nuit'));
+  if (car && CARS.some(c => c[0] === car)) ST.car = car;
+  const va = x => x && getDef(x) && (!getDef(x).only || getDef(x).only === ST.car || !car);
+  select_(va(id) ? id : (va(ST.id) ? ST.id : defaultLivery(ST.car) || 'nuit'));
 }
 export function closeLiveryLab() {
   if (!root || !ST.open) return;

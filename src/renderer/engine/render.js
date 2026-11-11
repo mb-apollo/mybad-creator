@@ -31,8 +31,8 @@ export const FONT_LIST = ['Space Grotesk', 'Montserrat', 'Anton', 'Bebas Neue', 
 export const TEXT_DEFAULTS = {
   org: 'TON ÉQUIPE', event: 'Nom de la compétition', stage: 'Phase de groupes',
   p1: 'Joueur 1', p2: 'Joueur 2', p3: 'Joueur 3', p4: 'Joueur 4', p5: 'Joueur 5',
-  a1: 'omen', a2: 'jett', a3: 'killjoy', a4: 'raze', a5: 'sova',
-  r1: 'Controller', r2: 'Duelist', r3: 'Sentinel', r4: 'Duelist', r5: 'Initiator',
+  a1: 'chamber', a2: 'astra', a3: 'omen', a4: 'jett', a5: 'sova',   // roster par défaut, de gauche à droite
+  r1: 'Sentinel', r2: 'Controller', r3: 'Controller', r4: 'Duelist', r5: 'Initiator',
   coach: 'Nom du coach',
   adv: 'Équipe adverse', date: 'Samedi', hour: '20H00', live: 'twitch.tv/ta-chaine',
   // titres (mot manuscrit + mot en gras)
@@ -59,7 +59,7 @@ export const TEXT_DEFAULTS = {
   sig: '', coords: '',
 };
 export const RL_DEFAULTS = {
-  p1: 'Joueur 1', p2: 'Joueur 2', p3: 'Joueur 3', a1: 'octane', a2: 'fennec', a3: 'dominus',
+  p1: 'Joueur 1', p2: 'Joueur 2', p3: 'Joueur 3', a1: 'fennec', a2: 'octane', a3: 'dominus',   // de gauche à droite
   r1: 'Striker', r2: 'Midfield', r3: 'Keeper', mvpAgent: 'octane', featAgent: 'octane', anAgent1: 'octane', anAgent2: 'fennec',
   tAgent: 'dominus', cardAgent: 'octane', cardRole: 'Striker', liveAgent: 'fennec',
   mvpStat: '3 buts · 2 passes · 520 pts', tGame: 'Ta Cup · Rocket League 3v3',
@@ -93,6 +93,11 @@ export function newDocument(kit) {
 }
 
 export function setGameDefaults(doc, game, kit) {
+  if (doc.game !== game) {   // nombre de joueurs : chaque jeu garde le sien (3 voitures ne doivent pas devenir 3 agents)
+    doc.playersBy = { ...(doc.playersBy || {}), [doc.game]: doc.counts?.players ?? null };
+    const n = doc.playersBy[game]; doc.counts = { ...(doc.counts || {}) };
+    if (n == null) delete doc.counts.players; else doc.counts.players = n;
+  }
   doc.game = game;
   const roster = kit?.rosters?.[game];
   if (game === 'rl') Object.assign(doc.T, RL_DEFAULTS, roster || {});
@@ -101,6 +106,16 @@ export function setGameDefaults(doc, game, kit) {
     vk.forEach(key => { doc.T[key] = TEXT_DEFAULTS[key]; });
     Object.assign(doc.T, roster || {});
   }
+}
+
+// Réinitialisation d'une affiche : roster d'origine du jeu (agents ou voitures et rôles, puis ceux du Kit de marque) et nombres de lignes d'origine.
+// Les pseudos déjà saisis sont gardés, sauf ceux que le kit fournit.
+export function resetRoster(doc, kit) {
+  const D = doc.game === 'rl' ? { ...TEXT_DEFAULTS, ...RL_DEFAULTS } : TEXT_DEFAULTS;
+  for (let i = 1; i <= 5; i++) for (const k of ['a', 'r']) doc.T[k + i] = D[k + i];
+  Object.assign(doc.T, kit?.rosters?.[doc.game] || {});
+  doc.counts = {};
+  if (doc.playersBy) delete doc.playersBy[doc.game];
 }
 
 // (Ré)applique un modèle : les calques du modèle sont recréés, les calques ajoutés à la main sont gardés.

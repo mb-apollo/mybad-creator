@@ -20,6 +20,24 @@ export const customKey = id => 'custom:' + id;
 export const isCustom = key => typeof key === 'string' && key.startsWith('custom:');
 export const customList = () => list;
 
+// Jeu pour lequel un modèle personnalisé a été fait : ses calques sont figés (voitures ou agents, nom du jeu écrit en toutes lettres), il ne se
+// transpose pas d'un jeu à l'autre. Noté à la création ; les modèles enregistrés avant sont reconnus à leurs calques (null : rien de propre à un jeu).
+function guessGame(e) {
+  let rl = 0, va = 0;
+  for (const L of e.layers || []) {
+    const t = String(L.tpl ?? L.text ?? '').trim().toUpperCase();
+    if (t === 'ROCKET LEAGUE') rl += 3; else if (t === 'VALORANT') va += 3;
+    if (L.type !== 'model') continue;
+    const m = String(L.model || '');
+    if (L.actors) va += 2;
+    if (m.startsWith('g:rl:')) rl += 2; else if (m.startsWith('g:valorant:')) va += 2;
+    if (L.livery !== undefined || L.lights !== undefined) rl++;
+    if (L.pose) va++;
+  }
+  return rl > va ? 'rl' : va > rl ? 'valorant' : null;
+}
+export const customGame = key => { const e = list.find(x => customKey(x.id) === key); return e ? e.game || guessGame(e) : null; };
+
 const unitOf = (W, H) => Math.min(W, H * 0.8) / 1080;
 function register(e) {
   const key = customKey(e.id);
@@ -72,7 +90,7 @@ export function createBlank() {
 // Enregistre l'affiche en cours comme nouveau modèle.
 export function saveCurrent() {
   const doc = S.doc, src = TEMPLATES[doc.tpl], { layers, assets } = snapshot();
-  return add({ id: uid(), name: `${src?.name || 'Affiche'} (perso)`, W: doc.W, H: doc.H, fields: src?.fields?.length ? src.fields : ['org', 'event'], layers, assets, finish: JSON.parse(JSON.stringify(doc.finish || {})) });
+  return add({ id: uid(), name: `${src?.name || 'Affiche'} (perso)`, W: doc.W, H: doc.H, fields: src?.fields?.length ? src.fields : ['org', 'event'], layers, assets, finish: JSON.parse(JSON.stringify(doc.finish || {})), game: doc.game });
 }
 // Duplique n'importe quel modèle (fourni ou perso) en modèle personnalisé : mise en page actuelle de ce modèle + ses réglages d'ambiance.
 export function duplicateTemplate(key) {
@@ -81,7 +99,7 @@ export function duplicateTemplate(key) {
   d.finishFor = undefined; d.finish = {};
   applyTemplate(d, key, { keepUser: false });
   const { layers, assets } = snapshot(d);
-  return add({ id: uid(), name: `${src.name} (copie)`, W: d.W, H: d.H, fields: src.fields?.length ? src.fields : ['org', 'event'], layers, assets, finish: JSON.parse(JSON.stringify(d.finish || {})) });
+  return add({ id: uid(), name: `${src.name} (copie)`, W: d.W, H: d.H, fields: src.fields?.length ? src.fields : ['org', 'event'], layers, assets, finish: JSON.parse(JSON.stringify(d.finish || {})), game: d.game });
 }
 // Fourche automatique : la première modification d'un modèle par défaut (dossier « MODÈLES ») part dans une
 // copie personnelle sous « Modèles personnalisés », sans jamais toucher à l'original (figé dans l'application).
@@ -89,7 +107,7 @@ export function forkFromDefault() {
   const doc = S.doc; if (!doc || isCustom(doc.tpl)) return null;
   const src = TEMPLATES[doc.tpl]; if (!src) return null;
   const { layers, assets } = snapshot(doc);
-  const key = add({ id: uid(), name: `${src.name} (modifié)`, W: doc.W, H: doc.H, fields: src.fields?.length ? src.fields : ['org', 'event'], layers, assets, finish: JSON.parse(JSON.stringify(doc.finish || {})), origin: doc.tpl });
+  const key = add({ id: uid(), name: `${src.name} (modifié)`, W: doc.W, H: doc.H, fields: src.fields?.length ? src.fields : ['org', 'event'], layers, assets, finish: JSON.parse(JSON.stringify(doc.finish || {})), origin: doc.tpl, game: doc.game });
   if (key) doc.tpl = key;
   return key;
 }

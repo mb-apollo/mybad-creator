@@ -10,7 +10,7 @@ import { GAMES, gameItems, WEAPONS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
 import { sceneDefaults, DEFAULT_POSE } from './engine/templates.js';
 import { LOGO_URL, makeLogoGltf, setLogoLook } from './logo3d.js';
-import { applyLivery, applyGloss, applyZones, surfaceAt, surfacePoint, bodyDims, liveriesList, liveryKey, liveryGloss, liveryMetal, liveryZone, liveryLamp, liveryOnly } from './livery.js';
+import { applyLivery, applyGloss, applyZones, surfaceAt, surfacePoint, bodyDims, liveriesList, liveryKey, liveryGloss, liveryMetal, liveryZone, liveryLamp, resolveLivery } from './livery.js';
 import { applyLamps, LAMP_DEFAULT } from './carlamps.js';
 import { addLayer } from './editor.js';
 import { presetsList, stancePose, weaponDefaults, resolvePose, weaponOf, agentRotY } from './posereg.js';
@@ -88,7 +88,7 @@ function fixModel(url, gltf) {
 const DEFAULT_RIM = { fennec: '#0b0c12' };   // jantes d'origine trop voyantes : noires par défaut
 const lampCols = L => ({ front: L.lampF || liveryLamp(L.livery, 'front') || LAMP_DEFAULT.front, rear: L.lampR || liveryLamp(L.livery, 'rear') || LAMP_DEFAULT.rear, glow: L.lampGlow ?? liveryLamp(L.livery, 'glow') ?? LAMP_DEFAULT.glow });
 function applyCarLook(inst, L, theme, car) {
-  L = { ...L, livery: L.livery && (!liveryOnly(L.livery) || liveryOnly(L.livery) === car) ? L.livery : '' };   // livrée réservée à une autre voiture : peinture d'origine
+  L = { ...L, livery: resolveLivery(L.livery, car) };   // « auto » : livrée par défaut de cette voiture ; livrée d'une autre voiture : peinture d'origine
   const rim = L.rimColor ? color(L.rimColor, theme) : (liveryZone(L.livery, 'rim') || DEFAULT_RIM[car] || null);
   applyLivery(inst, L.livery, car);
   applyZones(inst, L.livery);
@@ -381,7 +381,7 @@ function renderModel(L, w, h, theme, exporting) {
   const wdoc = S.doc_override || S.doc, pzr = resolvePose(L.pose, agentKeyOf(wdoc, L.model)), wdef = weaponOf(L, pzr), wurl = weaponUrl(wdoc, wdef);
   if (wurl) load(wurl);
   const fin = finOf(wdoc), arot = agentRotY(agentKeyOf(wdoc, L.model));
-  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, L.roll, L.pitch, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, L.lights, L.rimColor, liveryKey(L.livery && (!liveryOnly(L.livery) || liveryOnly(L.livery) === agentKeyOf(wdoc, L.model)) ? L.livery : ''), L.gloss, L.lampF, L.lampR, L.lampGlow, L.floor, theme.glow, theme.accent, theme.text, theme.bg2]);
+  const params = JSON.stringify([url, pw, ph, wdef, wurl && MODELS.get(wurl)?.status, L.exposure, L.envLight, L.frame, pzr, L.face, L.rotY, L.roll, L.pitch, arot, fin.exposure, fin.key, fin.rim, fin.ambient, L.camPitch, L.zoom3d, L.target, L.fov, L.anim, L.animTime, L.key, L.rim, L.fill, L.ambient, L.offsetX, L.lights, L.rimColor, liveryKey(resolveLivery(L.livery, agentKeyOf(wdoc, L.model))), L.gloss, L.lampF, L.lampR, L.lampGlow, L.floor, theme.glow, theme.accent, theme.text, theme.bg2]);
   const cached = RENDERS.get(L.id);
   if (cached && cached.key === params) return cached.canvas;
 
@@ -509,7 +509,7 @@ export function newModelLayer() {
     rotY: isCar ? 35 : 15, camPitch: isCar ? 12 : 4, zoom3d: 1, target: 0.5, fov: 28, anim: 0, animTime: 0,
     key: { color: '#ffffff', intensity: 1.4, angle: -35 }, rim: { color: '$glow', intensity: 4, angle: 150 }, fill: { color: '$accent', intensity: 0.4 }, ambient: { color: '$glow', intensity: 0.6 },
     reflect: true, contact: true,
-    ...(isCar ? {} : { pose: DEFAULT_POSE(0) }),   // l'agent prend la pose réglée dans le Studio (ou la pose par défaut)
+    ...(isCar ? { livery: 'auto' } : { pose: DEFAULT_POSE(0) }),   // la voiture porte sa livrée par défaut, l'agent la pose réglée dans le Studio (ou la pose par défaut)
     fx: { glow: { on: true, color: '$glow', blur: 34, opacity: 0.45 } },
   };
 }
@@ -539,7 +539,8 @@ export function modelProps(L) {
   h += section('Arme', weaponControls('weapon', wsel), !!wsel?.key);
   h += section('Pose', (clips.length ? `${sel('anim', 'Animation', L.anim ?? 0, [[-1, 'Pose du fichier'], ...clips.map((c, i) => [i, c.name || `Animation ${i + 1}`])])}${(L.anim ?? 0) >= 0 ? range('animTime', 'Moment de l\'animation', L.animTime || 0, 0, 1, 0.001, pct) : ''}` : '<p class="hint">Ce modèle n\'a pas d\'animation : il garde la pose de son fichier.</p>')
     + poseControls('pose', pz), clips.length > 0 || !!pz.on);
-  if (doc.game === 'rl') h += section('Voiture', `${sel('livery', 'Livrée de cette voiture', L.livery || '', liveriesList(), { raw: true })}<div class="btnrow"><button class="mini-btn" data-act="openLiveryLab" data-id="${esc(L.livery || '')}">Créateur de livrées</button></div>${sel('lights', 'Feux', L.lights || 'auto', [['auto', 'Selon le modèle'], ['on', 'Allumés'], ['off', 'Éteints']], { raw: true })}<p class="hint">« Allumés » éclaire les phares et les feux arrière avec un halo de lumière. « Éteints » les coupe.</p>${colorCtl('lampF', 'Couleur des feux avant', L.lampF || liveryLamp(L.livery, 'front') || LAMP_DEFAULT.front, th)}${colorCtl('lampR', 'Couleur des feux arrière', L.lampR || liveryLamp(L.livery, 'rear') || LAMP_DEFAULT.rear, th)}${range('lampGlow', 'Force du halo', L.lampGlow ?? liveryLamp(L.livery, 'glow') ?? LAMP_DEFAULT.glow, 0, 2, 0.01, pct)}${range('gloss', 'Brillance de la carrosserie', L.gloss ?? liveryGloss(L.livery) ?? 0.7, 0, 1, 0.01, pct)}${colorCtl('rimColor', 'Couleur des jantes', L.rimColor || '#9aa6c4', th)}<div class="btnrow"><button class="mini-btn" data-act="rimReset">Jantes d'origine</button></div>`, true);
+  const car = agentKeyOf(doc, L.model), liv = resolveLivery(L.livery, car);   // livrée portée ; le choix affiché : « auto », sinon elle (ou peinture d'origine si elle est faite pour une autre voiture)
+  if (doc.game === 'rl') h += section('Voiture', `${sel('livery', 'Livrée de cette voiture', L.livery === 'auto' ? 'auto' : liv, liveriesList(car), { raw: true })}<p class="hint">Seules les livrées faites pour cette voiture sont proposées. « Automatique » suit la livrée par défaut de la voiture, choisie dans le créateur.</p><div class="btnrow"><button class="mini-btn" data-act="openLiveryLab" data-id="${esc(liv)}" data-car="${esc(car || '')}">Créateur de livrées</button></div>${sel('lights', 'Feux', L.lights || 'auto', [['auto', 'Selon le modèle'], ['on', 'Allumés'], ['off', 'Éteints']], { raw: true })}<p class="hint">« Allumés » éclaire les phares et les feux arrière avec un halo de lumière. « Éteints » les coupe.</p>${colorCtl('lampF', 'Couleur des feux avant', L.lampF || liveryLamp(liv, 'front') || LAMP_DEFAULT.front, th)}${colorCtl('lampR', 'Couleur des feux arrière', L.lampR || liveryLamp(liv, 'rear') || LAMP_DEFAULT.rear, th)}${range('lampGlow', 'Force du halo', L.lampGlow ?? liveryLamp(liv, 'glow') ?? LAMP_DEFAULT.glow, 0, 2, 0.01, pct)}${range('gloss', 'Brillance de la carrosserie', L.gloss ?? liveryGloss(L.livery) ?? 0.7, 0, 1, 0.01, pct)}${colorCtl('rimColor', 'Couleur des jantes', L.rimColor || '#9aa6c4', th)}<div class="btnrow"><button class="mini-btn" data-act="rimReset">Jantes d'origine</button></div>`, true);
   else h += section('Visage', faceControls('face', L.face), !!(L.face && Object.keys(L.face).length));
   h += section('Éclairage', `
     ${colorCtl('rim.color', 'Contre-jour', L.rim?.color || '$glow', th)}${range('rim.intensity', 'Intensité du contre-jour', L.rim?.intensity ?? 4, 0, 12, 0.1, v => v.toFixed(1))}${range('rim.angle', 'Direction du contre-jour', L.rim?.angle ?? 150, 90, 270, 1, deg)}
@@ -555,7 +556,7 @@ export function modelProps(L) {
 }
 export function modelPropAction(act, L, btn) {
   if (act === 'openPoseLab') deps.actions?.openPoseLab?.();
-  if (act === 'openLiveryLab') deps.actions?.openLiveryLab?.(btn?.dataset?.id);
+  if (act === 'openLiveryLab') deps.actions?.openLiveryLab?.(btn?.dataset?.id, btn?.dataset?.car);
   if (act === 'poseEditToggle' && L) { deps.actions?.togglePoseEdit?.(L); deps.actions?.renderProps?.(); }
   if (act === 'weaponAuto' && L) {
     const prefix = btn.dataset.prefix, def = getPath(L, prefix);

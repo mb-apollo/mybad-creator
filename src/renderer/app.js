@@ -2,7 +2,7 @@
 import { S, API, on, emit, change, setDoc, normalize, select, selected, layerById, undo, redo, canUndo, canRedo, flushHistory, setDirty, resetHistory, toast } from './state.js';
 import * as posereg from './posereg.js';
 import { banc } from './banc.js';
-import { newDocument, applyTemplate, renderDoc, FORMATS, THEMES, setGameDefaults, MYBAD_KIT } from './engine/render.js';
+import { newDocument, applyTemplate, renderDoc, FORMATS, THEMES, setGameDefaults, resetRoster, MYBAD_KIT } from './engine/render.js';
 import { TEMPLATES } from './engine/templates.js';
 import { versHeliance } from './renom.js';
 import { makeEnv, docImageUrls, whenLoaded, onImageLoaded } from './engine/assets.js';
@@ -10,7 +10,7 @@ import { GAMES, gameItems } from './engine/games.js';
 import { $, $$, esc, icon } from './ui.js';
 import { initEditor, requestRender, fit, zoomTo, getZoom, setTool, addLayer, pasteLayers, copySelected, togglePoseEdit, getPoseEdit, startPaint, addGuide, toggleRulers } from './editor.js';
 import * as P from './panels.js';
-import { initCustom, isCustom, scheduleSave as saveCustomModel, forkFromDefault, repairDefaults, renameCustom } from './custom.js';
+import { initCustom, isCustom, customGame, scheduleSave as saveCustomModel, forkFromDefault, repairDefaults, renameCustom } from './custom.js';
 initCustom();
 repairDefaults(); // vérifie/répare les données locales des modèles avant le premier affichage de la galerie
 import { initModels, materialize, modelEnv, modelProps, modelPropAction, newModelLayer, newSceneLayer, preloadModels, poseHandles, startPoseDrag, dragPoseHandle } from './model3d.js';
@@ -91,8 +91,10 @@ async function switchTemplate(key) {
     });
     if (garder) { const k = forkFromDefault(); if (k) { P.renderGallery(); toast(`Enregistré dans « ${TEMPLATES[k].name} » (Modèles personnalisés)`); } }
   }
-  // les réglages propres à une affiche ne suivent pas quand on change d'affiche (seuls les réglages globaux restent)
-  change(d => { d.finish = {}; applyTemplate(d, key); }, { immediate: true, full: true });
+  // les réglages propres à une affiche ne suivent pas quand on change d'affiche (seuls les réglages globaux restent) ;
+  // un modèle personnalisé fait pour l'autre jeu fait passer dans ce jeu (ses calques ne se transposent pas)
+  const jeu = isCustom(key) ? customGame(key) : null;
+  change(d => { if (jeu && jeu !== d.game) setGameDefaults(d, jeu, S.kit); d.finish = {}; applyTemplate(d, key); }, { immediate: true, full: true });
   select([]);
   P.markGallery(); updateStatus();
   if (tab === 'content') P.renderContent();
@@ -113,7 +115,7 @@ async function resetTemplate() {
     ok: 'Réinitialiser', annuler: 'Annuler', danger: true,
   });
   if (!ok) return;
-  change(d => { d.finish = {}; d.finishFor = undefined; applyTemplate(d, originKey, { keepUser: false }); }, { immediate: true, full: true });
+  change(d => { d.finish = {}; d.finishFor = undefined; resetRoster(d, S.kit); applyTemplate(d, originKey, { keepUser: false }); }, { immediate: true, full: true });
   select([]);
   P.renderGallery(); P.markGallery(); updateStatus();
   if (tab === 'content') P.renderContent();
@@ -127,9 +129,21 @@ $('#fmtSeg').addEventListener('click', e => {
   buildFormats(); updateStatus(); P.scheduleThumbs();
   toast('Format changé : le modèle a été remis en page (Ctrl+Z pour revenir)');
 });
+// Changer de jeu remet l'affiche aux réglages de ce jeu. Une copie personnelle (« … (modifié) ») est figée pour le jeu où elle a été faite :
+// on passe au modèle d'origine pour l'autre jeu, et on la retrouve en revenant sur le sien (d.tplBy : dernière affiche utilisée dans chaque jeu).
+const famille = key => (isCustom(key) ? TEMPLATES[key]?.origin : key) || null;
+function tplPourJeu(d, g) {
+  const cur = d.tpl, fam = famille(cur);
+  if (isCustom(cur) && customGame(cur) === g) return cur;
+  const c = d.tplBy?.[g];
+  if (c && c !== cur && TEMPLATES[c] && famille(c) === fam && (!isCustom(c) || customGame(c) === g)) return c;
+  return isCustom(cur) && customGame(cur) && TEMPLATES[fam] ? fam : cur;
+}
 $('#gameSeg').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.dataset.g === S.doc.game) return;
-  change(d => { setGameDefaults(d, b.dataset.g, S.kit); applyTemplate(d, d.tpl); }, { immediate: true, full: true });
+  const g = b.dataset.g, key = tplPourJeu(S.doc, g), autre = key !== S.doc.tpl;
+  change(d => { d.tplBy = { ...(d.tplBy || {}), [d.game]: d.tpl }; setGameDefaults(d, g, S.kit); if (autre) d.finish = {}; applyTemplate(d, key, autre ? { keepUser: false } : {}); }, { immediate: true, full: true });
+  if (autre) select([]);
   buildGame(); updateStatus(); P.scheduleThumbs(); refreshTab();
   toast(`Mode ${GAMES[b.dataset.g].name}`);
 });
@@ -542,7 +556,7 @@ $('#btnKit').onclick = openKit;
 initContextMenu($('#stage'));
 $('#btnPoseLab').onclick = openPoseLab;
 $('#btnLiveryLab').onclick = () => openLiveryLab();
-P.actions.openLiveryLab = id => openLiveryLab(id);
+P.actions.openLiveryLab = (id, car) => openLiveryLab(id, car);
 onLiveryChange(() => { requestRender(); P.scheduleThumbs(); });
 document.addEventListener('poselab:closed', () => { P.renderProps(); change(() => {}, { immediate: true, full: true }); P.scheduleThumbs(); });
 P.actions.openPoseLab = openPoseLab;

@@ -1,4 +1,2 @@
-- Changer de jeu (Valorant / Rocket League) remet l'affiche aux réglages de ce jeu : une affiche modifiée reste dans le jeu où tu l'as faite, et tu la retrouves en y revenant ; ouvrir un modèle personnalisé fait pour l'autre jeu y fait passer
-- « Réinitialiser » une affiche remet le roster d'origine : 5 agents en Valorant (Chamber, Astra, Omen, Jett, Sova), 3 voitures en Rocket League (Fennec, Octane, Dominus) ; le nombre de joueurs est gardé séparément pour chaque jeu
-- Créateur de livrées : un onglet par voiture (Octane, Fennec, Dominus) avec ses propres livrées et sa livrée par défaut ; « Enregistrer et appliquer » ne touche que la voiture de l'onglet
-- Dans une affiche, chaque voiture ne propose que les livrées faites pour elle ; « Automatique » suit la livrée par défaut de la voiture
+- Créateur de livrées : l'onglet d'une voiture qui n'a encore aucune livrée s'ouvre bien (il ramenait à l'onglet précédent) ; la voiture s'affiche en peinture d'origine
+- Créateur de livrées : « + Créer » propose la livrée de départ dans « À partir de », y compris une livrée faite pour une autre voiture, ou une livrée vierge

@@ -3,6 +3,7 @@
 //
 //   node scripts/banc-poses.js lancer                         ouvre Creator caché, dans un profil à part (à laisser tourner)
 //   node scripts/banc-poses.js rendre --agent jett --pose p.json [--ref image.png] [--vues face,dos] [--sortie dossier]
+//   node scripts/banc-poses.js traversees --agent jett --pose p.json   mesure ce qui se traverse (main dans le torse, arme dans une jambe…)
 //   node scripts/banc-poses.js lire [--id agent:jett]         réglages enregistrés d'une pose (par défaut : pose par défaut)
 //   node scripts/banc-poses.js agents                         agents qui ont un modèle 3D
 //   node scripts/banc-poses.js presets                        poses prédéfinies et vues disponibles
@@ -69,6 +70,18 @@ function copierModeles() {
   if (cmd === 'arreter') { if (!enMarche()) fin('Le banc ne tourne pas.', 0); await demander({ action: 'quitter' }, 10000); console.log('banc arrêté'); return; }
   if (cmd === 'agents' || cmd === 'presets') { console.log(JSON.stringify(await demander({ action: cmd }), null, 1)); return; }
   if (cmd === 'lire') { console.log(JSON.stringify(await demander({ action: 'lire', id: opt.id }), null, 1)); return; }
+  if (cmd === 'traversees') {
+    if (!opt.agent) fin('Il manque --agent.');
+    const req = { action: 'traversees', agent: opt.agent };
+    if (opt.pose) req.pose = poseDe(path.resolve(opt.pose), opt.agent);
+    if (opt.poses) req.poses = lireJson(path.resolve(opt.poses));   // fichier contenant une liste de poses : une mesure par pose
+    if (opt.rot !== undefined) req.rotY = +opt.rot;
+    if (opt.peau) req.options = { peau: true };
+    const r = await demander(req, 600000);
+    if (!r.ok) fin('Échec : ' + r.erreur);
+    console.log(JSON.stringify(r.resultats ? { resultats: r.resultats } : { rotY: r.rotY, sommets: r.sommets, arme: r.arme, paires: r.paires, reperes: r.reperes, peau: r.peau }));
+    return;
+  }
   if (cmd === 'rendre') {
     if (!opt.agent) fin('Il manque --agent.');
     const req = { action: 'rendre', agent: opt.agent };

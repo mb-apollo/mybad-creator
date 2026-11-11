@@ -8,6 +8,7 @@ import { S } from './state.js';
 import { renderModelPreview, poseHandles, preloadModels } from './model3d.js';
 import { agentRotY, getItem, presetsList } from './posereg.js';
 import { poseValues } from './pose3d.js';
+import { traversees } from './banc-traversees.js';
 
 // rotY > 0 : le personnage tourne vers sa gauche (on voit son côté droit). « main » : gros plan sur la main gauche (L) ou droite (R).
 export const VUES = {
@@ -66,8 +67,20 @@ async function vueDe(nom, def, agent, pose, w, h) {
     if (!m) throw new Error('articulation introuvable sur ce modèle : ' + cible);
     L = { ...L, target: m.ref.world.y + (def.decalY || 0), offsetX: m.ref.world.x, zoom3d: def.zoom3d ?? (def.main ? 4.2 : 3.4), fov: def.fov || 8 };
   }
+  if (def.point) L = { ...L, target: def.point[1], offsetX: def.point[0], zoom3d: def.zoom3d ?? 4.2, fov: def.fov || 8 };   // gros plan sur un point du monde (centre d'une traversée, relevé au même rotY)
   const cv = await rendre(L, w, h);
   return { nom, image: figer(cv, w, h), poignees: poignees(L, w, h) };
+}
+
+// Traversées du personnage posé, vu sous l'angle rotY (les centres sont donnés dans ce repère : une vue « point » au même rotY les cadre).
+let SONDES = 0;
+async function sonder(agent, pose, rotY, opt) {
+  let res = null, err = null;
+  const L = { ...calque('sonde' + (SONDES++), agent, pose, { rotY }, 48, 64), sonde: o => { try { res = traversees(o, opt); } catch (e) { err = e; } } };
+  await rendre(L, 48, 64);
+  if (err) throw err;
+  if (!res) throw new Error('le relevé n\'a pas eu lieu');
+  return { rotY, ...res };
 }
 
 const charger = url => new Promise((ok, non) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => non(new Error('image de référence illisible')); i.src = url; });
@@ -95,11 +108,17 @@ export async function banc(req = {}) {
   if (action === 'agents') return { agents: agentsDispo() };
   if (action === 'lire') { const pose = getItem(req.id || 'default'); return { id: req.id || 'default', pose, valeurs: poseValues(pose) }; }
   if (action === 'presets') return { presets: presetsList().map(([cle, nom, pose]) => ({ cle, nom, pose })), vues: VUES };
-  if (action !== 'rendre') throw new Error('action inconnue : ' + action);
+  if (action !== 'rendre' && action !== 'traversees') throw new Error('action inconnue : ' + action);
 
   const agent = String(req.agent || '').toLowerCase(), dispo = agentsDispo();
   if (!dispo.includes(agent)) throw new Error(`pas de modèle 3D pour « ${agent} ». Agents disponibles : ${dispo.join(', ') || 'aucun (pack 3D absent)'}`);
   const pose = req.pose || getItem(req.poseId || 'agent:' + agent);   // sans pose : celle du registre (pose de l'agent, sinon pose par défaut)
+  if (action === 'traversees') {
+    if (!req.poses) return sonder(agent, pose, req.rotY ?? pose.rotY ?? 0, req.options);
+    const resultats = [];   // plusieurs poses d'un coup (recherche automatique d'une pose sans traversée)
+    for (const p of req.poses) resultats.push(await sonder(agent, p, req.rotY ?? p.rotY ?? 0, req.options));
+    return { resultats };
+  }
   const [w, h] = req.taille || [600, 800];
   const defs = (req.vues?.length ? req.vues : PAR_DEFAUT).map(v => {
     if (typeof v !== 'string') return [v.nom || 'vue', v];

@@ -103,7 +103,8 @@ export function cleanSkinWeights(root) {
     };
     const p = new THREE.Vector3(), box = new THREE.Box3();
     for (let v = 0; v < pos.count; v++) box.expandByPoint(p.fromBufferAttribute(pos, v));
-    const far = (box.max.y - box.min.y) * 0.035;
+    const far = (box.max.y - box.min.y) * 0.035, loin = (box.max.y - box.min.y) * 0.2;
+    let recolle = false;
     for (let v = 0; v < idx.count; v++) {
       p.fromBufferAttribute(pos, v);
       const ks = [], ds = [];
@@ -113,6 +114,14 @@ export function cleanSkinWeights(root) {
         const d = p.distanceTo(bp[idx.getComponent(v, k)]);
         ks.push(k); ds.push(d);
         if (near < 0 || d < ds[near]) near = ks.length - 1;
+      }
+      // Sommet qui ne tient plus qu'à un os lointain (influences perdues à l'export : sur Reyna, environ 300 sommets du visage ne sont
+      // liés qu'à l'os n° 0, au bassin, et restent en arrière dès que la tête ou le buste bouge). On le rattache à l'os le plus proche,
+      // s'il y en a un nettement plus près.
+      if (near >= 0 && ds[near] > loin) {
+        let b = -1, bd = Infinity;
+        for (let j = 0; j < bp.length; j++) { const d = p.distanceTo(bp[j]); if (d < bd) { bd = d; b = j; } }
+        if (bd < ds[near] / 5) { idx.setComponent(v, 0, b); wt.setComponent(v, 0, 1); for (let k = 1; k < 4; k++) wt.setComponent(v, k, 0); recolle = true; continue; }
       }
       if (ks.length < 2) continue;
       const nearBone = idx.getComponent(v, ks[near]);
@@ -125,6 +134,7 @@ export function cleanSkinWeights(root) {
       if (sum > 0) for (let k = 0; k < 4; k++) wt.setComponent(v, k, wt.getComponent(v, k) / sum);
     }
     wt.needsUpdate = true;
+    if (recolle) idx.needsUpdate = true;
   });
 }
 

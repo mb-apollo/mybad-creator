@@ -415,6 +415,7 @@ function renderModel(L, w, h, theme, exporting) {
   inst.pivot.position.y = groundDrop(inst); inst.pivot.updateMatrixWorld(true);
   plantFeet(inst.root, inst.footRest, inst.pivot.scale.x / inst.baseScale); inst.pivot.updateMatrixWorld(true);
   const tilt = (S.doc_override || S.doc).game === 'rl' ? tiltCar(inst, L, -inst.baseYaw + ((L.rotY || 0) + arot) * Math.PI / 180) : null;
+  if (L.sonde) L.sonde({ inst, arme: held, def: wdef });   // banc de poses (développement) : relevé du personnage posé, arme en main, avant qu'elle soit retirée
   const col = c => new THREE.Color(color(c, theme) || '#ffffff');
   const lit = (o, def, k) => ({ ...(o || {}), intensity: (o?.intensity ?? def) * (k ?? 1) });
   const amb = lit(L.ambient, 0.7, fin.ambient), key = lit(L.key, 1.6, fin.key), rim = lit(L.rim, 4, fin.rim), fill = lit(L.fill, 0.4, fin.ambient);

@@ -1,6 +1,6 @@
 {
  "pack": "mybad-creator-3d",
- "version": 4,
+ "version": 5,
  "files": [
   {
    "game": "valorant",
@@ -211,6 +211,34 @@
    "path": "rl/octane.glb",
    "size": 2227756,
    "sha256": "7997420d65a7eeb0c79353f77c097eed51d2428959936eb5116a275db9ed3004"
+  },
+  {
+   "game": "fortnite",
+   "key": "aura",
+   "path": "fortnite/aura.glb",
+   "size": 4764816,
+   "sha256": "f10d3fa9d93b94d38954fc6993cd90d9ba243dd7d28d5c2b88fbaafdfea03d49"
+  },
+  {
+   "game": "fortnite",
+   "key": "jonesy",
+   "path": "fortnite/jonesy.glb",
+   "size": 1386840,
+   "sha256": "e640b07c7018b17d0279177d16ddc1e3dbadec177a1029402f32ff8dbf3277df"
+  },
+  {
+   "game": "fortnite",
+   "key": "renegade",
+   "path": "fortnite/renegade.glb",
+   "size": 2144488,
+   "sha256": "4b9af839e610078858ab41b9c7da5b236eddd4a764a53a8b4818e7536f58a7cc"
+  },
+  {
+   "game": "fortnite",
+   "key": "battlebus",
+   "path": "fortnite/battlebus.glb",
+   "size": 4004176,
+   "sha256": "bd8839064d51081cb6c6d31c83e8ecbe49b78db65ad6537868bdbb00f9e8abea"
   }
  ]
 }

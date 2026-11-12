@@ -275,7 +275,7 @@ function annonce(ctx) {
     effect({ name: 'Constellation', effect: 'constellation', color: '$white', amount: 0.5, seed: 3, x: 0, y: 0, w: W, h: H * 0.7 }),
     text({ name: 'Texte vertical', tpl: '{anSide}', upper: true, style: 'outline', strokeColor: '$text', strokeWidth: 1.4, opacity: 0.22, size: 170 * u, x: W * 0.9 - H * 0.38, y: H * 0.42 - 85 * u, w: H * 0.76, rot: 90 }),
     emblemAt(W / 2, H * 0.08, 46 * u, { glow: false }),
-    ...battleBus(ctx, { x: W * 0.68, y: H * 0.05, w: W * 0.26, h: H * 0.17 }, { dir: -1, rot: 6, opacity: 0.9, trailLen: 1.2 }),
+    ...battleBus(ctx, { x: W * 0.25, y: H * 0.035, w: W * 0.22, h: H * 0.15 }, { dir: 1, rot: -6, trailLen: 0.7 }),
     agentImage(ctx, 'anAgent1', { x: W * 0.002, y: H * 0.12, w: W * 0.57, h: H * 0.68 }, { name: 'Render 1', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
     agentImage(ctx, 'anAgent2', { x: W * 0.43, y: H * 0.12, w: W * 0.57, h: H * 0.68 }, { name: 'Render 2', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
     effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.2, themed: true, seed: 14, x: 0, y: H * 0.25, w: W, h: H * 0.4 }),

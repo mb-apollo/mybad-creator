@@ -77,6 +77,8 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
 
 ## Points importants
 - Pack 3D : branche `pack-3d` du dépôt (`index.json` + `.glb` compressés WebP 2048 px via gltf-transform).
+  Il s'installe tout seul : au lancement, si le pack manque ou qu'une version plus récente est en ligne, `maybeOfferPack` (app.js) lance le
+  téléchargement en arrière-plan, sans fenêtre à valider ; seuls les fichiers dont l'empreinte diffère sont retéléchargés.
   Pour ajouter un modèle : compresser, l'ajouter à la branche et incrémenter `version` dans `index.json`.
 - Le fondu pixel n'est pas appliqué aux modèles 3D (il découpait les jambes) : fondu doux à la place.
 - Logo officiel MyBad : `src/renderer/assets/brand/mybad-logo.png` (ne pas le redessiner).

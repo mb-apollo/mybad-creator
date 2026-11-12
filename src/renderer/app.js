@@ -296,47 +296,37 @@ async function refreshPack() {
 P.actions.packBanner = () => {
   if (!API) return '';
   const pct = pack.total ? Math.round(pack.done / pack.total * 100) : 0;
-  if (pack.busy) return `<div class="packcard busy"><div><b>Téléchargement du pack 3D…</b><small>${mo(pack.done)} / ${mo(pack.total || 0)}</small></div><div class="pbar"><i style="width:${pct}%"></i></div></div>`;
+  if (pack.busy) return `<div class="packcard busy"><div><b>Installation des modèles 3D de base…</b><small>${mo(pack.done)} / ${mo(pack.total || 0)}</small></div><div class="pbar"><i style="width:${pct}%"></i></div></div>`;
   if (pack.installed && pack.latest && pack.installed >= pack.latest) return `<div class="packcard ok"><div><b>Pack 3D installé</b><small>${pack.count || ''} modèles de base · version ${pack.installed}</small></div></div>`;
   if (pack.installed && pack.latest) return `<div class="packcard"><div><b>Nouveaux modèles 3D disponibles</b><small>Pack version ${pack.latest}</small></div><button class="primary-btn solo" data-pack="download">Mettre à jour</button></div>`;
   if (!pack.latest) return `<div class="packcard"><div><b>Pack 3D indisponible</b><small>Vérifie ta connexion internet</small></div><button class="mini-btn" data-pack="retry">Réessayer</button></div>`;
-  return `<div class="packcard"><div><b>Pack 3D de base</b><small>${pack.count} agents et voitures · ${mo(pack.total)}</small></div><button class="primary-btn solo" data-pack="download">Télécharger</button></div>`;
+  return `<div class="packcard"><div><b>Pack 3D de base</b><small>${pack.count} agents, voitures et skins · ${mo(pack.total)}</small></div><button class="primary-btn solo" data-pack="download">Télécharger</button></div>`;
 };
 async function downloadPack() {
   if (pack.busy || !API) return;
   pack.busy = true; pack.done = 0;
   if (tab === 'library') P.renderLibrary();
-  renderPackModal();
   const r = await API.packDownload();
   pack.busy = false;
-  if (r.error) toast('Téléchargement du pack interrompu : ' + r.error, true);
-  else toast('Pack 3D installé : les modèles sont prêts');
+  if (r.error) toast('Téléchargement des modèles 3D interrompu : ' + r.error, true, { label: 'Réessayer', fn: downloadPack });
+  else toast('Modèles 3D de base installés : ils sont prêts');
   await refreshPack(); await refreshLibrary();
   if (S.doc) { await prepare(S.doc); requestRender(); }
-  if (!$('#modal').hidden && $('#modalTitle').textContent === 'Pack 3D') closeModal();
 }
 P.actions.downloadPack = downloadPack;
-P.actions.retryPack = refreshPack;
+P.actions.retryPack = () => maybeOfferPack();
 API?.onPackProgress(d => {
   pack.done = d.done; pack.total = d.total;
-  const bar = $('#packBar'); if (bar) { bar.style.width = Math.round(d.done / d.total * 100) + '%'; $('#packTxt').textContent = `${mo(d.done)} / ${mo(d.total)}`; }
   if (tab === 'library') { const lb = document.querySelector('.packcard .pbar i'); if (lb) lb.style.width = Math.round(d.done / d.total * 100) + '%'; const s = document.querySelector('.packcard small'); if (s) s.textContent = `${mo(d.done)} / ${mo(d.total)}`; }
 });
-function renderPackModal() {
-  openModal('Pack 3D', `<div class="packmodal"><p>Le pack contient les modèles 3D de base : <b>${pack.count || ''} agents Valorant et voitures Rocket League</b>, prêts à être placés dans tes affiches.</p>
-    ${pack.busy ? `<div class="pbar big"><i id="packBar" style="width:0%"></i></div><p class="hint" id="packTxt">Préparation…</p>` : `<p class="hint">Téléchargement unique de ${mo(pack.total || 0)}. Tu peux continuer à travailler pendant ce temps.</p>`}</div>`,
-    pack.busy ? '<button class="ghost-btn" id="packHide">Continuer en arrière-plan</button>' : '<button class="ghost-btn" id="packLater">Plus tard</button><button class="primary-btn solo" id="packGo">Télécharger</button>');
-  $('#packHide')?.addEventListener('click', closeModal);
-  $('#packLater')?.addEventListener('click', () => { API?.storeSet('packDeclined', true); closeModal(); toast('Tu pourras télécharger le pack dans l\'onglet Bibliothèque'); });
-  $('#packGo')?.addEventListener('click', downloadPack);
-}
+// Les modèles de base s'installent d'eux-mêmes : au lancement, s'il manque le pack ou qu'une version plus récente est en ligne,
+// le téléchargement part en arrière-plan (sans fenêtre à valider) et les affiches se mettent à jour à la fin.
 async function maybeOfferPack() {
   if (!API) return;
   await refreshPack();
-  if (pack.installed && pack.latest && pack.installed < pack.latest) { toast('Nouveaux modèles 3D disponibles', false, { label: 'Télécharger', fn: downloadPack }); return; }
-  if (pack.installed || !pack.latest) return;
-  if (await API.storeGet('packDeclined')) return;
-  if ($('#modal').hidden) renderPackModal();
+  if (!pack.latest || (pack.installed && pack.installed >= pack.latest)) return;
+  toast(pack.installed ? 'Mise à jour des modèles 3D de base…' : 'Installation des modèles 3D de base…');
+  downloadPack();
 }
 
 // ---------------------------------------------------------------- fichiers

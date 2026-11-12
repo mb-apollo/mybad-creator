@@ -1,6 +1,3 @@
-- Fortnite rejoint Valorant et Rocket League : skins Renegade Raider, Aura et Jonesy (jusqu'à 4 joueurs, 3 par défaut), rôles Fragger / IGL / Support / Flex, roster dans le Kit de marque
-- Le Battle Bus est posé dans toutes les affiches en mode Fortnite, en vol avec sa traînée de lumière ; il se règle comme un modèle 3D (rotation, roulis, tangage)
-- Deux affiches propres à Fortnite : « Drop » (le bus traverse l'affiche, point de chute) et « Top 1 » (victoire de la game, éliminations et points)
-- Studio de poses : un onglet par jeu (Valorant, Fortnite), chacun avec sa pose par défaut et ses poses par personnage
-- Pour avoir les modèles Fortnite : onglet Bibliothèque, « Mettre à jour » le pack 3D
-- La galerie ne montre que les modèles du jeu affiché
+- Les modèles 3D de base (agents Valorant, voitures Rocket League, skins Fortnite et Battle Bus) s'installent tout seuls au lancement : plus besoin de passer par la Bibliothèque
+- Quand de nouveaux modèles sont mis en ligne, ils se téléchargent d'eux-mêmes en arrière-plan et les affiches se mettent à jour à la fin
+- Fortnite rejoint Valorant et Rocket League : skins Renegade Raider, Aura et Jonesy, Battle Bus sur les affiches, affiches « Drop » et « Top 1 », Studio de poses par jeu

@@ -1,7 +1,7 @@
 {
   "name": "mybad-creator",
   "productName": "Heliance Creator",
-  "version": "2.33.2",
+  "version": "2.34.0",
   "description": "Heliance Creator \u2014 l'\u00e9diteur d'affiches de Heliance Esport",
   "author": "Heliance Esport",
   "main": "src/main/main.js",

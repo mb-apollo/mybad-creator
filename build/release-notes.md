@@ -1,2 +1,6 @@
-- Créateur de livrées : l'onglet d'une voiture qui n'a encore aucune livrée s'ouvre bien (il ramenait à l'onglet précédent) ; la voiture s'affiche en peinture d'origine
-- Créateur de livrées : « + Créer » propose la livrée de départ dans « À partir de », y compris une livrée faite pour une autre voiture, ou une livrée vierge
+- Fortnite rejoint Valorant et Rocket League : skins Renegade Raider, Aura et Jonesy (jusqu'à 4 joueurs, 3 par défaut), rôles Fragger / IGL / Support / Flex, roster dans le Kit de marque
+- Le Battle Bus est posé dans toutes les affiches en mode Fortnite, en vol avec sa traînée de lumière ; il se règle comme un modèle 3D (rotation, roulis, tangage)
+- Deux affiches propres à Fortnite : « Drop » (le bus traverse l'affiche, point de chute) et « Top 1 » (victoire de la game, éliminations et points)
+- Studio de poses : un onglet par jeu (Valorant, Fortnite), chacun avec sa pose par défaut et ses poses par personnage
+- Pour avoir les modèles Fortnite : onglet Bibliothèque, « Mettre à jour » le pack 3D
+- La galerie ne montre que les modèles du jeu affiché

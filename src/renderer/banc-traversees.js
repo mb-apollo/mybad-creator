@@ -158,12 +158,13 @@ export function traversees({ inst, arme, def }, opt = {}) {
       const g = o.geometry, P = g.attributes.position, I = o.userData.stretch?.orig || (g.index ? g.index.array : null), bones = o.skeleton.bones, si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
       if (o.userData.stretch && g.index) trous += (o.userData.stretch.orig.length - g.index.count) / 3;
       if (!g.boundingBox) g.computeBoundingBox();
-      const haut = g.boundingBox.max.y - g.boundingBox.min.y, nt = (I ? I.length : P.count) / 3, vus = new Set();
+      // repos : la forme de référence du moteur (pose du fichier quand la pose de liaison n'est pas à l'échelle du maillage), sinon la forme brute
+      const st = o.userData.stretch, RP = st?.rest, haut = st ? st.H0 : g.boundingBox.max.y - g.boundingBox.min.y, nt = (I ? I.length : P.count) / 3, vus = new Set();
       const dom = i => { let os = 0, w = -1; for (let k = 0; k < 4; k++) { const x = sw.getComponent(i, k); if (x > w) { w = x; os = si.getComponent(i, k); } } return bones[os].name; };
       for (let t = 0; t < nt; t++) for (let e = 0; e < 3; e++) {
         const i = I ? I[t * 3 + e] : t * 3 + e, j = I ? I[t * 3 + (e + 1) % 3] : t * 3 + (e + 1) % 3, c = Math.min(i, j) * 1e6 + Math.max(i, j);
         if (vus.has(c)) continue; vus.add(c);
-        const l0 = ra.fromBufferAttribute(P, i).distanceTo(rb.fromBufferAttribute(P, j));
+        const l0 = RP ? Math.hypot(RP[i * 3] - RP[j * 3], RP[i * 3 + 1] - RP[j * 3 + 1], RP[i * 3 + 2] - RP[j * 3 + 2]) : ra.fromBufferAttribute(P, i).distanceTo(rb.fromBufferAttribute(P, j));
         const l1 = o.getVertexPosition(i, a).distanceTo(o.getVertexPosition(j, b));
         if (!(l1 > haut * (opt.etireMin ?? 0.06) && l1 > l0 * (opt.etireRatio ?? 2))) continue;
         const cle = [dom(i), dom(j)].sort().join(' ~ '); let q = G2.get(cle); if (!q) G2.set(cle, q = { os: cle, n: 0, k: 0, cm: 0, c: [0, 0, 0] });

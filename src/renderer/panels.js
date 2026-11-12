@@ -384,22 +384,23 @@ export function focusText() {
 
 // ================================================================ CONTENU
 const F = {
+  dropSpot: 'Point de chute', dropSide: 'Texte vertical', topGame: 'Game', topElims: 'Éliminations', topPts: 'Points',
   event: 'Compétition', stage: 'Phase / étape', org: 'Structure', adv: 'Équipe adverse', date: 'Date', hour: 'Heure', live: 'Lien de diffusion', coach: 'Coach',
   bo: 'Format', s1: 'Notre score', s2: 'Score adverse', mvp: 'MVP', mvpStat: 'Stats du MVP', gdSide: 'Texte vertical', anNames: 'Noms (séparés par ·)', anSide: 'Texte vertical',
   tTitle: 'Titre', tGame: 'Sous-titre', tDay: 'Jour', tMonth: 'Mois', tYear: 'Année', tHour: 'Heure', tInfo1: 'Info 1', tInfo2: 'Info 2', tPrize: 'Cashprize', tPrizeLbl: 'Libellé',
   plWeek: 'Semaine', recSub: 'Sous-titre', rec1: 'Poste 1', rec2: 'Poste 2', rec3: 'Poste 3', rec4: 'Poste 4', recCta: 'Bouton', recNote: 'Note',
   cardName: 'Pseudo', cardTag: 'Étiquette', cardRole: 'Rôle', liveTitle: 'Titre du stream', liveUrl: 'Lien',
 };
-const HALF = new Set(['date', 'hour', 's1', 's2', 'tDay', 'tMonth', 'tYear', 'tHour', 'tPrize', 'tPrizeLbl']);
+const HALF = new Set(['topElims', 'topPts', 'date', 'hour', 's1', 's2', 'tDay', 'tMonth', 'tYear', 'tHour', 'tPrize', 'tPrizeLbl']);
 const TITLES = {
   mdTitle: ['mdW1', 'mdW2', 'mdPlain'], rosTitle: ['rosW1', 'rosW2', 'rosPlain'], gdTitle: ['gdW1', 'gdW2', 'gdPlain1', 'gdPlain2'],
-  anTitle: ['anW1'], plTitle: ['plW1', 'plW2', 'plPlain'], recTitle: ['recW1', 'recW2', 'recPlain'], liveTitleW: ['liveW1', 'liveW2', 'livePlain'],
+  anTitle: ['anW1'], dropTitle: ['dropW1', 'dropW2', 'dropPlain'], topTitle: ['topW1', 'topW2', 'topPlain'], plTitle: ['plW1', 'plW2', 'plPlain'], recTitle: ['recW1', 'recW2', 'recPlain'], liveTitleW: ['liveW1', 'liveW2', 'livePlain'],
 };
 const AGENT_FIELDS = { mvpAgent: 'du MVP', featAgent: 'principal', anAgent1: '1', anAgent2: '2', tAgent: '', cardAgent: 'du joueur', liveAgent: '' };
 
 // Compteur « nombre de lignes » (+ / −) : la mise en page de l'affiche suit automatiquement.
 const COUNT_DEFAULTS = { planning: 4, rec: 4, stats: 4, info: 2 };
-const countOf = key => S.doc.counts?.[key] ?? COUNT_DEFAULTS[key] ?? GAMES[S.doc.game].players;
+const countOf = key => S.doc.counts?.[key] ?? COUNT_DEFAULTS[key] ?? GAMES[S.doc.game].defaultPlayers ?? GAMES[S.doc.game].players;
 const counter = (key, label, min, max) => { const n = countOf(key); return `<div class="counter"><span>${esc(label)}</span><div><button type="button" class="mini-btn" data-count="${key}" data-d="-1" data-min="${min}" data-max="${max}" ${n <= min ? 'disabled' : ''}>−</button><b>${n}</b><button type="button" class="mini-btn" data-count="${key}" data-d="1" data-min="${min}" data-max="${max}" ${n >= max ? 'disabled' : ''}>+</button></div></div>`; };
 
 export function renderContent() {
@@ -643,8 +644,8 @@ export function renderLibrary() {
   const models = items.filter(i => S.libraryModels.has(`g:${libGame}:${i.key}`)).length;
   box.innerHTML = `${actions.packBanner ? actions.packBanner() : ''}<div class="pad">${seg('libGame', libGame, Object.values(GAMES).map(x => [x.key, x.name]), { small: true })}</div>
     <div class="lib-stats"><span><b>${done}</b> / ${items.length} renders</span><span><b>${models}</b> modèles 3D</span></div>
-    <div class="pad btnrow"><button class="mini-btn" data-lib="folder">${icon('folder')} Importer plusieurs renders</button><button class="mini-btn" data-lib="add">${icon('plus')} Ajouter ${g.itemLabel === 'Agent' ? 'un agent' : 'une voiture'}</button></div>
-    <p class="hint pad">Nomme tes fichiers comme l'${g.itemLabel === 'Agent' ? 'agent' : 'élément'} (jett.png, kayo.png…) pour un import automatique. Les modèles 3D (.glb, .gltf) s'importent de la même façon.</p>
+    <div class="pad btnrow"><button class="mini-btn" data-lib="folder">${icon('folder')} Importer plusieurs renders</button><button class="mini-btn" data-lib="add">${icon('plus')} Ajouter ${g.itemLabel === 'Voiture' ? 'une voiture' : 'un ' + g.itemLabel.toLowerCase()}</button></div>
+    <p class="hint pad">Nomme tes fichiers comme l'${g.itemLabel === 'Agent' ? 'agent' : 'élément'} (${libGame === 'fortnite' ? 'aura.png, jonesy.png' : libGame === 'rl' ? 'octane.png, fennec.png' : 'jett.png, kayo.png'}…) pour un import automatique. Les modèles 3D (.glb, .gltf) s'importent de la même façon.</p>
     ${weaponsSection()}
     <div class="libgrid">${items.map(i => {
       const k = `g:${libGame}:${i.key}`, url = S.library.get(k), m = S.libraryModels.has(k);
@@ -672,7 +673,8 @@ export function initLibrary() {
 export function renderGallery() {
   const box = $('#thumbs'); if (!box) return;
   const card = ([k, t]) => `<button class="thumb ${S.doc.tpl === k ? 'on' : ''}" data-key="${esc(k)}" title="${esc(t.desc)}"><canvas data-key="${esc(k)}"></canvas><span>${esc(t.name)}</span>${t.custom ? '' : '<em class="tact"><i data-cact="dupT" title="Dupliquer ce modèle dans mes modèles personnalisés">⧉</i></em>'}${t.custom ? `<em class="tact"><i data-cact="rename" title="Renommer">✎</i><i data-cact="dup" title="Dupliquer">⧉</i><i data-cact="del" title="Supprimer">×</i></em>` : ''}</button>`;
-  const all = Object.entries(TEMPLATES);
+  // modèles réservés à un jeu (« Drop » : Fortnite) ; modèles personnalisés : ceux du jeu affiché (et ceux qui ne sont propres à aucun jeu)
+  const all = Object.entries(TEMPLATES).filter(([k, t]) => (!t.games || t.games.includes(S.doc.game)) && (!t.custom || [null, S.doc.game].includes(Custom.customGame(k))));
   box.innerHTML = all.filter(([, t]) => !t.custom).map(card).join('')
     + '<div class="gal-head">Modèles personnalisés</div>'
     + all.filter(([, t]) => t.custom).map(card).join('')

@@ -5,6 +5,7 @@
 import { POSES, WEAPON_POSES } from './pose3d.js';
 import { baseDefaultPose } from './engine/templates.js';
 import BUNDLED_FILE from './poses-default.json';
+import { GAMES } from './engine/games.js';
 
 const KEY = 'mbc.poselab';
 const BUNDLED = BUNDLED_FILE?.data || {};
@@ -32,11 +33,15 @@ export function redoDraft() { histCommit(); if (HIST.i >= HIST.stack.length - 1)
 export const canUndoDraft = () => { histCommit(); return HIST.i > 0; };
 export const canRedoDraft = () => { histCommit(); return HIST.i < HIST.stack.length - 1; };
 
-// id : 'default' | 'agent:<clé>' | 'custom:<id>' | 'preset:<clé>' | 'stance:<fusil|pistolet>:<position>' | 'weapon:<arme>'
+// Jeu d'un personnage (pose par défaut à utiliser) : les skins Fortnite ont la leur, les agents Valorant (et le reste) celle de Valorant.
+export const agentGame = k => (GAMES.fortnite.items.some(i => i.key === k) ? 'fortnite' : 'valorant');
+export const defaultId = agent => (agentGame(agent) === 'valorant' ? 'default' : 'default:' + agentGame(agent));
+
+// id : 'default' (Valorant) | 'default:<jeu>' | 'agent:<clé>' | 'custom:<id>' | 'preset:<clé>' | 'stance:<fusil|pistolet>:<position>' | 'weapon:<arme>'
 const parse = id => { const [type, a, b] = id.split(':'); return { type, a, b }; };
 function stored(id) {
   const { type, a, b } = parse(id);
-  if (type === 'default') return REG.default;
+  if (type === 'default') return a ? REG.byGame?.[a]?.default : REG.default;
   if (type === 'agent') return REG.agents?.[a];
   if (type === 'custom') return (REG.custom || []).find(c => c.id === a)?.data;
   if (type === 'preset') return REG.presets?.[a];
@@ -46,8 +51,9 @@ function stored(id) {
 // Valeur d'origine : fichier fourni avec le logiciel, sinon valeur du code.
 export function builtin(id) {
   const { type, a, b } = parse(id);
+  if (type === 'default' && a) return BUNDLED.byGame?.[a]?.default ? clone(BUNDLED.byGame[a].default) : builtin('default');
   if (type === 'default') { if (BUNDLED.default) return clone(BUNDLED.default); const { on, ...p } = baseDefaultPose(0); return clone(p); }
-  if (type === 'agent') return clone(BUNDLED.agents?.[a] || builtin('default'));
+  if (type === 'agent') return clone(BUNDLED.agents?.[a] || getItem(defaultId(a)));
   if (type === 'custom') return clone((BUNDLED.custom || []).find(c => c.id === a)?.data || {});
   if (type === 'preset') { if (BUNDLED.presets?.[a]) return clone(BUNDLED.presets[a]); const p = POSES.find(x => x[0] === a); return clone(p ? p[2] : {}); }
   if (type === 'stance') return clone(BUNDLED.stances?.[a]?.[b] || WEAPON_POSES[a]?.[b] || {});
@@ -60,7 +66,8 @@ export const getItem = id => clone(stored(id) || builtin(id));
 export function setItem(id, data) {
   const { type, a, b } = parse(id);
   const v = clone(data);
-  if (type === 'default') REG.default = v;
+  if (type === 'default' && a) ((REG.byGame ||= {})[a] ||= {}).default = v;
+  else if (type === 'default') REG.default = v;
   else if (type === 'agent') (REG.agents ||= {})[a] = v;
   else if (type === 'custom') { const c = (REG.custom || []).find(x => x.id === a); if (c) c.data = v; }
   else if (type === 'preset') (REG.presets ||= {})[a] = v;
@@ -70,7 +77,8 @@ export function setItem(id, data) {
 }
 export function resetItem(id) {
   const { type, a, b } = parse(id);
-  if (type === 'default') delete REG.default;
+  if (type === 'default' && a) delete REG.byGame?.[a]?.default;
+  else if (type === 'default') delete REG.default;
   else if (type === 'agent') delete REG.agents?.[a];
   else if (type === 'preset') delete REG.presets?.[a];
   else if (type === 'stance') delete REG.stances?.[a]?.[b];
@@ -78,7 +86,7 @@ export function resetItem(id) {
   write();
 }
 export function resetAll() { REG = {}; write(); }
-export const overrideCount = () => (REG.default ? 1 : 0) + Object.keys(REG.agents || {}).length + (REG.custom || []).length + Object.keys(REG.presets || {}).length
+export const overrideCount = () => (REG.default ? 1 : 0) + Object.values(REG.byGame || {}).filter(g => g.default).length + Object.keys(REG.agents || {}).length + (REG.custom || []).length + Object.keys(REG.presets || {}).length
   + Object.values(REG.stances || {}).reduce((n, o) => n + Object.keys(o).length, 0) + Object.keys(REG.weapons || {}).length;
 
 // Poses génériques créées par l'utilisateur (disponibles pour tous les agents, boutons du panneau 3D).
@@ -102,6 +110,7 @@ export function importConfig(text, fileName = '', agentKeys = []) {
   if (d.default) REG.default = d.default;
   for (const k of ['agents', 'presets', 'weapons']) if (d[k]) REG[k] = { ...(REG[k] || {}), ...d[k] };
   if (d.stances) for (const kind of Object.keys(d.stances)) REG.stances = { ...(REG.stances || {}), [kind]: { ...(REG.stances?.[kind] || {}), ...d.stances[kind] } };
+  if (d.byGame) for (const g of Object.keys(d.byGame)) REG.byGame = { ...(REG.byGame || {}), [g]: { ...(REG.byGame?.[g] || {}), ...d.byGame[g] } };
   if (d.custom) { const ids = new Set(d.custom.map(c => c.id)); REG.custom = [...(REG.custom || []).filter(c => !ids.has(c.id)), ...d.custom]; }
   write();
   return Object.keys(d).filter(k => d[k] && (typeof d[k] !== 'object' || Object.keys(d[k]).length)).map(k => (k === 'agents' ? Object.keys(d.agents).join(', ') : k));
@@ -120,7 +129,7 @@ export const weaponDefaults = key => clone(REG.weapons?.[key] || BUNDLED.weapons
 // Pose « automatique » d'un personnage (calque neuf) : la pose de son agent si elle existe, sinon la pose par défaut, avec le léger décalage de son côté.
 export function resolvePose(pz, agent) {
   if (!pz || !pz.auto) return pz || {};
-  const src = REG.agents?.[agent] || BUNDLED.agents?.[agent] || REG.default || getItem('default');
+  const src = REG.agents?.[agent] || BUNDLED.agents?.[agent] || getItem(defaultId(agent));   // pose de l'agent, sinon pose par défaut de son jeu
   const p = clone(src), side = pz.side || 0;
   p.on = true;
   p.torso = { ...p.torso, twist: (p.torso?.twist || 0) + side * 3 };

@@ -67,6 +67,19 @@ export const RL_DEFAULTS = {
   recSub: 'Roster Rocket League · 3v3', rec1: 'Joueur — rang minimum', rec2: 'Remplaçant', rec3: 'Coach Rocket League', rec4: 'Caster / créateur de contenu',
 };
 
+export const FN_DEFAULTS = {
+  p1: 'Joueur 1', p2: 'Joueur 2', p3: 'Joueur 3', p4: 'Joueur 4', a1: 'aura', a2: 'renegade', a3: 'jonesy', a4: 'aura',   // de gauche à droite
+  r1: 'Fragger', r2: 'IGL', r3: 'Support', r4: 'Flex', mvpAgent: 'renegade', featAgent: 'renegade', anAgent1: 'aura', anAgent2: 'jonesy',
+  tAgent: 'renegade', cardAgent: 'aura', cardRole: 'Fragger', liveAgent: 'jonesy',
+  mvpStat: '14 élims · Top 1 · 312 pts', tGame: 'Ta Cup · Fortnite Trios', bo: '6 games',
+  st1l: 'ÉLIMS', st1v: '214', st2l: 'TOP 1', st2v: '9', st3l: 'K/D', st3v: '4.2', st4l: 'PR', st4v: '12 450',
+  recSub: 'Roster Fortnite · Trios', rec1: 'Joueur — Champion League', rec2: 'Remplaçant', rec3: 'Coach Fortnite', rec4: 'Caster / créateur de contenu',
+  dropW1: 'Drop', dropW2: 'ZONE', dropPlain: 'DROP', dropSpot: 'Point de chute : Tilted', dropSide: 'BATTLE BUS',
+  topW1: 'Top', topW2: '1', topPlain: 'TOP 1', topElims: '14', topPts: '312', topGame: 'Game 4 / 6',
+};
+// Valeurs propres à chaque jeu (en plus de TEXT_DEFAULTS, qui sont celles de Valorant).
+export const GAME_DEFAULTS = { rl: RL_DEFAULTS, fortnite: FN_DEFAULTS };
+
 // Kit officiel Heliance Esport (proposé dans l'assistant de démarrage)
 export const MYBAD_KIT = {
   v: 2, renom: 1, name: 'Heliance Esport', game: 'valorant', theme: 'nuit', logo: 'assets/brand/mybad-logo.png',
@@ -84,7 +97,7 @@ export function newDocument(kit) {
     script: true,
     use3d: true,
     fonts: { ...DEFAULT_FONTS },
-    T: { ...TEXT_DEFAULTS, ...(k.game === 'rl' ? RL_DEFAULTS : {}), ...(k.T || {}), ...((k.rosters && k.rosters[k.game || 'valorant']) || {}) },
+    T: { ...TEXT_DEFAULTS, ...(GAME_DEFAULTS[k.game] || {}), ...(k.T || {}), ...((k.rosters && k.rosters[k.game || 'valorant']) || {}) },
     layers: [], assets: { ...(k.assets || {}), ...(k.logo ? { logo: k.logo } : {}) },
   };
   if (k.themeColors) Object.assign(doc.theme, k.themeColors);
@@ -99,19 +112,15 @@ export function setGameDefaults(doc, game, kit) {
     if (n == null) delete doc.counts.players; else doc.counts.players = n;
   }
   doc.game = game;
-  const roster = kit?.rosters?.[game];
-  if (game === 'rl') Object.assign(doc.T, RL_DEFAULTS, roster || {});
-  else {
-    const vk = Object.keys(RL_DEFAULTS);
-    vk.forEach(key => { doc.T[key] = TEXT_DEFAULTS[key]; });
-    Object.assign(doc.T, roster || {});
-  }
+  // textes propres à un jeu : ceux de l'ancien jeu reviennent aux valeurs communes, puis ceux du nouveau jeu et le roster du kit
+  for (const D of Object.values(GAME_DEFAULTS)) for (const key of Object.keys(D)) doc.T[key] = TEXT_DEFAULTS[key];
+  Object.assign(doc.T, GAME_DEFAULTS[game] || {}, kit?.rosters?.[game] || {});
 }
 
 // Réinitialisation d'une affiche : roster d'origine du jeu (agents ou voitures et rôles, puis ceux du Kit de marque) et nombres de lignes d'origine.
 // Les pseudos déjà saisis sont gardés, sauf ceux que le kit fournit.
 export function resetRoster(doc, kit) {
-  const D = doc.game === 'rl' ? { ...TEXT_DEFAULTS, ...RL_DEFAULTS } : TEXT_DEFAULTS;
+  const D = { ...TEXT_DEFAULTS, ...(GAME_DEFAULTS[doc.game] || {}) };
   for (let i = 1; i <= 5; i++) for (const k of ['a', 'r']) doc.T[k + i] = D[k + i];
   Object.assign(doc.T, kit?.rosters?.[doc.game] || {});
   doc.counts = {};
@@ -131,7 +140,7 @@ export function applyTemplate(doc, key, opts = {}) {
   }
   const ctx = {
     W: doc.W, H: doc.H, u: Math.min(doc.W, doc.H * 0.8) / 1080, T: doc.T, game: doc.game,
-    nPlayers: Math.max(1, Math.min(GAMES[doc.game]?.players || 5, doc.counts?.players ?? 99)), script: doc.script, use3d: !!doc.use3d,
+    nPlayers: Math.max(1, Math.min(GAMES[doc.game]?.players || 5, doc.counts?.players ?? GAMES[doc.game]?.defaultPlayers ?? 99)), script: doc.script, use3d: !!doc.use3d,
     counts: { planning: 4, rec: 4, stats: 4, info: 2, ...doc.counts },
   };
   setDocFonts(doc.fonts);

@@ -103,6 +103,15 @@ Toute l'interface et les textes sont en **français**. L'utilisateur (Axel, « A
   la création, deviné d'après les calques pour les anciens : `customGame`) ; on passe au modèle d'origine pour l'autre jeu et on retrouve la copie en revenant (`doc.tplBy`).
   Le nombre de joueurs est gardé par jeu (`doc.playersBy`). « Réinitialiser » remet aussi le roster d'origine (`resetRoster`) : Chamber, Astra, Omen, Jett, Sova ; Fennec,
   Octane, Dominus.
+- **Fortnite** (3e jeu, `GAMES.fortnite` : skins Aura, Jonesy, Renegade Raider ; 4 joueurs maximum, 3 par défaut) : les skins sont des personnages comme les
+  agents Valorant (squelette Unreal : doigts `index_01_l`, vrilles `lowerarm_twist_01_l` reconnus par pose3d.js). Textes propres au jeu : `FN_DEFAULTS` (render.js),
+  regroupés avec ceux de Rocket League dans `GAME_DEFAULTS`. Chaque jeu à personnages a sa pose par défaut (`default` = Valorant, `default:fortnite` ;
+  `REG.byGame` / `BUNDLED.byGame`), le Studio de poses a un onglet par jeu. Décors 3D sans squelette : `PROPS` (games.js), aujourd'hui le Battle Bus
+  (`g:fortnite:battlebus`) : éclairé et cadré comme une voiture, roulis / tangage possibles. `battleBus(ctx, cadre, o)` (templates.js) l'ajoute aux affiches
+  en mode Fortnite avec sa traînée (effet `trail`) et un halo ; modèles réservés à Fortnite : `drop`, `top1` (`games: ['fortnite']`, la galerie filtre).
+  Modèles du pack : textures WebP 2048 px converties par Python (le WebP de gltf-transform plante sur ces fichiers), animations retirées, sphère de ciel du
+  bus retirée, pistolet de Renegade retiré (lié à des os hors de la main), bus compressé en Draco.
+  Squelettes mis à l'échelle sous le maillage (Jonesy) : la taille se calcule os à jour (`instance`), la forme de repos est celle de la pose du fichier (`recordRestShape`).
 - Fenêtre sans barre Windows (`titleBarOverlay`) : les 3 boutons réduire/agrandir/fermer (≈ 150 × 40 px, en haut à droite) recouvrent tout ce qui est
   dessous. Tout écran plein format (studio de poses, créateur de livrées…) doit laisser cette bande libre (`padding-top: 40px`) ; sinon des boutons sont cachés.
 - Les barres de choix (`#gameSeg`, `#fmtSeg`) sont reconstruites par `buildGame` / `buildFormats` : la bulle de verre doit être conservée (`refaireBarre`)

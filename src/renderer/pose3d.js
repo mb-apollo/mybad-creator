@@ -24,7 +24,7 @@ const PAT = {
 };
 const SPINE = [[/^Spine1(_\d+)?$/i, /mixamorig.?Spine(_\d+)?$/i, /^spine_01(_\d+)?$/i], [/^Spine2(_\d+)?$/i, /mixamorig.?Spine1(_\d+)?$/i, /^spine_02(_\d+)?$/i], [/^Spine3(_\d+)?$/i, /mixamorig.?Spine2(_\d+)?$/i, /^spine_03(_\d+)?$/i], [/^Spine4(_\d+)?$/i, /^spine_04(_\d+)?$/i]];
 export const FINGERS = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky'];
-const fingerPat = (s, f, j) => [new RegExp('^' + s + '_' + f + j + '(_\\d+)?$', 'i'), new RegExp((s === 'L' ? 'Left' : 'Right') + 'Hand' + f + j + '(_\\d+)?$', 'i')];
+const fingerPat = (s, f, j) => [new RegExp('^' + s + '_' + f + j + '(_\\d+)?$', 'i'), new RegExp((s === 'L' ? 'Left' : 'Right') + 'Hand' + f + j + '(_\\d+)?$', 'i'), new RegExp('^' + f + '_0' + j + '_' + s + '(_\\d+)?$', 'i')];   // Valorant, Mixamo, Unreal (index_01_l)
 function findBone(root, list) {
   let found = null;
   for (const re of list) {
@@ -50,7 +50,7 @@ export function rigOf(root) {
     const fore = rig['fore' + s], hand = rig['hand' + s];
     if (!fore || !hand || hand.parent !== fore) continue;
     const ax = hand.position.clone(), L2 = ax.lengthSq(); if (L2 < 1e-18) continue;
-    rig.twist[s] = fore.children.filter(b => b.isBone && b !== hand && /_Twst\d+$/i.test(b.name || '')).map(b => [b, Math.max(0, Math.min(1, b.position.dot(ax) / L2))]).filter(x => x[1] > 0.02);
+    rig.twist[s] = fore.children.filter(b => b.isBone && b !== hand && (/_Twst\d+$/i.test(b.name || '') || /^lowerarm_twist_\d+_[lr](_\d+)?$/i.test(b.name || ''))).map(b => [b, Math.max(0, Math.min(1, b.position.dot(ax) / L2))]).filter(x => x[1] > 0.02);
   }
   root.updateMatrixWorld(true);
   const lat0 = lateral(rig.upperL, rig.upperR);
@@ -214,6 +214,12 @@ export function recordRestShape(root) {
       const P0 = o.geometry.attributes.position, n = P0.count, rest = new Float32Array(n * 3);
       let min = Infinity, max = -Infinity;
       for (let i = 0; i < n; i++) { rest[i * 3] = P0.getX(i); rest[i * 3 + 1] = P0.getY(i); rest[i * 3 + 2] = P0.getZ(i); min = Math.min(min, P0.getY(i)); max = Math.max(max, P0.getY(i)); }
+      // squelette dont la pose de liaison n'est pas à l'échelle du maillage (certains modèles Fortnite : os mis à l'échelle 0,1 sous le maillage) :
+      // la forme brute n'est pas comparable à la forme déformée, on prend alors la forme de la pose du fichier comme référence
+      const v = new THREE.Vector3(); let s0 = Infinity, s1 = -Infinity;
+      for (let i = 0; i < n; i++) { o.getVertexPosition(i, v); s0 = Math.min(s0, v.y); s1 = Math.max(s1, v.y); }
+      const k = (s1 - s0) / Math.max(max - min, 1e-12);
+      if (k > 1.25 || k < 0.8) { for (let i = 0; i < n; i++) { o.getVertexPosition(i, v); rest[i * 3] = v.x; rest[i * 3 + 1] = v.y; rest[i * 3 + 2] = v.z; } min = s0; max = s1; }
       // os dominant de chaque sommet (après nettoyage des poids)
       const si = o.geometry.attributes.skinIndex, sw = o.geometry.attributes.skinWeight, dom = new Uint16Array(n);
       if (si && sw) for (let i = 0; i < n; i++) { let b = 0, w = -1; for (let k = 0; k < 4; k++) { const x = sw.getComponent(i, k); if (x > w) { w = x; b = si.getComponent(i, k); } } dom[i] = b; }

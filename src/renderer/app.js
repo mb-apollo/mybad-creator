@@ -134,6 +134,7 @@ $('#fmtSeg').addEventListener('click', e => {
 const famille = key => (isCustom(key) ? TEMPLATES[key]?.origin : key) || null;
 function tplPourJeu(d, g) {
   const cur = d.tpl, fam = famille(cur);
+  if (TEMPLATES[fam]?.games && !TEMPLATES[fam].games.includes(g)) return d.tplBy?.[g] && TEMPLATES[d.tplBy[g]] && !TEMPLATES[famille(d.tplBy[g])]?.games ? d.tplBy[g] : 'roster';
   if (isCustom(cur) && customGame(cur) === g) return cur;
   const c = d.tplBy?.[g];
   if (c && c !== cur && TEMPLATES[c] && famille(c) === fam && (!isCustom(c) || customGame(c) === g)) return c;
@@ -144,7 +145,7 @@ $('#gameSeg').addEventListener('click', e => {
   const g = b.dataset.g, key = tplPourJeu(S.doc, g), autre = key !== S.doc.tpl;
   change(d => { d.tplBy = { ...(d.tplBy || {}), [d.game]: d.tpl }; setGameDefaults(d, g, S.kit); if (autre) d.finish = {}; applyTemplate(d, key, autre ? { keepUser: false } : {}); }, { immediate: true, full: true });
   if (autre) select([]);
-  buildGame(); updateStatus(); P.scheduleThumbs(); refreshTab();
+  buildGame(); updateStatus(); P.renderGallery(); refreshTab();   // la galerie montre les modèles du jeu (« Drop », « Top 1 » : Fortnite)
   toast(`Mode ${GAMES[b.dataset.g].name}`);
 });
 
@@ -470,7 +471,7 @@ function kitForm(k, wizard) {
       <label class="kit-color"><input type="color" id="kAccent" value="${accent}"><span>Couleur d'accent</span></label>
       <label class="kit-color"><input type="color" id="kGlow" value="${glow}"><span>Couleur de la lumière</span></label>
     </div>
-    ${roster('valorant')}${roster('rl')}`;
+    ${Object.keys(GAMES).map(roster).join('')}`;
 }
 function readKit(k) {
   k.T = { ...(k.T || {}) }; k.rosters = { ...(k.rosters || {}) };
@@ -554,12 +555,12 @@ P.actions.applyKitAll = async () => {
 };
 $('#btnKit').onclick = openKit;
 initContextMenu($('#stage'));
-$('#btnPoseLab').onclick = openPoseLab;
+$('#btnPoseLab').onclick = () => openPoseLab(S.doc?.game);   // le Studio s'ouvre sur le jeu de l'affiche
 $('#btnLiveryLab').onclick = () => openLiveryLab();
 P.actions.openLiveryLab = (id, car) => openLiveryLab(id, car);
 onLiveryChange(() => { requestRender(); P.scheduleThumbs(); });
 document.addEventListener('poselab:closed', () => { P.renderProps(); change(() => {}, { immediate: true, full: true }); P.scheduleThumbs(); });
-P.actions.openPoseLab = openPoseLab;
+P.actions.openPoseLab = () => openPoseLab(S.doc?.game);
 P.actions.materialize = materialize;
 
 // ---------------------------------------------------------------- modales, toasts

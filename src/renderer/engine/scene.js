@@ -389,6 +389,24 @@ function drawEffect(c, L, env, b) {
       c.filter = 'none';
       break;
     }
+    case 'trail': {
+      // traînée d'un objet en vol (Battle Bus) : des filets de lumière qui partent de l'arrière de l'objet (bout « dir » du cadre) et
+      // s'élargissent en s'effaçant ; un cœur blanc au centre. dir = 1 : l'objet est au bout droit (il vole vers la droite).
+      const dir = L.dir ?? 1, x0 = dir > 0 ? b.x + b.w : b.x, x1 = dir > 0 ? b.x : b.x + b.w, cy = b.y + b.h / 2, n = 5;
+      c.save(); c.globalCompositeOperation = 'lighter'; c.filter = `blur(${Math.max(1, Math.round(3 * u))}px)`;
+      for (let i = 0; i < n; i++) {
+        const t = (i - (n - 1) / 2) / ((n - 1) / 2), core = i === (n - 1) / 2;
+        const hw0 = b.h * (core ? 0.05 : 0.025), hw1 = b.h * (core ? 0.16 : 0.09), y1 = cy + t * b.h * 0.34, yc = cy + t * b.h * 0.04;
+        const g = c.createLinearGradient(x0, 0, x1, 0), cc = core ? mix(col, '#ffffff', 0.55) : col, a = (core ? 0.75 : 0.42 - Math.abs(t) * 0.12) * amt;
+        g.addColorStop(0, rgba(cc, a)); g.addColorStop(0.35, rgba(cc, a * 0.5)); g.addColorStop(1, rgba(cc, 0));
+        const xm = (x0 + x1) / 2;
+        c.beginPath(); c.moveTo(x0, cy - hw0 + t * b.h * 0.02); c.quadraticCurveTo(xm, yc - (hw0 + hw1) / 2, x1, y1 - hw1);
+        c.lineTo(x1, y1 + hw1); c.quadraticCurveTo(xm, yc + (hw0 + hw1) / 2, x0, cy + hw0 + t * b.h * 0.02); c.closePath();
+        c.fillStyle = g; c.fill();
+      }
+      c.restore();
+      break;
+    }
     case 'bars': {
       const n = Math.round(30 + 100 * amt);
       for (let i = 0; i < n; i++) {

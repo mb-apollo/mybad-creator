@@ -23,18 +23,19 @@ export const customList = () => list;
 // Jeu pour lequel un modèle personnalisé a été fait : ses calques sont figés (voitures ou agents, nom du jeu écrit en toutes lettres), il ne se
 // transpose pas d'un jeu à l'autre. Noté à la création ; les modèles enregistrés avant sont reconnus à leurs calques (null : rien de propre à un jeu).
 function guessGame(e) {
-  let rl = 0, va = 0;
+  const n = { rl: 0, valorant: 0, fortnite: 0 };
   for (const L of e.layers || []) {
     const t = String(L.tpl ?? L.text ?? '').trim().toUpperCase();
-    if (t === 'ROCKET LEAGUE') rl += 3; else if (t === 'VALORANT') va += 3;
+    if (t === 'ROCKET LEAGUE') n.rl += 3; else if (t === 'VALORANT') n.valorant += 3; else if (t === 'FORTNITE') n.fortnite += 3;
     if (L.type !== 'model') continue;
     const m = String(L.model || '');
-    if (L.actors) va += 2;
-    if (m.startsWith('g:rl:')) rl += 2; else if (m.startsWith('g:valorant:')) va += 2;
-    if (L.livery !== undefined || L.lights !== undefined) rl++;
-    if (L.pose) va++;
+    if (L.actors) n.valorant += 2;
+    for (const g of Object.keys(n)) if (m.startsWith(`g:${g}:`)) n[g] += 3;
+    if (L.livery !== undefined || L.lights !== undefined) n.rl++;
+    if (L.pose) n.valorant++;
   }
-  return rl > va ? 'rl' : va > rl ? 'valorant' : null;
+  const best = Object.keys(n).sort((a, b) => n[b] - n[a]);
+  return n[best[0]] > n[best[1]] ? best[0] : null;
 }
 export const customGame = key => { const e = list.find(x => customKey(x.id) === key); return e ? e.game || guessGame(e) : null; };
 

@@ -9,6 +9,7 @@ import { renderModelPreview, poseHandles, preloadModels } from './model3d.js';
 import { agentRotY, getItem, presetsList } from './posereg.js';
 import { poseValues } from './pose3d.js';
 import { traversees } from './banc-traversees.js';
+import { isPropRef } from './engine/games.js';
 
 // rotY > 0 : le personnage tourne vers sa gauche (on voit son côté droit). « main » : gros plan sur la main gauche (L) ou droite (R).
 export const VUES = {
@@ -28,12 +29,14 @@ const FOND = '#232834', ENCRE = '#e8ebfa';
 const LUM = { key: { color: '#ffffff', intensity: 1.5, angle: -35 }, rim: { color: '#7ab8ff', intensity: 2, angle: 150 }, fill: { color: '#ffffff', intensity: 0.7 }, ambient: { color: '#ffffff', intensity: 0.8 } };
 
 const pause = ms => new Promise(r => setTimeout(r, ms));
-const agentsDispo = () => [...S.libraryModels.keys()].filter(k => k.startsWith('g:valorant:')).map(k => k.split(':')[2]).sort();
+const REFS = () => [...S.libraryModels.keys()].filter(k => /^g:(valorant|fortnite):/.test(k) && !isPropRef(k));
+const agentsDispo = () => REFS().map(k => k.split(':')[2]).sort();
+const refOf = agent => REFS().find(k => k.endsWith(':' + agent)) || 'g:valorant:' + agent;
 
 function calque(nom, agent, pose, vue, w, h) {
   const { weapon, rotY, on, auto, side, ...p } = pose;   // rotY (orientation de l'agent dans une scène) n'entre pas dans la silhouette
   return {
-    id: 'banc-' + nom, type: 'model', model: 'g:valorant:' + agent, x: 0, y: 0, w, h, rot: 0,
+    id: 'banc-' + nom, type: 'model', model: refOf(agent), x: 0, y: 0, w, h, rot: 0,
     rotY: (vue.rotY || 0) - agentRotY(agent),   // « face » = le personnage regarde la caméra, quelle que soit l'orientation enregistrée pour l'agent
     camPitch: vue.camPitch ?? 3, zoom3d: vue.zoom3d ?? 0.9, target: vue.target ?? 0.5, offsetX: vue.offsetX || 0, fov: vue.fov || 28,
     frame: 'height', envLight: vue.reflets ?? 0.45, exposure: vue.exposition, anim: 0, animTime: 0, ...LUM,
@@ -41,7 +44,7 @@ function calque(nom, agent, pose, vue, w, h) {
   };
 }
 async function rendre(L, w, h) {
-  await preloadModels({ layers: [L], T: {}, game: 'valorant' });
+  await preloadModels({ layers: [L], T: {}, game: L.model.split(':')[1] || 'valorant' });
   for (let i = 0; i < 80; i++) {
     const cv = renderModelPreview(L, w, h, S.doc.theme);
     if (cv) return cv;

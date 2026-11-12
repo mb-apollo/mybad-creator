@@ -4,7 +4,7 @@
 // comme valeurs d'origine du logiciel.
 import { S } from './state.js';
 import { esc, setPath, getPath, section, syncRange } from './ui.js';
-import { gameItems, WEAPONS } from './engine/games.js';
+import { gameItems, WEAPONS, GAMES } from './engine/games.js';
 import { renderModelPreview, HANDS, solActif, solRegler, solStudio, fitCanvas } from './model3d.js';
 import { WEAPON_STANCES, poseValues } from './pose3d.js';
 import { getItem, setItem, resetItem, resetAll, hasOverride, overrideCount, exportConfig, importConfig, presetsList, customList, addCustom, renameCustom, deleteCustom, beginDraft, saveDraft, endDraft, isDirty, undoDraft, redoDraft, canUndoDraft, canRedoDraft } from './posereg.js';
@@ -15,15 +15,18 @@ const clone = o => JSON.parse(JSON.stringify(o));
 
 // ------------------------------------------------------------------ éléments réglables
 const KINDS = [['rifle', 'Fusils d\'assaut'], ['pistol', 'Pistolets']];
-const allAgents = () => gameItems('valorant', S.extraItems);
-const hasModel = key => S.libraryModels.has('g:valorant:' + key);
+// jeux à personnages (Valorant, Fortnite) : chacun a sa pose par défaut et ses poses par personnage ; poses génériques, prédéfinies et armes sont communes
+const POSE_GAMES = ['valorant', 'fortnite'];
+const D0 = () => (ST.game === 'valorant' ? 'default' : 'default:' + ST.game);   // pose par défaut du jeu de l'onglet
+const allAgents = (g = ST.game) => gameItems(g, S.extraItems);
+const hasModel = (key, g = ST.game) => S.libraryModels.has(`g:${g}:${key}`);
 const POSE_TYPES = ['pose', 'agent', 'custom'];
 function items() {
   return [
-    { id: 'default', group: 'Pose par défaut (tous les agents)', label: 'Pose par défaut', type: 'pose' },
+    { id: ST.game === 'valorant' ? 'default' : 'default:' + ST.game, group: ST.game === 'valorant' ? 'Pose par défaut (tous les agents)' : `Pose par défaut (tous les ${GAMES[ST.game].itemLabel.toLowerCase()}s ${GAMES[ST.game].name})`, label: 'Pose par défaut', type: 'pose' },
     { id: '', group: 'Mes poses génériques', label: '', type: 'newcustom' },
     ...customList().map(c => ({ id: 'custom:' + c.id, group: 'Mes poses génériques', label: c.name, type: 'custom', cid: c.id })),
-    ...allAgents().map(a => ({ id: 'agent:' + a.key, group: 'Poses par agent', label: a.name, type: 'agent', agent: a.key })),
+    ...allAgents().map(a => ({ id: 'agent:' + a.key, group: 'Poses par ' + GAMES[ST.game].itemLabel.toLowerCase(), label: a.name, type: 'agent', agent: a.key })),
     ...presetsList().filter(p => !p[0].startsWith('custom:')).map(([k, label]) => ({ id: 'preset:' + k, group: 'Poses prédéfinies (boutons du panneau 3D)', label, type: 'pose' })),
     ...KINDS.flatMap(([kind, title]) => WEAPON_STANCES.map(([k, label]) => ({ id: `stance:${kind}:${k}`, group: 'Positions d\'arme — ' + title, label, type: 'stance', kind, stance: k }))),
     ...WEAPONS.map(w => ({ id: 'weapon:' + w.key, group: 'Placement des armes dans la main', label: w.name, type: 'weapon', kind: w.kind, key: w.key })),
@@ -91,9 +94,9 @@ function secondaryControls(d, p = '') {
 }
 
 // ------------------------------------------------------------------ état et interface
-const ST = { open: false, id: 'default', data: {}, agent: null, weapon: { rifle: 'vandal', pistol: 'classic' }, previewStance: 'pret', cam: { rotY: -25, camPitch: 3, zoom3d: 1, target: 0.5, offsetX: 0 }, raf: 0, tries: 0, rename: false };
+const ST = { open: false, game: 'valorant', id: 'default', data: {}, agent: null, weapon: { rifle: 'vandal', pistol: 'classic' }, previewStance: 'pret', cam: { rotY: -25, camPitch: 3, zoom3d: 1, target: 0.5, offsetX: 0 }, raf: 0, tries: 0, rename: false };
 let root = null;
-const previewAgents = () => allAgents().filter(i => hasModel(i.key));
+const previewAgents = (g = ST.game) => allAgents(g).filter(i => hasModel(i.key, g));
 
 function build() {
   root = document.createElement('div');
@@ -103,6 +106,7 @@ function build() {
       <strong>Studio de poses</strong>
       <span class="pl-status" id="plStatus"></span>
       <span class="spacer"></span>
+      <div class="seg" id="plGame" title="Chaque jeu a ses personnages et sa pose par défaut">${POSE_GAMES.map(g => `<button type="button" data-game="${g}">${GAMES[g].name}</button>`).join('')}</div>
       <select class="input" id="plAgent" title="Personnage d'aperçu"></select>
       <button class="ghost-btn" id="plUndo" title="Annuler (Ctrl+Z)">↶ Annuler</button>
       <button class="ghost-btn" id="plRedo" title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
@@ -129,12 +133,13 @@ function build() {
   $('#plExport', root).onclick = doExport; $('#plImport', root).onclick = doImport;
   $('#plResetAll', root).onclick = async () => {
     const ok = API?.confirm ? await window.Dialogue.confirmer({ danger: true, message: 'Revenir aux poses d\'origine ?', detail: 'Tous tes réglages du Studio (poses, poses génériques, armes) seront effacés. Pense à les exporter avant.', ok: 'Tout réinitialiser' }) : confirm('Tout réinitialiser ?');
-    if (ok) { resetAll(); if (!find(ST.id)) ST.id = 'default'; refreshList(); selectItem(ST.id); status(); }
+    if (ok) { resetAll(); if (!find(ST.id)) ST.id = D0(); refreshList(); selectItem(ST.id); status(); }
   };
   $('#plAgent', root).onchange = e => { ST.agent = e.target.value; preview(); };
+  $('#plGame', root).onclick = e => { const b = e.target.closest('[data-game]'); if (b && b.dataset.game !== ST.game) setGame(b.dataset.game); };
   $('#plList', root).onclick = e => {
     const add = e.target.closest('[data-newcustom]');
-    if (add) { const inp = $('#plNewName', root), name = (inp.value || '').trim() || `Ma pose ${customList().length + 1}`; const { weapon, ...p } = getItem(ST.id.startsWith('custom:') || ST.id.startsWith('agent:') || ST.id === 'default' ? ST.id : 'default'); const id = addCustom(name, p); refreshList(); selectItem('custom:' + id); return; }
+    if (add) { const inp = $('#plNewName', root), name = (inp.value || '').trim() || `Ma pose ${customList().length + 1}`; const { weapon, ...p } = getItem(ST.id.startsWith('custom:') || ST.id.startsWith('agent:') || ST.id === D0() ? ST.id : D0()); const id = addCustom(name, p); refreshList(); selectItem('custom:' + id); return; }
     const b = e.target.closest('[data-id]'); if (b) selectItem(b.dataset.id);
   };
   $('#plList', root).onkeydown = e => { if (e.key === 'Enter' && e.target.id === 'plNewName') $('[data-newcustom]', root).click(); };
@@ -166,12 +171,12 @@ function build() {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const a = b.dataset.act, it = find(ST.id);
     if (a === 'resetItem') { resetItem(ST.id); refreshList(); selectItem(ST.id); }
-    if (a === 'fromDefault') { const { weapon, ...p } = getItem('default'); ST.data = { ...p, ...(ST.data.weapon ? { weapon: ST.data.weapon } : {}) }; persist(); renderControls(); }
+    if (a === 'fromDefault') { const { weapon, ...p } = getItem(D0()); ST.data = { ...p, ...(ST.data.weapon ? { weapon: ST.data.weapon } : {}) }; persist(); renderControls(); }
     if (a === 'rename') { ST.rename = true; renderControls(); const i = $('#plRename', root); i?.focus(); i?.select(); }
     if (a === 'renameOk') { const v = ($('#plRename', root).value || '').trim(); if (v) renameCustom(it.cid, v); ST.rename = false; refreshList(); renderControls(); }
     if (a === 'delete') {
       const ok = API?.confirm ? await window.Dialogue.confirmer({ danger: true, message: `Supprimer la pose « ${it.label} » ?`, detail: 'Elle disparaît des boutons du panneau 3D.', ok: 'Supprimer' }) : confirm('Supprimer ?');
-      if (ok) { deleteCustom(it.cid); refreshList(); selectItem('default'); }
+      if (ok) { deleteCustom(it.cid); refreshList(); selectItem(D0()); }
     }
   };
   // caméra : glisser pour tourner, molette pour zoomer
@@ -203,7 +208,7 @@ function build() {
 }
 function deepDelete(o, path) { const ks = path.split('.'), last = ks.pop(); const p = ks.reduce((a, k) => a?.[k], o); if (p) delete p[last]; }
 
-function stepHistory(fn) { if (!fn()) return; if (!find(ST.id)) ST.id = 'default'; refreshList(); selectItem(ST.id); }
+function stepHistory(fn) { if (!fn()) return; if (!find(ST.id)) ST.id = D0(); refreshList(); selectItem(ST.id); }
 const status = () => {
   $('#plStatus', root).textContent = overrideCount() + ' élément(s) personnalisé(s) · ' + (isDirty() ? 'modifications non enregistrées' : 'tout est enregistré');
   $('#plStatus', root).classList.toggle('warn', isDirty());
@@ -227,7 +232,7 @@ function refreshList() {
 function selectItem(id) {
   ST.id = id; ST.rename = false; ST.data = getItem(id);
   const it = find(id);
-  if (!it) { ST.id = 'default'; ST.data = getItem('default'); return selectItem('default'); }
+  if (!it) { const d0 = items()[0].id; ST.id = d0; ST.data = getItem(d0); return selectItem(d0); }
   if (it.type === 'agent' && hasModel(it.agent)) { ST.agent = it.agent; const sel = $('#plAgent', root); if (sel) sel.value = it.agent; }
   $('#plList', root).querySelectorAll('[data-id]').forEach(b => b.classList.toggle('on', b.dataset.id === id));
   renderControls(); preview();
@@ -274,7 +279,7 @@ function previewLayer(w = 640, h = 800) {
   if (it.type === 'stance') { const { both, aim, hand, ...p } = d; pose = { on: true, ...p }; weapon = { ...placeOf(d), key: ST.weapon[it.kind], hand: hand || (both ?? it.kind === 'rifle' ? 'RL' : 'R'), both, aim }; }
   else if (it.type === 'weapon') { const { both, aim, hand, ...p } = getItem(`stance:${it.kind}:${ST.previewStance}`); pose = { on: true, ...p }; weapon = { ...d, key: it.key, hand: hand || (both ?? it.kind === 'rifle' ? 'RL' : 'R'), both, aim }; }
   else { const { weapon: w, ...p } = d; pose = { on: true, ...p }; weapon = w?.key ? w : null; }
-  return { id: 'poselab-preview', type: 'model', model: 'g:valorant:' + ag, x: 0, y: 0, w, h, rot: 0, ...ST.cam, zoom3d: ST.cam.zoom3d * CADRAGE, floor: solStudio(), fov: 28, anim: 0, animTime: 0,
+  return { id: 'poselab-preview', type: 'model', model: `g:${ST.game}:${ag}`, x: 0, y: 0, w, h, rot: 0, ...ST.cam, zoom3d: ST.cam.zoom3d * CADRAGE, floor: solStudio(), fov: 28, anim: 0, animTime: 0,
     key: { color: '#ffffff', intensity: 1.5, angle: -35 }, rim: { color: '#7ab8ff', intensity: 2, angle: 150 }, fill: { color: '#ffffff', intensity: 0.7 }, ambient: { color: '#ffffff', intensity: 0.8 }, pose, weapon };
 }
 // Objet « visée » de l'élément en cours (pose avec arme, ou position d'arme), sinon null.
@@ -318,20 +323,32 @@ async function doImport() {
   try {
     const r = await API?.openText?.(); if (!r) return;
     const what = importConfig(r.data, r.filePath, allAgents().map(a => a.key));
-    refreshList(); selectItem(find(ST.id) ? ST.id : 'default');
+    refreshList(); selectItem(find(ST.id) ? ST.id : D0());
     $('#plStatus', root).textContent = `Importé (${what.join(', ') || 'rien de nouveau'}) : ${r.filePath}`;
   } catch (err) { $('#plStatus', root).textContent = 'Import impossible : ' + err.message; }
 }
 
-export function openPoseLab() {
+// Onglet d'un jeu : ses personnages d'aperçu, sa pose par défaut et ses poses par personnage. Un élément propre à l'autre jeu laisse la place à la pose par défaut.
+function fillAgents() {
+  const list = previewAgents();
+  if (!ST.agent || !list.find(a => a.key === ST.agent)) ST.agent = (list.find(a => a.key === (ST.game === 'fortnite' ? 'renegade' : 'jett')) || list[0])?.key || null;
+  $('#plAgent', root).innerHTML = list.map(a => `<option value="${a.key}" ${a.key === ST.agent ? 'selected' : ''}>${esc(a.name)}</option>`).join('') || '<option value="">Aucun modèle 3D</option>';
+  root.querySelectorAll('#plGame [data-game]').forEach(b => { const on = b.dataset.game === ST.game; b.classList.toggle('on', on); b.classList.toggle('actif', on); });
+}
+function setGame(g) {
+  ST.game = g; fillAgents();
+  refreshList(); selectItem(find(ST.id) ? ST.id : items()[0].id);
+}
+export function openPoseLab(game) {
   if (!root) build();
+  if (POSE_GAMES.includes(game)) ST.game = game;
+  if (!previewAgents().length) ST.game = POSE_GAMES.find(g => previewAgents(g).length) || ST.game;
   const list = previewAgents();
   if (!list.length) { window.Dialogue.informer({ message: 'Ajoute d\'abord un personnage 3D', detail: 'Télécharge le pack 3D ou importe un modèle dans la Bibliothèque pour utiliser le Studio de poses.', ok: 'Compris' }); return; }
   if (!ST.open) beginDraft();
   ST.open = true; root.hidden = false; window.Transitions?.entrer(root);
-  if (!ST.agent || !list.find(a => a.key === ST.agent)) ST.agent = (list.find(a => a.key === 'jett') || list[0]).key;
-  $('#plAgent', root).innerHTML = list.map(a => `<option value="${a.key}" ${a.key === ST.agent ? 'selected' : ''}>${esc(a.name)}</option>`).join('');
-  refreshList(); selectItem(find(ST.id) ? ST.id : 'default');
+  fillAgents();
+  refreshList(); selectItem(find(ST.id) ? ST.id : items()[0].id);
 }
 export async function closePoseLab() {
   if (!root || !ST.open) return;

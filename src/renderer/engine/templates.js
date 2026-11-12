@@ -58,7 +58,7 @@ const stage = (ctx, floorY, o = {}) => [
   effect({ name: 'Fumée', ...(o.noSmoke ? { visible: false } : {}), effect: 'smoke', color: '$glow', amount: o.smoke ?? 0.4, themed: true, sides: 0.75, seed: 5, x: -ctx.W * 0.05, y: floorY - ctx.H * 0.32, w: ctx.W * 1.1, h: ctx.H * 0.42 }),
 ];
 const frontSmoke = (ctx, y, a = 0.2) => effect({ name: 'Fumée (premier plan)', effect: 'smoke', color: '$glow', amount: a, themed: true, sides: 0.3, seed: 9, x: -ctx.W * 0.05, y, w: ctx.W * 1.1, h: ctx.H - y });
-const gameName = ctx => (ctx.game === 'rl' ? 'ROCKET LEAGUE' : 'VALORANT');
+const gameName = ctx => ({ rl: 'ROCKET LEAGUE', fortnite: 'FORTNITE' }[ctx.game] || 'VALORANT');
 
 // Titre à deux mots : variante manuscrite + gras, et variante classique (bascule globale).
 function title2(ctx, cx, y, o) {
@@ -75,6 +75,28 @@ function title2(ctx, cx, y, o) {
 function emblemAt(cx, cy, h, o = {}) {
   const w = h * EMBLEM_RATIO;
   return emblem({ x: cx - w / 2, y: cy - h / 2, w, h, fx: o.glow === false ? undefined : glowFx('$glow', 40, 0.35), ...o });
+}
+
+// Battle Bus (Fortnite) : décor 3D qui traverse le ciel de l'affiche, avec sa traînée de lumière derrière lui. Absent des autres jeux et sans la 3D.
+// box : cadre du rendu ; o.dir : sens du vol (1 = vers la droite, -1 = vers la gauche) ; o.rotY / camPitch / roll / pitch : orientation ; o.rot : inclinaison dans l'image.
+const BUS_LIGHT = { key: { color: '#eef2ff', intensity: 1.8, angle: -40 }, rim: { color: '$glow', intensity: 5.5, angle: 160 }, fill: { color: '#c9d4ff', intensity: 0.35 }, ambient: { color: '#8ea3e8', intensity: 0.45 }, envLight: 0.9, exposure: 1.08 };
+function battleBus(ctx, box, o = {}) {
+  if (ctx.game !== 'fortnite' || !ctx.use3d) return [];
+  // traînée : son bout lumineux colle à l'arrière de la caisse du bus (30 % / 78 % du cadre), en suivant l'inclinaison du calque
+  const dir = o.dir ?? 1, tw = box.w * (o.trailLen ?? 1.1), th = box.h * 0.3, a = (o.rot || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+  const rx = box.w * ((dir > 0 ? 0.3 : 0.7) - 0.5), ry = box.h * ((o.trailY ?? 0.78) - 0.5);
+  const px = box.x + box.w / 2 + rx * ca - ry * sa, py = box.y + box.h / 2 + rx * sa + ry * ca, d = -dir * tw / 2;   // arrière du bus, puis centre de la traînée derrière lui
+  const trail = o.trail === false ? null : effect({ name: 'Traînée du Battle Bus', effect: 'trail', dir, color: '$glow', amount: o.trail ?? 0.6, themed: true,
+    x: px + d * ca - tw / 2, y: py + d * sa - th / 2, w: tw, h: th, rot: o.rot || 0 });
+  // halo de lumière doux derrière le bus (le détache du fond, comme un éclairage d'atmosphère)
+  const clouds = o.clouds === false ? null : effect({ name: 'Halo du Battle Bus', effect: 'glow', color: '$glow', amount: (o.clouds ?? 0.3) * 0.9, themed: true,
+    x: box.x - box.w * 0.15, y: box.y + box.h * 0.05, w: box.w * 1.3, h: box.h * 1.0 });
+  return [trail, clouds, {
+    type: 'model', name: 'Battle Bus', model: 'g:fortnite:battlebus', ...box, rot: o.rot || 0,
+    rotY: o.rotY ?? (dir > 0 ? 58 : -58),   // rotY > 0 : l'avant du bus regarde vers la droite camPitch: o.camPitch ?? -4, roll: o.roll ?? 0, pitch: o.pitch ?? 0, zoom3d: 1, target: 0.5, fov: o.fov ?? 30, frame: 'all', anim: 0, animTime: 0,
+    ...JSON.parse(JSON.stringify(BUS_LIGHT)), reflect: false, contact: false, opacity: o.opacity,
+    fx: { glow: { on: true, color: '$glow', blur: 36, opacity: o.glow ?? 0.32 } },
+  }].filter(Boolean);
 }
 
 // Pose de base naturelle : bras légèrement écartés du corps, coudes à peine pliés, mains détendues (rien ne traverse le corps).
@@ -172,6 +194,7 @@ function roster(ctx) {
     effect({ name: 'Faisceau', effect: 'beam', color: '$glow', amount: 0.7, themed: true, x: W * 0.05, y: 0, w: W * 0.9, h: H * 0.8 }),
     effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: ctx.use3d ? 0.3 : 0.5, themed: true, x: W * 0.2, y: H * 0.17, w: W * 0.6, h: H * 0.52 }),
     effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.2, themed: true, seed: 11, x: 0, y: H * 0.52, w: W, h: H * 0.32 }),
+    ...battleBus(ctx, { x: W * 0.55, y: H * 0.065, w: W * 0.4, h: H * 0.28 }, { dir: -1, rot: 6, camPitch: -8 }),
     ...stage(ctx, H * 0.8, { noSmoke: ctx.game === 'rl' }),
     text({ name: 'Structure', tpl: '{org}', upper: true, align: 'left', size: 40 * u, weight: 700, spacing: 0.04, x: W * 0.12, y: H * 0.105, w: W * 0.6 }),
     shape({ name: 'Flèches', shape: 'arrows', fill: '$accent', count: 2, x: W * 0.12, y: H * 0.152, w: 40 * u, h: 18 * u }),
@@ -203,6 +226,7 @@ function resultat(ctx) {
   return [
     ...base(ctx, { glowY: 0.45, glow: 0.5 }),
     effect({ name: 'Barres lumineuses', effect: 'bars', color: '$glow', amount: 0.35, themed: true, seed: win ? 8 : 12, x: 0, y: 0, w: W, h: H * 0.8 }),
+    ...battleBus(ctx, { x: W * 0.03, y: H * 0.1, w: W * 0.26, h: H * 0.18 }, { dir: 1, rot: -6, opacity: 0.9, glow: 0.25, trailLen: 0.9, clouds: 0.2 }),
     text({ name: 'Compétition', tpl: '{event} — {stage}', upper: true, size: 24 * u, weight: 500, spacing: 0.24, color: '$muted', x: W * 0.08, y: H * 0.115, w: W * 0.84, fontRole: 'body' }),
     ...title2(ctx, W / 2, H * 0.245, { w1: `{resW1${sfx}}`, w2: `{resW2${sfx}}`, plain: `{resPlain${sfx}}`, scale: 0.7 }),
     text({ name: 'Format', tpl: '{bo}', upper: true, size: 22 * u, weight: 500, spacing: 0.2, color: '$muted', x: W * 0.2, y: H * 0.345, w: W * 0.6, fontRole: 'body' }),
@@ -226,6 +250,7 @@ function gameday(ctx) {
     ...base(ctx, { glowY: 0.35, glow: 0.7, bottomGlow: false }),
     effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: 0.4, themed: true, x: W * 0.38, y: H * 0.06, w: W * 0.56, h: H * 0.46 }),
     shape({ name: 'Chevrons', shape: 'chevrons', stroke: '$text', strokeWidth: 2.5, count: 3, x: W * 0.62, y: H * 0.33, w: 170 * u, h: 86 * u, opacity: 0.4 }),
+    ...battleBus(ctx, { x: W * 0.02, y: H * 0.06, w: W * 0.46, h: H * 0.32 }, { dir: 1, rot: -7, camPitch: -6 }),
     agentImage(ctx, 'featAgent', { x: 0, y: H * 0.04, w: W, h: H * 0.8 }, { name: 'Render principal', fx: { smear: 0.55, smearCut: 0.78, glow: { on: true, color: '$glow', blur: 40, opacity: 0.5 } } }),
     shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.48, w: W, h: H * 0.52, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
     text({ name: 'Texte vertical', tpl: '{gdSide}', upper: true, style: 'outline', strokeColor: '$text', strokeWidth: 1.4, opacity: 0.3, size: 150 * u, x: W * 0.91 - H * 0.36, y: H * 0.42 - 75 * u, w: H * 0.72, rot: 90 }), // centré à 91 % de la largeur : la hauteur des lettres (tournées) reste dans l'affiche
@@ -250,6 +275,7 @@ function annonce(ctx) {
     effect({ name: 'Constellation', effect: 'constellation', color: '$white', amount: 0.5, seed: 3, x: 0, y: 0, w: W, h: H * 0.7 }),
     text({ name: 'Texte vertical', tpl: '{anSide}', upper: true, style: 'outline', strokeColor: '$text', strokeWidth: 1.4, opacity: 0.22, size: 170 * u, x: W * 0.9 - H * 0.38, y: H * 0.42 - 85 * u, w: H * 0.76, rot: 90 }),
     emblemAt(W / 2, H * 0.08, 46 * u, { glow: false }),
+    ...battleBus(ctx, { x: W * 0.68, y: H * 0.05, w: W * 0.26, h: H * 0.17 }, { dir: -1, rot: 6, opacity: 0.9, trailLen: 1.2 }),
     agentImage(ctx, 'anAgent1', { x: W * 0.002, y: H * 0.12, w: W * 0.57, h: H * 0.68 }, { name: 'Render 1', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
     agentImage(ctx, 'anAgent2', { x: W * 0.43, y: H * 0.12, w: W * 0.57, h: H * 0.68 }, { name: 'Render 2', fx: { smear: 0.5, smearCut: 0.8, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
     effect({ name: 'Traînées', effect: 'streaks', color: '$glow', amount: 0.2, themed: true, seed: 14, x: 0, y: H * 0.25, w: W, h: H * 0.4 }),
@@ -269,6 +295,7 @@ function tournoi(ctx) {
   return [
     ...base(ctx, { glowY: 0.5, glow: 0.6 }),
     effect({ name: 'Grille', effect: 'grid', color: '$glow', amount: 0.7, themed: true, horizon: 0.0, x: 0, y: H * 0.6, w: W, h: H * 0.4 }),
+    ...battleBus(ctx, { x: W * 0.6, y: H * 0.07, w: W * 0.36, h: H * 0.24 }, { dir: -1, rot: 6 }),
     agentImage(ctx, 'tAgent', { x: W * 0.4, y: H * 0.24, w: W * 0.62, h: H * 0.64 }, { name: 'Render', fx: { glow: { on: true, color: '$glow', blur: 40, opacity: 0.6 }, fade: { on: true, dir: 'bottom', amount: 0.25 } } }),
     text({ name: 'Titre', tpl: '{tTitle}', upper: true, italic: true, font: 'Barlow Condensed', fontRole: 'condensed', weight: 900, align: 'left', size: 160 * u, color: '$accent', x: x0, y: H * 0.1, w: W * 0.82, fx: glowFx('$accent', 30, 0.5) }),
     text({ name: 'Sous-titre', tpl: '{tGame}', upper: true, font: 'Barlow Condensed', fontRole: 'condensed', weight: 700, align: 'left', size: 50 * u, x: x0, y: H * 0.225, w: W * 0.82 }),
@@ -298,6 +325,7 @@ function planning(ctx) {
   const top = H * 0.395 + Math.max(0, H * 0.5 - (rows.length * rh + gap * (rows.length - 1))) / 2; // moins de lignes : elles grandissent et le bloc se recentre
   return [
     ...base(ctx, { glowY: 0.18, glow: 0.5 }),
+    ...battleBus(ctx, { x: W * 0.7, y: H * 0.045, w: W * 0.26, h: H * 0.18 }, { dir: -1, rot: 6, opacity: 0.9, trailLen: 1.6 }),
     emblemAt(W / 2, H * 0.12, 90 * u),
     ...title2(ctx, W / 2, H * 0.25, { w1: '{plW1}', w2: '{plW2}', plain: '{plPlain}', scale: 0.7 }),
     text({ name: 'Semaine', tpl: '{plWeek}', upper: true, size: 24 * u, weight: 500, spacing: 0.24, color: '$muted', x: W * 0.1, y: H * 0.352, w: W * 0.8, fontRole: 'body' }),
@@ -322,6 +350,7 @@ function recrutement(ctx) {
   const nRec = Math.max(1, Math.min(6, ctx.counts.rec)), recStep = Math.min(0.07, 0.26 / nRec), ctaY = Math.min(0.81, 0.535 + nRec * recStep + 0.035);
   return [
     ...base(ctx, { glowY: 0.2, glow: 0.6 }),
+    ...battleBus(ctx, { x: W * 0.04, y: H * 0.05, w: W * 0.3, h: H * 0.21 }, { dir: 1, rot: -6, opacity: 0.9, trailLen: 0.9 }),
     emblemAt(W / 2, H * 0.16, H * 0.15),
     ...title2(ctx, W / 2, H * 0.36, { w1: '{recW1}', w2: '{recW2}', plain: '{recPlain}', scale: 0.85 }),
     text({ name: 'Sous-titre', tpl: '{recSub}', upper: true, size: 25 * u, weight: 500, spacing: 0.18, color: '$muted', x: W * 0.08, y: H * 0.475, w: W * 0.84, fontRole: 'body' }),
@@ -346,6 +375,7 @@ function carte(ctx) {
   return [
     ...base(ctx, { glowY: 0.38, glow: 0.8 }),
     effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: 0.38, themed: true, x: W * 0.3, y: H * 0.08, w: W * 0.62, h: H * 0.56 }),
+    ...battleBus(ctx, { x: W * 0.03, y: H * 0.2, w: W * 0.4, h: H * 0.27 }, { dir: 1, rot: -6, opacity: 0.9 }),
     agentImage(ctx, 'cardAgent', { x: W * 0.18, y: H * 0.08, w: W * 0.8, h: H * 0.66 }, { name: 'Render joueur', fx: { glow: { on: true, color: '$glow', blur: 40, opacity: 0.55 }, fade: { on: true, dir: 'bottom', amount: 0.3 } } }),
     emblemAt(W * 0.135, H * 0.15, 54 * u, { glow: false }),
     text({ name: 'Étiquette', tpl: '{cardTag}', upper: true, align: 'left', size: 22 * u, weight: 600, spacing: 0.3, color: '$accent', x: W * 0.09, y: H * 0.52, w: W * 0.5, fontRole: 'body' }),
@@ -368,6 +398,7 @@ function live(ctx) {
   const { W, H, u } = ctx;
   return [
     ...base(ctx, { glowY: 0.45, glow: 0.7 }),
+    ...battleBus(ctx, { x: W * 0.6, y: H * 0.075, w: W * 0.34, h: H * 0.23 }, { dir: -1, rot: 6 }),
     agentImage(ctx, 'liveAgent', { x: W * 0.36, y: H * 0.2, w: W * 0.7, h: H * 0.62 }, { name: 'Render', opacity: 0.9, fx: { smear: 0.4, smearCut: 0.82, glow: { on: true, color: '$glow', blur: 36, opacity: 0.5 } } }),
     shape({ name: 'Point live', shape: 'ellipse', fill: '#FF3B4E', x: W * 0.09, y: H * 0.16, w: 30 * u, h: 30 * u, fx: glowFx('#FF3B4E', 24, 0.9) }),
     text({ name: 'Statut', text: 'EN DIRECT', align: 'left', size: 26 * u, weight: 700, spacing: 0.28, x: W * 0.09 + 48 * u, y: H * 0.157, w: W * 0.5, fontRole: 'body' }),
@@ -376,6 +407,51 @@ function live(ctx) {
     shape({ name: 'Bouton Twitch', shape: 'rect', radius: 40, fill: '$panel', stroke: '$accent', strokeWidth: 2.5, x: W * 0.09, y: H * 0.8, w: W * 0.62, h: 84 * u, fx: glowFx('$accent', 24, 0.4) }),
     text({ name: 'Lien', tpl: '{liveUrl}', upper: true, size: 28 * u, weight: 700, spacing: 0.08, color: '$accent', x: W * 0.09 + 20 * u, y: H * 0.8 + 26 * u, w: W * 0.62 - 40 * u, fontRole: 'body' }),
     ...frame(ctx, { tl: gameName(ctx), tr: '{org}', bl: '{org}', br: 'LIVE' }),
+    ...finish(ctx),
+  ];
+}
+
+// ================================================================= MODÈLES FORTNITE
+// Drop : le Battle Bus traverse tout le haut de l'affiche, le skin du joueur à droite, le titre et le point de chute à gauche.
+function drop(ctx) {
+  const { W, H, u } = ctx;
+  return [
+    ...base(ctx, { glowY: 0.22, glow: 0.75, bottomGlow: false }),
+    effect({ name: 'Constellation', effect: 'constellation', color: '$white', amount: 0.35, seed: 6, x: 0, y: 0, w: W, h: H * 0.55 }),
+    text({ name: 'Texte vertical', tpl: '{dropSide}', upper: true, style: 'outline', strokeColor: '$text', strokeWidth: 1.4, opacity: 0.22, size: 130 * u, x: W * 0.93 - H * 0.36, y: H * 0.56 - 65 * u, w: H * 0.72, rot: 90 }),
+    ...battleBus(ctx, { x: -W * 0.06, y: H * 0.03, w: W * 0.86, h: H * 0.5 }, { dir: 1, rot: -9, camPitch: -10, rotY: 62, trail: 0.8, trailLen: 0.75, glow: 0.4, clouds: 0.4 }),
+    agentImage(ctx, 'featAgent', { x: W * 0.42, y: H * 0.34, w: W * 0.6, h: H * 0.58 }, { name: 'Render principal', rotY: -18, fx: { glow: { on: true, color: '$glow', blur: 40, opacity: 0.5 }, fade: { on: true, dir: 'bottom', amount: 0.25 } } }),
+    shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.62, w: W, h: H * 0.38, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
+    text({ name: 'Compétition', tpl: '{event}', upper: true, align: 'left', size: 22 * u, weight: 600, spacing: 0.16, color: '$accent', x: W * 0.07, y: H * 0.555, w: W * 0.5, fontRole: 'body' }),
+    scriptT({ name: 'Titre manuscrit', variant: 'script', tpl: '{dropW1}', align: 'left', x: W * 0.06, y: H * 0.585, w: W * 0.6, size: 180 * u, fx: glowFx('$white', 18, 0.45) }),
+    text({ name: 'Titre gras', variant: 'script', tpl: '{dropW2}', upper: true, align: 'left', x: W * 0.07, y: H * 0.72, w: W * 0.58, size: 150 * u, fx: glowFx('$glow', 30, 0.6) }),
+    text({ name: 'Titre', variant: 'plain', tpl: '{dropPlain}', upper: true, align: 'left', x: W * 0.07, y: H * 0.6, w: W * 0.58, size: 200 * u, fx: glowFx('$glow', 36, 0.7) }),
+    shape({ name: 'Flèches', shape: 'arrows', fill: '$accent', count: 2, x: W * 0.07, y: H * 0.858, w: 40 * u, h: 18 * u }),
+    text({ name: 'Point de chute', tpl: '{dropSpot}', upper: true, align: 'left', size: 30 * u, weight: 700, spacing: 0.04, x: W * 0.07 + 56 * u, y: H * 0.85, w: W * 0.6, fontRole: 'body' }),
+    text({ name: 'Date et heure', tpl: '{date} · {hour}', upper: true, align: 'left', size: 22 * u, weight: 500, spacing: 0.14, color: '$muted', x: W * 0.07 + 56 * u, y: H * 0.885, w: W * 0.6, fontRole: 'body' }),
+    ...frame(ctx, { tl: gameName(ctx), tr: '{org}', bc: false }),
+    ...finish(ctx),
+  ];
+}
+// Top 1 : le titre « Top 1 » en grand, l'équipe en 3D, le Battle Bus qui repart dans le ciel derrière, les points de la game.
+function top1(ctx) {
+  const { W, H, u } = ctx;
+  return [
+    ...base(ctx, { glowY: 0.36, glow: 0.55 }),
+    effect({ name: 'Faisceau', effect: 'beam', color: '$glow', amount: 0.8, themed: true, x: W * 0.05, y: 0, w: W * 0.9, h: H * 0.8 }),
+    effect({ name: 'Grande étoile', effect: 'bigstar', color: '$glow', amount: ctx.use3d ? 0.32 : 0.5, themed: true, x: W * 0.2, y: H * 0.14, w: W * 0.6, h: H * 0.52 }),
+    ...battleBus(ctx, { x: W * 0.05, y: H * 0.04, w: W * 0.32, h: H * 0.22 }, { dir: 1, rot: -8, opacity: 0.92, glow: 0.28, trailLen: 1.3, clouds: 0.25 }),
+    ...stage(ctx, H * 0.8, {}),
+    text({ name: 'Compétition', tpl: '{event} · {topGame}', upper: true, size: 22 * u, weight: 600, spacing: 0.16, color: '$muted', x: W * 0.1, y: H * 0.105, w: W * 0.8, fontRole: 'body' }),
+    text({ name: 'Titre gras', variant: 'script', tpl: '{topW2}', upper: true, x: W * 0.08, y: H * 0.19, w: W * 0.84, size: 330 * u, fx: glowFx('$glow', 40, 0.75) }),
+    scriptT({ name: 'Titre manuscrit', variant: 'script', tpl: '{topW1}', x: W * 0.08, y: H * 0.1, w: W * 0.84, size: 180 * u, fx: glowFx('$white', 18, 0.45) }),
+    text({ name: 'Titre', variant: 'plain', tpl: '{topPlain}', upper: true, x: W * 0.08, y: H * 0.18, w: W * 0.84, size: 230 * u, fx: glowFx('$glow', 36, 0.7) }),
+    ...playerRow(ctx, H * 0.83, { h: ctx.use3d ? 0.5 : 0.44, scene: { camPitch: -8, zoom: 1.12, target: 0.45, fov: 61, spread: 1.25, y: H * 0.3, h: H * 0.7, floor: { shape: 'disc', opacity: 0.84, blur: 0.53, reflect: 0.72, glow: 0.25, shadow: 0.94 } } }),
+    frontSmoke(ctx, H * 0.74, 0.22),
+    shape({ name: 'Dégradé bas', shape: 'rect', x: 0, y: H * 0.865, w: W, h: H * 0.135, grad: { on: true, angle: 90, from: 'rgba(0,0,0,0)', to: '$bg' } }),
+    text({ name: 'Points', x: W * 0.08, y: H * 0.85, w: W * 0.84, size: 40 * u, gap: 0.5, upper: true, fontRole: 'body',
+      runs: [{ tpl: '{topElims}', color: '$text', weight: 700 }, { text: 'élims', color: '$accent', weight: 600, scale: 0.6 }, { text: '·', color: '$muted', weight: 500, scale: 0.7 }, { tpl: '{topPts}', color: '$text', weight: 700 }, { text: 'pts', color: '$accent', weight: 600, scale: 0.6 }] }),
+    ...frame(ctx, { tl: gameName(ctx), tr: '{event}', bl: '{org}', br: 'TOP 1' }),
     ...finish(ctx),
   ];
 }
@@ -392,5 +468,7 @@ export const TEMPLATES = {
   planning: { name: 'Planning', desc: 'Programme de la semaine', build: planning, fields: ['plTitle', 'plWeek', 'planning', 'org'] },
   recrutement: { name: 'Recrutement', desc: 'Annonce LFP / staff', build: recrutement, fields: ['recTitle', 'recSub', 'rec1', 'rec2', 'rec3', 'rec4', 'recCta', 'recNote', 'org'] },
   carte: { name: 'Carte joueur', desc: 'Profil et stats', build: carte, fields: ['cardName', 'cardTag', 'cardRole', 'cardAgent', 'stats', 'org'] },
+  drop: { name: 'Drop', desc: 'Battle Bus et point de chute', games: ['fortnite'], build: drop, look: () => ({ grain: 1.5, vignette: 0.7, bloom: 1.15, grade: 1.1, glow: 1.6, stars: 1.4 }), fields: ['dropTitle', 'dropSpot', 'featAgent', 'dropSide', 'event', 'date', 'hour', 'org'] },
+  top1: { name: 'Top 1', desc: 'Victoire de la game', games: ['fortnite'], build: top1, look: doc => TEMPLATES.roster.look(doc), fields: ['topTitle', 'event', 'topGame', 'topElims', 'topPts', 'players', 'org'] },
   live: { name: 'Live', desc: 'On est en direct', build: live, fields: ['liveTitleW', 'liveTitle', 'liveUrl', 'liveAgent', 'org'] },
 };

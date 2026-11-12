@@ -6,7 +6,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { S, change } from './state.js';
 import { section, range, toggle, select as sel, seg, colorCtl, pct, deg, icon, esc, getPath, setPath } from './ui.js';
 import { color, finOf } from './engine/scene.js';
-import { GAMES, gameItems, WEAPONS } from './engine/games.js';
+import { GAMES, gameItems, WEAPONS, isPropRef, PROPS } from './engine/games.js';
 import { weaponInstance, placeWeapon, aimHand, gripSecondary, wrapFingers, handsOf, HOLD } from './weapons.js';
 import { sceneDefaults, DEFAULT_POSE } from './engine/templates.js';
 import { LOGO_URL, makeLogoGltf, setLogoLook } from './logo3d.js';
@@ -266,10 +266,12 @@ function instance(url, L, gltf) {
       for (const k in m) { const t = m[k]; if (t && t.isTexture) { t.anisotropy = aniso; t.needsUpdate = true; } }
     }
   });
-  // normalisation : posé au sol, centré, hauteur 1
+  // normalisation : posé au sol, centré, hauteur 1. La boîte d'un maillage à squelette se calcule à partir des os : leurs positions
+  // doivent être à jour (sinon un squelette sous des nœuds mis à l'échelle, comme ceux des modèles Fortnite, donne une taille fausse).
+  root.updateMatrixWorld(true);
+  root.traverse(o => { if (o.isSkinnedMesh) o.boundingBox = null; });
   const box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
   // centrage sur les hanches : le cadre englobant peut être faussé par des surfaces qui dépassent
-  root.updateMatrixWorld(true);
   const rig0 = rigOf(root);
   if (rig0?.thighL && rig0?.thighR) { const m = worldPos(rig0.thighL).add(worldPos(rig0.thighR)).multiplyScalar(0.5); center.x = m.x; center.z = m.z; }
   cleanSkinWeights(root);
@@ -286,6 +288,19 @@ function instance(url, L, gltf) {
   return inst;
 }
 
+// Banc d'essai (développement) : boîtes des maillages d'une instance, pour diagnostiquer une taille fausse.
+export function debugInstance(url) {
+  const inst = INSTANCES.get(url); if (!inst) return null;
+  const f = v => [v.x, v.y, v.z].map(x => +x.toFixed(3));
+  const r = { size: f(inst.size), baseScale: inst.baseScale, meshes: [] };
+  inst.pivot.updateMatrixWorld(true);
+  inst.root.traverse(o => {
+    if (!o.isMesh) return;
+    const b = new THREE.Box3().setFromObject(o), bp = new THREE.Box3().setFromObject(o, true);
+    r.meshes.push({ n: o.name.slice(0, 30), skin: !!o.isSkinnedMesh, bind: o.bindMode, min: f(b.min), max: f(b.max), precis: [f(bp.min), f(bp.max)] });
+  });
+  return r;
+}
 // Le canevas d'un studio occupe toute la tuile de verre (le modèle est posé dessus, sans cadre) : on dessine à la taille réelle de la tuile, plafonnée pour rester fluide.
 export function fitCanvas(cv) {
   const r = cv.getBoundingClientRect(); if (r.width < 64 || r.height < 64) return;
@@ -391,7 +406,8 @@ function renderModel(L, w, h, theme, exporting) {
   r.toneMappingExposure = (L.exposure ?? 1.05) * (fin.exposure ?? 1);
   const scene = new THREE.Scene();
   scene.environment = envTex;
-  scene.environmentIntensity = L.envLight ?? (wdoc.game === 'rl' ? 0.9 : 0.45);
+  const prop = isPropRef(L.model);   // décor sans squelette (Battle Bus) : éclairé et cadré comme une voiture, incliné avec roulis et tangage
+  scene.environmentIntensity = L.envLight ?? (wdoc.game === 'rl' || prop ? 0.9 : 0.45);
   scene.add(inst.pivot);
   applyCarLook(inst, L, theme, agentKeyOf(wdoc, L.model));
   inst.pivot.scale.setScalar(inst.baseScale);
@@ -414,7 +430,7 @@ function renderModel(L, w, h, theme, exporting) {
   inst.pivot.updateMatrixWorld(true);
   inst.pivot.position.y = groundDrop(inst); inst.pivot.updateMatrixWorld(true);
   plantFeet(inst.root, inst.footRest, inst.pivot.scale.x / inst.baseScale); inst.pivot.updateMatrixWorld(true);
-  const tilt = (S.doc_override || S.doc).game === 'rl' ? tiltCar(inst, L, -inst.baseYaw + ((L.rotY || 0) + arot) * Math.PI / 180) : null;
+  const tilt = (S.doc_override || S.doc).game === 'rl' || prop ? tiltCar(inst, L, -inst.baseYaw + ((L.rotY || 0) + arot) * Math.PI / 180) : null;
   if (L.sonde) L.sonde({ inst, arme: held, def: wdef });   // banc de poses (développement) : relevé du personnage posé, arme en main, avant qu'elle soit retirée
   const col = c => new THREE.Color(color(c, theme) || '#ffffff');
   const lit = (o, def, k) => ({ ...(o || {}), intensity: (o?.intensity ?? def) * (k ?? 1) });
@@ -434,7 +450,7 @@ function renderModel(L, w, h, theme, exporting) {
   const targetY = tilt ? tilt.cy + (L.target ?? 0.5) * tilt.y - tilt.y / 2 : sz.y * (L.target ?? 0.5);
   const fitH = sz.y / 2 / Math.tan(fov * Math.PI / 360);
   const fitW = Math.max(sz.x, sz.z) / 2 / Math.tan(fov * Math.PI / 360) / (pw / ph);
-  const frameAll = L.frame ? L.frame === 'all' : (S.doc_override || S.doc).game === 'rl';
+  const frameAll = L.frame ? L.frame === 'all' : (S.doc_override || S.doc).game === 'rl' || prop;
   const dist = (frameAll ? Math.max(fitH, fitW) : fitH) * 1.08 * (L.lights === 'on' && (S.doc_override || S.doc).game === 'rl' ? 1.14 : 1) / (L.zoom3d || 1);   // marge pour que les halos des feux tiennent dans le cadre
   const pitch = (L.camPitch ?? 6) * Math.PI / 180;
   const cam = new THREE.PerspectiveCamera(fov, pw / ph, 0.01, 100);
@@ -521,27 +537,29 @@ export function modelProps(L) {
   const opts = [
     ...Array.from({ length: GAMES[doc.game].players }, (_, i) => [`@a${i + 1}`, `Joueur ${i + 1} (${doc.T['p' + (i + 1)] || '—'})`]),
     ...items.map(i => [`g:${doc.game}:${i.key}`, i.name + (S.libraryModels.has(`g:${doc.game}:${i.key}`) ? '' : ' (pas de modèle)')]),
+    ...(PROPS[doc.game] || []).map(p => [`g:${doc.game}:${p.key}`, p.name + ' (décor)' + (S.libraryModels.has(`g:${doc.game}:${p.key}`) ? '' : ' (pas de modèle)')]),
   ];
+  const prop = isPropRef(L.model);
   const url = modelUrl(doc, L.model);
   const m = url ? MODELS.get(url) : null;
   const clips = m?.gltf?.animations || [];
   const status = !url ? '<p class="hint warn">Aucun modèle 3D pour ce choix. Importe un .glb dans la Bibliothèque.</p>' : m?.status === 'loading' ? '<p class="hint">Chargement du modèle…</p>' : m?.status === 'error' ? '<p class="hint warn">Ce fichier n\'a pas pu être lu.</p>' : '';
   let h = section('Modèle 3D', `${sel('model', 'Modèle', L.model, opts, { raw: true })}${status}
-    ${seg('frame', L.frame || (doc.game === 'rl' ? 'all' : 'height'), [['height', 'Cadrer la hauteur'], ['all', 'Tout le modèle']], { small: true })}
+    ${seg('frame', L.frame || (doc.game === 'rl' || prop ? 'all' : 'height'), [['height', 'Cadrer la hauteur'], ['all', 'Tout le modèle']], { small: true })}
     ${range('rotY', 'Rotation du modèle', L.rotY || 0, -360, 360, 1, deg)}
-    ${doc.game === 'rl' ? range('roll', 'Roulis (sur le côté)', L.roll || 0, -360, 360, 1, deg) + range('pitch', 'Tangage (nez haut / bas)', L.pitch || 0, -360, 360, 1, deg) : ''}
+    ${doc.game === 'rl' || prop ? range('roll', 'Roulis (sur le côté)', L.roll || 0, -360, 360, 1, deg) + range('pitch', 'Tangage (nez haut / bas)', L.pitch || 0, -360, 360, 1, deg) : ''}
     ${range('camPitch', 'Angle de caméra', L.camPitch ?? 6, -90, 90, 1, deg)}
     ${range('zoom3d', 'Zoom', L.zoom3d || 1, 0.3, 4, 0.01, pct)}
     ${range('target', 'Hauteur visée', L.target ?? 0.5, 0, 1, 0.01, pct)}
     ${range('offsetX', 'Décalage caméra', L.offsetX || 0, -0.6, 0.6, 0.01, v => Math.round(v * 100))}
     ${range('fov', 'Focale (perspective)', L.fov || 28, 10, 70, 1, v => v + '°')}`);
   const pz = resolvePose(L.pose, agentKeyOf(doc, L.model)), wsel = weaponOf(L, pz);
-  h += section('Arme', weaponControls('weapon', wsel), !!wsel?.key);
-  h += section('Pose', (clips.length ? `${sel('anim', 'Animation', L.anim ?? 0, [[-1, 'Pose du fichier'], ...clips.map((c, i) => [i, c.name || `Animation ${i + 1}`])])}${(L.anim ?? 0) >= 0 ? range('animTime', 'Moment de l\'animation', L.animTime || 0, 0, 1, 0.001, pct) : ''}` : '<p class="hint">Ce modèle n\'a pas d\'animation : il garde la pose de son fichier.</p>')
+  if (!prop) h += section('Arme', weaponControls('weapon', wsel), !!wsel?.key);
+  if (!prop) h += section('Pose', (clips.length ? `${sel('anim', 'Animation', L.anim ?? 0, [[-1, 'Pose du fichier'], ...clips.map((c, i) => [i, c.name || `Animation ${i + 1}`])])}${(L.anim ?? 0) >= 0 ? range('animTime', 'Moment de l\'animation', L.animTime || 0, 0, 1, 0.001, pct) : ''}` : '<p class="hint">Ce modèle n\'a pas d\'animation : il garde la pose de son fichier.</p>')
     + poseControls('pose', pz), clips.length > 0 || !!pz.on);
   const car = agentKeyOf(doc, L.model), liv = resolveLivery(L.livery, car);   // livrée portée ; le choix affiché : « auto », sinon elle (ou peinture d'origine si elle est faite pour une autre voiture)
   if (doc.game === 'rl') h += section('Voiture', `${sel('livery', 'Livrée de cette voiture', L.livery === 'auto' ? 'auto' : liv, liveriesList(car), { raw: true })}<p class="hint">Seules les livrées faites pour cette voiture sont proposées. « Automatique » suit la livrée par défaut de la voiture, choisie dans le créateur.</p><div class="btnrow"><button class="mini-btn" data-act="openLiveryLab" data-id="${esc(liv)}" data-car="${esc(car || '')}">Créateur de livrées</button></div>${sel('lights', 'Feux', L.lights || 'auto', [['auto', 'Selon le modèle'], ['on', 'Allumés'], ['off', 'Éteints']], { raw: true })}<p class="hint">« Allumés » éclaire les phares et les feux arrière avec un halo de lumière. « Éteints » les coupe.</p>${colorCtl('lampF', 'Couleur des feux avant', L.lampF || liveryLamp(liv, 'front') || LAMP_DEFAULT.front, th)}${colorCtl('lampR', 'Couleur des feux arrière', L.lampR || liveryLamp(liv, 'rear') || LAMP_DEFAULT.rear, th)}${range('lampGlow', 'Force du halo', L.lampGlow ?? liveryLamp(liv, 'glow') ?? LAMP_DEFAULT.glow, 0, 2, 0.01, pct)}${range('gloss', 'Brillance de la carrosserie', L.gloss ?? liveryGloss(L.livery) ?? 0.7, 0, 1, 0.01, pct)}${colorCtl('rimColor', 'Couleur des jantes', L.rimColor || '#9aa6c4', th)}<div class="btnrow"><button class="mini-btn" data-act="rimReset">Jantes d'origine</button></div>`, true);
-  else h += section('Visage', faceControls('face', L.face), !!(L.face && Object.keys(L.face).length));
+  else if (!prop) h += section('Visage', faceControls('face', L.face), !!(L.face && Object.keys(L.face).length));
   h += section('Éclairage', `
     ${colorCtl('rim.color', 'Contre-jour', L.rim?.color || '$glow', th)}${range('rim.intensity', 'Intensité du contre-jour', L.rim?.intensity ?? 4, 0, 12, 0.1, v => v.toFixed(1))}${range('rim.angle', 'Direction du contre-jour', L.rim?.angle ?? 150, 90, 270, 1, deg)}
     ${colorCtl('key.color', 'Lumière principale', L.key?.color || '#ffffff', th)}${range('key.intensity', 'Intensité principale', L.key?.intensity ?? 1.4, 0, 6, 0.05, v => v.toFixed(2))}${range('key.angle', 'Direction principale', L.key?.angle ?? -35, -90, 90, 1, deg)}

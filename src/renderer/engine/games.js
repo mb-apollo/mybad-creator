@@ -23,9 +23,20 @@ export const RL_CARS = [
   { key: 'dominus', name: 'Dominus', role: 'car' },
 ];
 
+// Fortnite : skins (personnages à squelette, posés comme les agents Valorant).
+export const FORTNITE_SKINS = [
+  { key: 'renegade', name: 'Renegade Raider', role: 'skin' },
+  { key: 'aura', name: 'Aura', role: 'skin' },
+  { key: 'jonesy', name: 'Jonesy', role: 'skin' },
+];
+// Décors 3D d'un jeu (pas des joueurs) : objets posés dans les affiches, sans squelette (le Battle Bus).
+export const PROPS = { fortnite: [{ key: 'battlebus', name: 'Battle Bus' }] };
+export const isPropRef = ref => typeof ref === 'string' && Object.entries(PROPS).some(([g, l]) => l.some(p => ref === `g:${g}:${p.key}`));
+
 export const GAMES = {
   valorant: { key: 'valorant', name: 'Valorant', players: 5, itemLabel: 'Agent', items: VALORANT_AGENTS, roleLabels: { duelist: 'Duelist', initiator: 'Initiator', controller: 'Smoker', sentinel: 'Sentinel', flex: 'Flex' } },
   rl: { key: 'rl', name: 'Rocket League', players: 3, itemLabel: 'Voiture', items: RL_CARS, roleLabels: {} },
+  fortnite: { key: 'fortnite', name: 'Fortnite', players: 4, defaultPlayers: 3, itemLabel: 'Skin', items: FORTNITE_SKINS, roleLabels: { skin: 'Skin' } },
 };
 
 // Armes 3D tenues en main (bibliothèque « weapons »). kind : fusil (deux mains) ou pistolet (une main).

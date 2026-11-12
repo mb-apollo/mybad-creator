@@ -95,6 +95,47 @@
           "yaw": 9
         }
       },
+      "aura": {
+        "armL": {
+          "out": 32,
+          "fwd": 10,
+          "elbow": 22,
+          "roll": 12
+        },
+        "armR": {
+          "out": 21,
+          "fwd": 9,
+          "elbow": 22,
+          "roll": 12
+        },
+        "handL": {
+          "curl": 32,
+          "thumb": 18,
+          "index": 22
+        },
+        "handR": {
+          "curl": 32,
+          "thumb": 18,
+          "index": 22
+        },
+        "legL": {
+          "out": 4,
+          "fwd": 2,
+          "knee": 4
+        },
+        "legR": {
+          "out": 3,
+          "fwd": -3,
+          "knee": 2
+        },
+        "torso": {
+          "twist": 0,
+          "lean": 0
+        },
+        "head": {
+          "turn": 25
+        }
+      },
       "breach": {
         "rotY": -12,
         "armR": {
@@ -1276,6 +1317,47 @@
           "yaw": 16
         }
       },
+      "renegade": {
+        "armL": {
+          "out": 26,
+          "fwd": 9,
+          "elbow": 22,
+          "roll": 12
+        },
+        "armR": {
+          "out": 24,
+          "fwd": 9,
+          "elbow": 22,
+          "roll": 12
+        },
+        "handL": {
+          "curl": 32,
+          "thumb": 18,
+          "index": 22
+        },
+        "handR": {
+          "curl": 32,
+          "thumb": 18,
+          "index": 22
+        },
+        "legL": {
+          "out": 4,
+          "fwd": 2,
+          "knee": 4
+        },
+        "legR": {
+          "out": 3,
+          "fwd": -3,
+          "knee": 2
+        },
+        "torso": {
+          "twist": 0,
+          "lean": 0
+        },
+        "head": {
+          "tilt": 0
+        }
+      },
       "reyna": {
         "rotY": -22,
         "armL": {
@@ -1865,6 +1947,51 @@
           },
           "torso": {
             "twist": -4
+          }
+        }
+      }
+    },
+    "byGame": {
+      "fortnite": {
+        "default": {
+          "armL": {
+            "out": 21,
+            "fwd": 9,
+            "elbow": 22,
+            "roll": 12
+          },
+          "armR": {
+            "out": 21,
+            "fwd": 9,
+            "elbow": 22,
+            "roll": 12
+          },
+          "handL": {
+            "curl": 32,
+            "thumb": 18,
+            "index": 22
+          },
+          "handR": {
+            "curl": 32,
+            "thumb": 18,
+            "index": 22
+          },
+          "legL": {
+            "out": 4,
+            "fwd": 2,
+            "knee": 4
+          },
+          "legR": {
+            "out": 3,
+            "fwd": -3,
+            "knee": 2
+          },
+          "torso": {
+            "twist": 0,
+            "lean": 0
+          },
+          "head": {
+            "tilt": 0
           }
         }
       }

@@ -250,6 +250,26 @@ function tiltCar(inst, L, yaw) {
   const b = new THREE.Box3().setFromObject(inst.pivot);
   return { x: b.max.x - b.min.x, y: b.max.y - b.min.y, z: b.max.z - b.min.z, cy: (b.min.y + b.max.y) / 2 };
 }
+// Décor livré avec un objet sans squelette (sphère de ciel autour du Battle Bus) : un maillage au moins 3 fois plus grand que tout le reste réuni
+// est masqué, sans toucher au fichier (certains modèles ne peuvent pas être modifiés : licence « pas de modification »).
+function hideBackdrop(root) {
+  const meshes = []; let skinned = false;
+  root.traverse(o => { if (o.isMesh) { meshes.push(o); if (o.isSkinnedMesh) skinned = true; } });
+  if (skinned || meshes.length < 2) return false;
+  const size = o => new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3()).length();
+  let n = 0;
+  for (const m of meshes) {
+    const rest = new THREE.Box3(); for (const o of meshes) if (o !== m && o.visible) rest.union(new THREE.Box3().setFromObject(o));
+    if (!rest.isEmpty() && size(m) > 3 * rest.getSize(new THREE.Vector3()).length()) { m.visible = false; n++; }
+  }
+  return n > 0;
+}
+// Boîte des seuls maillages visibles (un décor masqué ne doit pas compter dans la taille du modèle).
+function visibleBox(root) {
+  const box = new THREE.Box3();
+  root.traverse(o => { if (o.isMesh && o.visible) box.union(new THREE.Box3().setFromObject(o)); });
+  return box;
+}
 function instance(url, L, gltf) {
   // une seule instance par fichier : les rendus sont séquentiels, la pose est réappliquée à chaque fois
   const key = url;
@@ -270,7 +290,8 @@ function instance(url, L, gltf) {
   // doivent être à jour (sinon un squelette sous des nœuds mis à l'échelle, comme ceux des modèles Fortnite, donne une taille fausse).
   root.updateMatrixWorld(true);
   root.traverse(o => { if (o.isSkinnedMesh) o.boundingBox = null; });
-  const box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+  const hidden = hideBackdrop(root);
+  const box = hidden ? visibleBox(root) : new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
   // centrage sur les hanches : le cadre englobant peut être faussé par des surfaces qui dépassent
   const rig0 = rigOf(root);
   if (rig0?.thighL && rig0?.thighR) { const m = worldPos(rig0.thighL).add(worldPos(rig0.thighR)).multiplyScalar(0.5); center.x = m.x; center.z = m.z; }
